@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" 
+	desiredWidth="360" desiredHeight="300" defaultButton="{updateButton}">
+	<mx:Script>
+		<![CDATA[
+			import model.logger.Logger;
+			[Bindable] public var oldVersion: String = "";
+			[Bindable] public var newVersion: String = "";
+			[Bindable] public var updaterURL: String = "";
+			[Bindable] public var updateInfoHTML: String = "";
+			
+			private var _urlStream: URLStream = null;
+			
+			override protected function handleCreationComplete(event: Event): void {
+				super.handleCreationComplete(event);
+
+				// Make sure links pop up in the system browser rather than navigating within
+				// our little window.
+				html.htmlLoader.navigateInSystemBrowser = true;
+			}
+			
+			private function handleUpdateClick(event: MouseEvent): void {
+				currentState = "updating";
+				updateFromURL(updaterURL);
+			}
+			
+			private function handleCancelClick(event: MouseEvent): void {
+				if (_urlStream != null) {
+					_urlStream.close();
+					_urlStream = null;
+				}
+				doClose();
+			}
+			
+			private function updateFromURL(url: String): void {
+				var urlReq: URLRequest = new URLRequest(url);
+				_urlStream = new URLStream();
+				_urlStream.addEventListener(Event.COMPLETE, handleUpdateLoaded);
+				_urlStream.addEventListener(IOErrorEvent.IO_ERROR, handleUpdateIOError);
+				progressBar.source = _urlStream;
+				_urlStream.load(urlReq);
+			}
+			
+			private function handleUpdateLoaded(event: Event): void {
+				var fileData: ByteArray = new ByteArray();
+				_urlStream.readBytes(fileData, 0, _urlStream.bytesAvailable);
+				
+			    var file: File = File.applicationStorageDirectory.resolvePath("update.air");
+			    var fileStream: FileStream = new FileStream();
+			    fileStream.open(file, FileMode.WRITE);
+			    fileStream.writeBytes(fileData, 0, fileData.length);
+			    fileStream.close();
+			    
+			    try {
+					var updater: Updater = new Updater();
+					updater.update(file, newVersion);
+			    }
+			    catch (e: Error) {
+			    	Logger.instance.log("Couldn't update the application--may be running in ADL: " + e.message,
+			    		Logger.SEVERITY_NORMAL);
+			    	currentState = "error";
+			    }
+			}
+			
+			private function handleUpdateIOError(event: IOError): void {
+				Logger.instance.log("Couldn't download application update: " + event.message, Logger.SEVERITY_NORMAL);
+				currentState = "error";
+			}
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<mx:Label y="10" text="A Snackr update is available!" fontSize="16" x="10"/>
+		<mx:Button id="cancelButton" label="Cancel" width="70" right="10" bottom="22" click="handleCancelClick(event)"/>
+		<mx:Button id="updateButton" label="Update" width="70" right="87" bottom="22" click="handleUpdateClick(event)"/>
+		<mx:HTML id="html" paddingLeft="5" paddingTop="5" paddingRight="5" paddingBottom="5" 
+			left="10" right="10" top="43" bottom="75" htmlText="{updateInfoHTML}"/>		
+	</popupChildren>
+	<states>
+		<mx:State name="updating">
+			<mx:SetProperty target="{updateButton}" name="enabled" value="false"/>
+			<mx:AddChild position="lastChild">
+				<mx:ProgressBar label="" id="progressBar" bottom="37" left="11" right="10"/>
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="error">
+			<mx:SetProperty target="{updateButton}" name="enabled" value="false"/>
+			<mx:SetProperty target="{cancelButton}" name="label" value="Close"/>
+			<mx:SetProperty target="{html}" name="visible" value="false"/>
+			<mx:AddChild position="lastChild">
+				<mx:Label left="10" y="43" right="10" text="Sorry, the update failed. Please try again later."/>
+			</mx:AddChild>
+		</mx:State>
+	</states>
+</Popup>

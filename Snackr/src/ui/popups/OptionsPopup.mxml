@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	desiredWidth="700" desiredHeight="400"
+	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" close="handleClose(event)" xmlns:utils="ui.utils.*">
+	<mx:Script>
+		<![CDATA[
+			import ui.utils.UIUtils;
+			import mx.events.PropertyChangeEvent;
+			import mx.events.EffectEvent;
+			import model.options.OptionChangeEvent;
+			import model.options.OptionsModel;
+			import ui.ticker.Ticker;
+			import mx.managers.PopUpManager;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import ui.utils.UIUtils;
+			import model.feeds.Feed;
+			import model.feeds.FeedModel;
+			
+			private var _feedModel: FeedModel = null;
+			private var _optionsModel: OptionsModel = null;
+			
+			[Bindable]
+			public var popupTitle: String = "";
+			
+			[Bindable]
+			public function get feedModel(): FeedModel {
+				return _feedModel;
+			}
+			public function set feedModel(value: FeedModel): void {
+				_feedModel = value;
+			}
+			
+			public function set optionsModel(value: OptionsModel): void {
+				_optionsModel = value;
+			}
+			
+			override protected function handleCreationComplete(event: Event): void {
+				super.handleCreationComplete(event);
+				for each (var option: String in OptionsModel.ALL_OPTIONS) {
+					if (option == OptionsModel.OPTION_SCREENS_PREFIX) {
+						option += String(Screen.screens.length);
+					}
+					setOption(option, _optionsModel.getValue(option));
+				}
+				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+				screenPicker.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, handleScreenPickerChange);
+		
+				// Hack. If I don't do this, the Feeds tab shows up as "Fee..." when the popup opens.
+				// Setting the selected index seems to cause it to relayout properly.
+				tabs.selectedIndex = 1;
+				tabs.validateNow();	
+				tabs.selectedIndex = 0;
+			}
+			
+			private function handleOptionChange(event: OptionChangeEvent): void {
+				setOption(event.option, event.value);
+			}
+			
+			private function setOption(option: String, value: String): void {
+				if (option == OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length)) {
+					screenPicker.selectedScreenIndex = Number(value);
+					showScreenPicker(Screen.screens.length > 1);
+				}
+				else switch (option) {
+					case OptionsModel.OPTION_TICKER_SPEED: {
+						var speed: Number = Number(value);
+						var sliderValue: Number = _speeds.length - 1;
+						for (var i: uint = 0; i < _speeds.length; i++) {
+							if (speed <= _speeds[i]) {
+								sliderValue = i;
+								break;
+							}
+						}
+						speedSlider.value = sliderValue;
+						break;
+					}
+					case OptionsModel.OPTION_ALWAYS_IN_FRONT: {
+						alwaysInFrontCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT: {
+						var ageLimit: Number = Number(value);
+						if (ageLimit <= 0) {
+							ageLimitCheck.selected = false;
+							ageLimitInput.text = "";
+							ageLimitInput.enabled = false;
+						}
+						else {
+							ageLimitCheck.selected = true;
+							ageLimitInput.text = value;
+							ageLimitInput.enabled = true;
+						}
+						break;
+					}
+					case OptionsModel.OPTION_CHECK_FOR_UPDATES: {
+						checkForUpdatesCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_SCREEN_SIDE: {
+						screenSideCombo.selectedIndex = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_FEED_CHECK_MIN_TIME: {
+						feedCheckMinTimeInput.text = value;
+						break;
+					}
+					case OptionsModel.OPTION_TICKER_OPACITY: {
+						opacitySlider.value = Number(value);
+						break;
+					}
+					default:
+						break;
+				}
+			}
+			
+			private function handleDeactivate(event: Event): void {
+				// Don't auto-close if we don't have any feeds. The user should continue to see the
+				// getting started dialog.
+				if (_feedModel.feeds.length > 0) {
+					doClose();
+				}
+			}	
+			
+			private function handleImportClick(): void {
+				doImport();
+			}
+			
+			private function doImport(): void {
+				var file: File = File.documentsDirectory;
+				file.browseForOpen("Choose OPML File");
+				file.addEventListener(Event.SELECT, handleImportFileSelected);
+			}
+			
+			private function handleImportFileSelected(event: Event): void {
+				_feedModel.loadOPMLFile(File(event.target));
+				close();
+			}		
+			
+			private function handleExportClick(): void {
+				var file: File = File.documentsDirectory;
+				file.browseForSave("Save OPML File");
+				file.addEventListener(Event.SELECT, handleExportFileSelected);
+			}
+			
+			private function handleExportFileSelected(event: Event): void {
+				_feedModel.saveOPMLFile(File(event.target));
+			}		
+			
+			private function handleNewClick(): void {
+				var url: String = UIUtils.getURLFromClipboard();
+				var panel: AddFeedPanel = new AddFeedPanel();
+				panel.feedURL = url;
+				panel.addEventListener(CloseEvent.CLOSE, handleAddFeedClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+			}
+			
+			private function handleAddFeedClose(event: CloseEvent): void {
+				var panel: AddFeedPanel = AddFeedPanel(event.target);
+				if (event.detail == Alert.OK) {
+					_feedModel.addOrDiscoverNewFeed(panel.feedURL);
+				}
+				panel.removeEventListener(CloseEvent.CLOSE, handleAddFeedClose);
+				PopUpManager.removePopUp(panel);
+			}
+			
+			private function handleDeleteClick(): void {
+				var panel: DeleteFeedPanel = new DeleteFeedPanel();
+				if (feedGrid.selectedItems.length > 1) {
+					panel.feedName = "";
+				}
+				else {
+					var name: String = Feed(feedGrid.selectedItem).name;
+					if (name == null || name == "") {
+						name = Feed(feedGrid.selectedItem).url;
+					}
+					panel.feedName = name;
+				}
+				panel.addEventListener(CloseEvent.CLOSE, handleDeleteFeedClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+			}
+			
+			private function handleDeleteFeedClose(event: CloseEvent): void {
+				if (event.detail == Alert.YES) {
+					// Save the list of feeds out of the selection, so if the grid updates as
+					// a result of a model update we don't get confused.
+					var feedsToDelete: Array = [];
+					for (var i: int = 0; i < feedGrid.selectedItems.length; i++) {
+						feedsToDelete.push(feedGrid.selectedItems[i]);
+					}
+					for (i = 0; i < feedsToDelete.length; i++) {
+						_feedModel.deleteFeed(Feed(feedsToDelete[i]));
+					}
+				}
+				var panel: DeleteFeedPanel = DeleteFeedPanel(event.target);
+				panel.removeEventListener(CloseEvent.CLOSE, handleDeleteFeedClose);
+				PopUpManager.removePopUp(panel);
+			}
+			
+			private function handleCloseClick(): void {
+				doClose();
+			}
+			
+			private function caseInsensitiveCompare(obj1: Object, obj2: Object): int {
+				var str1: String = String(obj1.name).toLowerCase();
+				var str2: String = String(obj2.name).toLowerCase();
+				if (str1 < str2) {
+					return -1;
+				}
+				else if (str1 == str2) {
+					return 0;
+				}
+				else {
+					return 1;
+				}
+			}
+			
+			static private const _speeds: Array = [20, 30, 60, 120, 180];
+			
+			private function handleSpeedChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_TICKER_SPEED, String(_speeds[speedSlider.value]));
+			}
+			
+			private function handleOpacityChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_TICKER_OPACITY, String(opacitySlider.value));
+			}
+			
+			private function handleAlwaysInFrontChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_ALWAYS_IN_FRONT, (alwaysInFrontCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleUpdateCheckChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_CHECK_FOR_UPDATES, (checkForUpdatesCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleAgeLimitCheckChange(event: Event): void {
+				var value: Number;
+				if (ageLimitCheck.selected) {
+					ageLimitInput.enabled = true;
+					if (ageLimitInput.text == "") {
+						ageLimitInput.text = "30";
+					}
+					value = Number(ageLimitInput.text);
+				}
+				else {
+					ageLimitInput.enabled = false;
+					value = -1;
+				}
+				if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT))) {
+					_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT, String(value));
+				}
+			}
+			
+			private function handleAgeLimitInput(event: Event): void {
+				if (ageLimitCheck.selected) {
+					var value: Number = Number(ageLimitInput.text);
+					if (value < 1) {
+						value = 1;
+					}
+					if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT))) {
+						_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT, String(value));
+					}
+				}
+			}
+			
+			private function handleFeedCheckMinTimeInput(event: Event): void {
+				var value: Number = Number(feedCheckMinTimeInput.text);
+				if (value < 5) {
+					value = 5;
+				}
+				if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_FEED_CHECK_MIN_TIME))) {
+					_optionsModel.setValue(OptionsModel.OPTION_FEED_CHECK_MIN_TIME, String(value));
+				} 
+			}
+			
+			private function showScreenPicker(show: Boolean): void {
+				screenPickerLabel.visible = show;
+				screenPicker.visible = show;
+			}
+			
+			private function handleScreenPickerChange(event: PropertyChangeEvent): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), String(screenPicker.selectedScreenIndex));
+			}
+			
+			private function handleScreenSideComboChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SCREEN_SIDE, String(screenSideCombo.selectedIndex));
+			}
+			
+			private function handleClose(event: Event): void {
+				_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+			}
+			
+			private function handleCheckAllNowClick(event: Event): void {
+				_feedModel.fetchAllFeeds();
+			}
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<mx:Button id="closeButton" styleName="closeButton" width="16" height="16" y="9" right="8" click="handleCloseClick()"/>
+		<mx:TabNavigator id="tabs" top="10" bottom="10" left="10" right="10" creationPolicy="all">
+			<mx:filters>
+				<mx:DropShadowFilter angle="90" blurX="5" blurY="5"/>
+			</mx:filters>
+			<mx:Canvas label="Feeds" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" id="canvas1">
+				<mx:DataGrid id="feedGrid" left="10" top="0" right="-2" bottom="20" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
+					itemRenderer="ui.utils.CharSetDetectingLabel">
+					<mx:columns>
+						<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
+						<mx:DataGridColumn headerText="URL" dataField="url"/>
+					</mx:columns>
+				</mx:DataGrid>
+				<mx:HRule left="0" right="0" top="25" strokeWidth="1" strokeColor="#666666"/>
+				<mx:HBox left="10" bottom="-1" verticalAlign="middle">
+					<mx:Label text="Check feeds every"/>
+					<mx:TextInput id="feedCheckMinTimeInput" width="46" valueCommit="handleFeedCheckMinTimeInput(event)"/>
+					<mx:Label text="minutes"/>
+					<mx:Button label="Check All Now" click="handleCheckAllNowClick(event)"/>
+				</mx:HBox>
+				<mx:Button right="236" label="Import..." width="80" click="handleImportClick()" bottom="-1" id="button1"/>
+				<mx:Button right="157" label="Export..." width="80" bottom="-1" click="handleExportClick()"/>
+				<mx:Button label="Remove..." width="80" right="-1" bottom="-1" click="handleDeleteClick()" enabled="{feedGrid.selectedItem != null}"/>
+				<mx:Button label="Add..." width="80" right="78" bottom="-1" click="handleNewClick()"/>
+				<mx:HRule left="0" right="0" bottom="22" strokeWidth="1" strokeColor="#666666"/>
+			</mx:Canvas>
+			<mx:Canvas label="Preferences" width="100%" height="100%" backgroundAlpha="0">
+				<mx:constraintColumns>
+					<mx:ConstraintColumn id="padding" width="10"/>
+					<mx:ConstraintColumn id="col1"/>
+					<mx:ConstraintColumn id="col2" width="100%"/>
+				</mx:constraintColumns>
+				<mx:Label left="col1:0" right="col1:0" y="10" textAlign="right" text="Ticker opacity:"/>
+				<mx:Label left="col2:10" y="10" text="0%"/>
+				<mx:HSlider id="opacitySlider" left="col2:41" y="7" minimum="0" maximum="1.0" snapInterval="0.05" liveDragging="true" allowTrackClick="true" change="handleOpacityChange(event)" showDataTip="false"/>
+				<mx:Label left="col2:201" y="10" text="100%"/>
+				<mx:Label left="col1:0" right="col1:0" y="43" textAlign="right" text="Ticker speed:"/>
+				<mx:Label left="col2:10" y="43" text="Slow"/>
+				<mx:HSlider id="speedSlider" left="col2:41" y="40" minimum="0" maximum="4" snapInterval="1" liveDragging="false" allowTrackClick="true" change="handleSpeedChange(event)" showDataTip="false"/>
+				<mx:Label left="col2:201" y="43" text="Fast"/>
+				<mx:Label left="col1:0" right="col1:0" y="73" textAlign="right" text="Options:"/>
+				<mx:CheckBox id="alwaysInFrontCheck" left="col2:10" y="71" label="Keep Snackr in front of other windows (right-click or control-click to hide temporarily)" selected="true" change="handleAlwaysInFrontChange(event)"/>
+				<mx:CheckBox left="col2:10" y="104" label="Don't show items older than" selected="true" id="ageLimitCheck" change="handleAgeLimitCheckChange(event)"/>
+				<mx:TextInput left="col2:187" y="104" width="46" id="ageLimitInput" valueCommit="handleAgeLimitInput(event)"/>
+				<mx:Label left="col2:237" y="106" text="days"/>
+				<mx:CheckBox left="col2:10" y="137" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
+				<mx:Label left="col1:0" right="col1:0" y="170" textAlign="right" text="Dock to side:"/>
+				<!-- HACK: Order of strings in this combobox must be the same as the UIUtils enum for SIDE_* -->
+				<mx:ComboBox left="col2:10" y="167" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
+				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="210" textAlign="right" text="Screen:"/>
+				<ScreenPicker id="screenPicker" left="col2:10" top="210" right="10" bottom="10"/>
+			</mx:Canvas>
+			<mx:Canvas label="About" width="100%" height="100%" backgroundAlpha="0">
+				<utils:SmoothImage source="@Embed(source='styles/snackr-icon-flat-128.png')" left="10" top="10" width="64" height="64"/>
+				<mx:TextArea left="84" top="10" right="10" bottom="20" backgroundAlpha="0" condenseWhite="true" borderStyle="none" focusEnabled="false" editable="false">
+					<mx:htmlText>
+						<![CDATA[
+							<p><font size="18">Thank you for using Snackr!</font></p>
+							<p>&nbsp;</p>
+							<p>For updates and documentation, visit <a href="http://snackr.net"><font color="#A0A0FF">snackr.net</font></a>.<br>
+							To report bugs or suggest features, send mail to Narciso (nj) Jaramillo, <a href="mailto:nj@snackr.net"><font color="#A0A0FF">&lt;nj@snackr.net&gt;</font></a>.<br>
+							For Snackr news, check out the Snackr category on my blog, <a href="http://rictus.com/muchado"><font color="#A0A0FF">much ado about something</font></a>,<br>
+							or follow <a href="http://twitter.com/snackr"><font color="#A0A0FF">snackr</font></a> on twitter.</p>
+							<p>&nbsp;</p>
+							<p>Copyright (c) 2008 Narciso Jaramillo<br>
+							All rights reserved.</p>
+							<p>&nbsp;</p>
+							<p>Redistribution and use in source and binary forms, with or without 
+							modification, are permitted provided that the following conditions are met:</p>
+							<p>&nbsp;</p>
+							<li>Redistributions of source code must retain the above copyright notice, 
+							      this list of conditions and the following disclaimer.</li>
+							<li>Redistributions in binary form must reproduce the above copyright 
+      							notice, this list of conditions and the following disclaimer in the 
+      							documentation and/or other materials provided with the distribution.</li>
+							<li>Neither the name of Narciso Jaramillo nor the names of other 
+      							contributors may be used to endorse or promote products derived from 
+      							this software without specific prior written permission.</li>
+							<p>&nbsp;</p>
+							<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+							AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+							IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+							DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+							FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+							DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+							SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+							CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+							OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+							USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+						]]>
+					</mx:htmlText>
+				</mx:TextArea>
+			</mx:Canvas>
+		</mx:TabNavigator>
+		<mx:Label id="titleLabel" y="9" right="34" textAlign="right" text="{popupTitle}"/>		
+	</popupChildren>
+</Popup>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="runTests()">
+	<mx:Script>
+		<![CDATA[
+			import tests.GoogleReaderTester;
+			import model.logger.Logger;
+			public function runTests(): void {
+				testReadItemMethods();
+			}
+			
+			public function testFeedRetrieval() : void {
+				var tester: GoogleReaderTester = new GoogleReaderTester();
+				tester.testGetFeeds();
+			}
+			
+			public function testReadItemMethods() : void {
+				var tester: GoogleReaderTester = new GoogleReaderTester();
+				//tester.testGetReadItems();
+				tester.testSetItemRead("http://www.adaptivepath.com/blog/2008/06/02/alexa-conquers-interactive-wireframes-on-boxes-arrows/");
+			}
+			
+			public function testGoogleReaderAuth(): void {
+				var tester: GoogleReaderTester = new GoogleReaderTester();
+				tester.testAuthenticationSuccess();
+				tester.testAuthenticationFailure();
+				
+			}
+			
+			public function testGoogleReaderAddRemove(): void {
+				var tester:GoogleReaderTester = new GoogleReaderTester;
+				//tester.testAdd();
+				tester.testDelete();
+			}
+			
+			public function doClick(): void {
+				var tester:GoogleReaderTester = new GoogleReaderTester;
+				tester.testGetReadItems();
+			}
+			
+		]]>
+	</mx:Script>
+	<mx:Button label="Test!" horizontalCenter="0" verticalCenter="-11" click="doClick()"/>
+</mx:WindowedApplication>

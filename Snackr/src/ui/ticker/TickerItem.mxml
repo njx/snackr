@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="215" height="65"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" xmlns:utils="ui.utils.*"
+	rollOver="handleRollOver(event)" rollOut="handleRollOut(event)" 
+	click="handleClick(event)"
+	cacheAsBitmap="true">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.events.ItemClickEvent;
+			
+			static public const IMAGE_SIDE_LEFT: Number = 0;
+			static public const IMAGE_SIDE_RIGHT: Number = 1;
+			
+			private var _data: Object = null;
+			private var _isRolledOver: Boolean = false;
+			private var _bgInvalid: Boolean = true;
+			private var _imageSide: Number = IMAGE_SIDE_LEFT;
+			
+			[Bindable]
+			override public function get data(): Object {
+				return _data;
+			}			
+			override public function set data(value: Object): void {
+				_data = value;
+				if (_data == null || _data.imageURL == undefined || _data.imageURL == null || _data.imageURL == "") {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "noImage" : "noImageRight");
+				}
+				else {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "" : "imageRight");
+				}
+				alpha = 1.0;
+				_bgInvalid = true;
+				invalidateDisplayList();
+			}
+			
+			[Bindable]
+			public function get imageSide(): Number {
+				return _imageSide;
+			}
+			public function set imageSide(value: Number): void {
+				_imageSide = value;
+				if (currentState == "" || currentState == "imageRight") {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "" : "imageRight");
+				}
+				else if (currentState == "hasImage" || currentState == "hasImageRight") {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "hasImage" : "hasImageRight");
+				}
+				else if (currentState == "noImage" || currentState == "noImageRight") {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "noImage" : "noImageRight");
+				}
+			}
+			
+			public function setRead(): void {
+				alpha = 0.5;
+			}
+			
+			private function handleRollOver(event: Event): void {
+				_isRolledOver = true;
+				_bgInvalid = true;
+				invalidateDisplayList();
+			}
+			
+			private function handleRollOut(event: Event): void {
+				_isRolledOver = false;
+				_bgInvalid = true;
+				invalidateDisplayList();
+			}
+			
+			override protected function updateDisplayList(unscaledWidth: Number, unscaledHeight: Number): void {
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+				
+				if (_bgInvalid) {
+					graphics.clear();
+
+/*				
+					if (_data != null && _data.highlightColor != undefined && _data.highlightColor != null) {
+						graphics.beginFill(_data.highlightColor);
+						graphics.drawRect(0, 0, unscaledWidth, unscaledHeight);
+						graphics.endFill();
+					}
+*/
+
+					if (_isRolledOver) {
+						var gradientMatrix: Matrix = new Matrix();
+						gradientMatrix.createGradientBox(unscaledWidth, unscaledHeight, Math.PI / 2, 0, 0);
+						graphics.beginGradientFill(GradientType.LINEAR, [0xCCCCCC, 0x999999], [0.2, 0.2], [0, 255], gradientMatrix);
+						graphics.drawRect(0, 0, 200, 50);
+						graphics.endFill();
+					}
+					
+					_bgInvalid = false;				
+				}
+			}
+			
+			private function handleClick(event: Event): void {
+				dispatchEvent(new TickerItemClickEvent(this, false)); 
+			}
+			
+			private function handleImageIOError(event: Event): void {
+				currentState = (_imageSide == IMAGE_SIDE_LEFT ? "noImage" : "noImageRight");
+			}
+			
+			private function handleImageComplete(event: Event): void {
+				// Register to listen for the next updateComplete event, so we can scale the image appropriately.
+				image.addEventListener(FlexEvent.UPDATE_COMPLETE, handleImageUpdateComplete);
+			}
+			
+			private function handleImageUpdateComplete(event: Event): void {
+				// If this is a small image (less than 5x5), ignore it--it's probably a tracking GIF.
+				if (image.contentWidth < 5 && image.contentHeight < 5) {
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "noImage" : "noImageRight");
+				}
+				else { 
+					// If the content is larger than the available space, scale it to fill the space in the
+					// shorter dimension, and crop the longer dimension. Otherwise we just crop it (since
+					// upscaling will look bad).
+					if (image.contentWidth > imageHolder.width && image.contentHeight > imageHolder.height) {
+						if (image.contentWidth > image.contentHeight) {
+							image.scaleX = image.scaleY = imageHolder.height / image.contentHeight;
+						}
+						else {
+							image.scaleX = image.scaleY = imageHolder.width / image.contentWidth;
+						}
+					}
+					else {
+						image.scaleX = image.scaleY = 1;
+					}
+					// Center the image in the space.
+					image.x = (imageHolder.width - image.contentWidth * image.scaleX) / 2;
+					image.y = (imageHolder.height - image.contentHeight * image.scaleY) / 2;
+					image.removeEventListener(FlexEvent.UPDATE_COMPLETE, handleImageUpdateComplete);
+
+					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "hasImage" : "hasImageRight");					
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:states>
+		<mx:State name="hasImage">
+			<mx:SetProperty target="{image}" name="visible" value="true"/>
+		</mx:State>
+		<mx:State name="noImage">
+			<mx:SetProperty target="{image}" name="visible" value="false"/>
+			<mx:SetStyle target="{title}" name="left" value="2"/>
+			<mx:SetProperty target="{info}" name="maxWidth" value="150"/>
+			<mx:SetStyle target="{infoBox}" name="left" value="2"/>
+		</mx:State>
+		<mx:State name="noImageRight" basedOn="noImage">
+			<mx:SetProperty name="width" value="200"/>
+			<mx:SetProperty name="height" value="65"/>
+			<mx:RemoveChild target="{vRule}"/>
+			<mx:AddChild position="lastChild">
+				<mx:HRule bottom="7" left="0" right="15" strokeWidth="1" strokeColor="#FFFFFF" alpha="0.1"/>
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="imageRight">
+			<mx:SetProperty name="width" value="200"/>
+			<mx:SetProperty name="height" value="65"/>
+			<mx:SetStyle target="{imageHolder}" name="left"/>
+			<mx:SetStyle target="{imageHolder}" name="right" value="16"/>
+			<mx:SetStyle target="{title}" name="left" value="2"/>
+			<mx:SetStyle target="{title}" name="right" value="67"/>
+			<mx:SetStyle target="{infoBox}" name="left" value="2"/>
+			<mx:SetStyle target="{infoBox}" name="right" value="67"/>
+			<mx:RemoveChild target="{vRule}"/>
+			<mx:AddChild position="lastChild">
+				<mx:HRule bottom="7" left="0" right="0" strokeWidth="1" strokeColor="#FFFFFF" alpha="0.1"/>
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="hasImageRight" basedOn="imageRight">
+			<mx:SetProperty target="{image}" name="visible" value="true"/>			
+		</mx:State>
+	</mx:states>
+	
+	<mx:Canvas id="imageHolder" left="1" top="1" width="48" height="48" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<utils:SmoothImage id="image" visible="false" source="{data.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
+	</mx:Canvas>
+	<utils:CharSetDetectingText id="title" y="0" left="52" right="17" htmlText="{data.title}" fontSize="12" height="36" selectable="false"/>
+	<mx:HBox id="infoBox" y="35" left="52" right="17" horizontalGap="5">
+		<utils:CharSetDetectingLabel id="info" text="{data.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip=""/>
+		<utils:CharSetDetectingLabel id="info2" text="{data.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip=""/>		
+	</mx:HBox>
+	<mx:VRule id="vRule" right="7" top="0" bottom="0" strokeWidth="1" strokeColor="#FFFFFF" alpha="0.1"/>
+</mx:Canvas>

@@ -28,6 +28,8 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+<!-- Popup that appears when the user clicks the Add Feed button on the ticker tab. -->
+
 <Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" desiredWidth="450" desiredHeight="110"
 	defaultButton="{_okButton}" xmlns:utils="ui.utils.*" close="handleClose(event)">
 	<mx:Script>

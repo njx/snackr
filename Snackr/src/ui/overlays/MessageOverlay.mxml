@@ -28,6 +28,8 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+<!-- Simple overlay for messages that appear transiently on top of the ticker. -->
+
 <mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" backgroundAlpha="0.9"
 	cornerRadius="5" borderStyle="solid" borderThickness="0">
 	<mx:Script>

@@ -1,0 +1,1514 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="100%" height="100%"
+	showTitleBar="false" showStatusBar="false" showGripper="false" showFlexChrome="false"
+	creationComplete="handleCreationComplete(event)" xmlns:ticker="ui.ticker.*"
+	resize="handleResize(event)" applicationComplete="handleApplicationComplete(event)"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" frameRate="60" closing="handleClosing(event)" 
+	xmlns:overlays="ui.overlays.*"
+	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
+	<mx:Style source="styles/styles.css"/>
+	<mx:Script>
+		<![CDATA[
+		
+			// In addition to being the main window, this acts as the main controller for the
+			// application. In general, individual components such as the ticker and the
+			// detail popup are relatively generic; this main application pulls data from the
+			// models, pushes it into the UI, and handles events from the subcomponents.
+			//
+			// Currently, not everything is really that cleanly factored--a number of the popups
+			// talk directly to the FeedModel, for convenience. However, most subcomponents don't 
+			// depend directly on the OptionsModel--instead, this main app listens to option
+			// changes, then sets appropriate properties on the subcomponents.
+		
+			import ui.popups.GettingStartedPopup;
+			import model.feeds.FeedModelEvent;
+			import mx.events.CloseEvent;
+			import ui.popups.AddFeedPopup;
+			import ui.utils.UIUtils;
+			import ui.utils.AnimateRectProperty;
+			import model.logger.Logger;
+			import model.logger.LogEvent;
+			import mx.rpc.events.FaultEvent;
+			import ui.popups.UpdatePopup;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			import flash.net.navigateToURL;
+			import mx.events.EffectEvent;
+			import mx.effects.easing.Cubic;
+			import ui.utils.AnimateRectProperty;
+			import mx.effects.Move;
+			import ui.popups.Popup;
+			import model.options.OptionChangeEvent;
+			import model.options.OptionsModel;
+			import ui.overlays.MessageOverlay;
+			import mx.controls.Alert;
+			import ui.popups.OptionsPopup;
+			import ui.utils.UIUtils;
+			import ui.popups.DetailPopup;
+			import ui.ticker.TickerItemClickEvent;
+			import ui.ticker.TickerItem;
+			import model.feeds.FeedItem;
+			import model.feeds.Feed;
+			import model.feeds.FeedModel;
+			import mx.collections.ArrayCollection;
+			import flash.display.Screen;
+			import ui.popups.StarredItemsPopup;
+
+			/**
+			 * Default height of the ticker (including the tab).
+			 */
+			static private const DEFAULT_HEIGHT: Number = 80;
+			/**
+			 * Default width of the ticker.
+			 */
+			static private const DEFAULT_WIDTH: Number = 210;
+			/**
+			 * Height of the tab.
+			 */
+			static private const TAB_HEIGHT: Number = 20;
+			/**
+			 * Width of the tab.
+			 */
+			static private const TAB_WIDTH: Number = 104;
+			
+			/**
+			 * Number of items to pick at once when the queue is running out.
+			 */
+			static private const ITEM_BATCH_SIZE: Number = 10;
+			/**
+			 * How long transient messages (overlaid on the ticker) are shown.
+			 */
+			static private const MESSAGE_DURATION: Number = 1000 * 5;
+			
+			/**
+			 * How many pixels the user has to drag the ticker before we consider it a
+			 * "redock" operation.
+			 */
+			static private const DRAG_START_THRESHOLD: Number = 10;
+			/**
+			 * How many pixels the user has to drag the ticker in the direction perpendicular
+			 * to its current orientation before we consider it a "toss" to the opposite
+			 * side. For example, if the ticker is at the bottom, and the user drags the
+			 * ticker more than 10 pixels upward (after the drag start threshold has been met), 
+			 * we consider it a toss to the top of the screen.
+			 */
+			static private const DRAG_COMMIT_THRESHOLD_OPPOSITE: Number = 10;
+			/**
+			 * How many pixels the user has to drag the ticker in a direction parallel
+			 * to its current orientation before we consider it a "toss" to that adjacent
+			 * side. For example, if the ticker is at the bottom, and the user drags the
+			 * ticker more than 50 pixels to the right (after the drag start threshold
+			 * has been met), we consider it a toss to the right side of the screen.
+			 */
+			static private const DRAG_COMMIT_THRESHOLD_SIDEWAYS: Number = 50;
+		
+			/**
+			 * How many seconds to wait before cancelling an incomplete HTTP request.
+			 */
+			static private const FETCH_TIMEOUT: Number = 30;
+			
+			/**
+			 * Name of the XML file containing the hints we show as the first item
+			 * in the ticker. This file is assumed to be within the Snackr application
+			 * installation directory.
+			 */
+			static private const HINTS_FILE: String = "hints.xml";
+			/**
+			 * Name of the database where we store all feeds and options. This file
+			 * is within the user's documents folder in the Snackr subfolder.
+			 */		
+			static private const DB_FILE: String = "FeedDatabase.sql";
+			
+			/**
+			 * Default values for all options. We set these on startup if they're not
+			 * already set (see readOptions()).
+			 */
+			static private const DEFAULT_OPTIONS: Array = [
+				[OptionsModel.OPTION_TICKER_SPEED, "60"],
+				[OptionsModel.OPTION_ALWAYS_IN_FRONT, "1"],
+				[OptionsModel.OPTION_AGE_LIMIT, "30"],
+				[OptionsModel.OPTION_CHECK_FOR_UPDATES, "1"],
+				[OptionsModel.OPTION_SCREEN_SIDE, String(UIUtils.SIDE_BOTTOM)],
+				[OptionsModel.OPTION_FEED_CHECK_MIN_TIME, "45"],
+				[OptionsModel.OPTION_TICKER_OPACITY, "0.9"]
+			];
+			
+			/**
+			 * URL to the XML file that lists the latest Snackr version. We use this to determine
+			 * whether to update Snackr.
+			 */
+			static private const UPDATE_INFO_URL: String = "http://snackr.net/latestVersion.xml";
+			
+			/**
+			 * The namespace of the AIR application XML file schema.
+			 */
+			namespace airAppNS = "http://ns.adobe.com/air/application/1.0";
+			
+			/**
+			 * Our connection to the local database. We keep this open for the lifetime of the app.
+			 */
+			private var _sqlConnection: SQLConnection;			
+			/**
+			 * The model holding all option values.
+			 */
+			private var _optionsModel: OptionsModel;
+			/**
+			 * The model holding all feeds and feed items.
+			 */
+			private var _feedModel: FeedModel;
+
+			/**
+			 * Whether we've started animating the ticker.
+			 */			
+			private var _tickerStarted: Boolean = false;
+			/**
+			 * Whether we've started all our timers.
+			 */
+			private var _timersStarted: Boolean = false;
+			/**
+			 * Timer that kicks in every minute to see if we need to fill the queue of
+			 * ticker items.
+			 */
+			private var _queueFillTimer: Timer = null;
+			/**
+			 * Timer that kicks in once an hour to see if we need to autoupdate.
+			 */
+			private var _updateCheckTimer: Timer = null;
+			/**
+			 * Timer that kicks in every two minutes to see if the multiscreen configuration has
+			 * changed. When it does, we move the ticker to wherever it was the last time
+			 * the user had this many screens available.
+			 */
+			private var _screenChangePollTimer: Timer = null;
+			
+			/**
+			 * The maximum age of items we show in the ticker.
+			 */
+			private var _ageLimit: Number = -1;
+
+			/**
+			 * Flag indicating whether we need to redraw the background.
+			 */
+			private var _bgInvalid: Boolean = true;
+			/**
+			 * Opacity of the background behind the ticker.
+			 */
+			private var _backgroundOpacity: Number = 0.9;
+
+			/**
+			 * The last DetailPopup shown, if any.
+			 */
+			private var _lastDetailPopup: DetailPopup = null;
+			/**
+			 * The current OptionsPopup being shown, if any.
+			 */
+			private var _optionsPopup: OptionsPopup = null;
+			/**
+			 * The current StarredItemsPopup being shown, if any.
+			 */
+			private var _starredItemsPopup: StarredItemsPopup = null;
+			/**
+			 * The current AddFeedPopup being shown, if any.
+			 */
+			private var _addFeedPopup: AddFeedPopup = null;
+
+			/**
+			 * The last known bounds of our native window. We use this to figure out whether
+			 * we need to slide the ticker to a new position when a redock is requested.
+			 */
+			private var _lastNativeWindowBounds: Rectangle = new Rectangle(0, 0, 0, 0);
+			/**
+			 * The last known global bounds of the current screen. If this changes, we know
+			 * the screen configuration has changed.
+			 */
+			private var _lastScreenBounds: Rectangle = null;
+			/**
+			 * Which side the ticker is currently docked to.
+			 */
+			private var _currentSide: Number = UIUtils.SIDE_BOTTOM;
+			/**
+			 * Whether this is the first time we've docked the ticker. If it is, then we
+			 * know not to animate it into place--just show it immediately.
+			 */
+			private var _firstRedock: Boolean = true;
+			/**
+			 * Whether the ticker is collapsed.
+			 */
+			private var _isCollapsed: Boolean = false;
+
+			/**
+			 * Whether we're in the middle of a ticker drag ("toss") operation.
+			 */
+			private var _isDragging: Boolean = false;
+			/**
+			 * The upper-left corner of the window at the time the drag started.
+			 */
+			private var _dragStart: Point = null;
+			/**
+			 * The current upper-left corner of the window during a drag.
+			 */
+			private var _dragCurrent: Point = null;
+			/**
+			 * The original bounds of the window when the drag started.
+			 */
+			private var _origBounds: Rectangle = null;
+			/**
+			 * Whether to ignore clicks. This is a workaround for the fact that even if the user
+			 * starts a drag, the mouseDown still gets processed by the underlying component. 
+			 * To avoid that, we ignore the first click we get after a drag. See handleMouseMove();
+			 */
+			private var _ignoreClicks: Boolean = false;	
+
+			/**
+			 * The XML containing the startup hints.
+			 */
+			private var _hints: XML = null;
+			
+			/**
+			 * The main startup sequence for Snackr; this happens after all the subcomponents of
+			 * the window are created.
+			 */
+			private function handleCreationComplete(event: Event): void {
+				// Create the Snackr data folder if it doesn't exist (inside the user's
+				// document's folder).
+				var docRoot: File = File.documentsDirectory.resolvePath(appName);
+				docRoot.createDirectory();
+				
+				// Initialize the logger. The logger writes to the file Log.txt in the
+				// Snackr data folder.
+				Logger.instance.initialize(docRoot.resolvePath("Log.txt"));
+				Logger.instance.addEventListener(LogEvent.LOG_ITEM, handleLogItem);
+				
+				Logger.instance.log("Snackr starting");
+				
+				// Try to open and read the hints file.
+				var hintsFile: File = File.applicationDirectory.resolvePath(HINTS_FILE);
+				var fileStream: FileStream = new FileStream();
+				try {
+					fileStream.open(hintsFile, FileMode.READ);
+					_hints = XML(fileStream.readUTFBytes(fileStream.bytesAvailable));
+				}
+				catch (error: Error) {
+					Logger.instance.log("Couldn't read the hints file: " + error.message);
+				}
+				finally {
+					fileStream.close();
+				}			
+				
+				// Open the Snackr database file and initialize the models from it.
+				var dbFile: File = docRoot.resolvePath(DB_FILE);
+				try {
+					_sqlConnection = new SQLConnection();
+					_sqlConnection.open(dbFile);
+					_sqlConnection.compact();
+					_optionsModel = new OptionsModel(_sqlConnection);
+					_feedModel = new FeedModel(_sqlConnection);
+				}
+				catch (error: SQLError) {
+					Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
+					throw error;
+				}
+				
+				// Load the existing options values (or set them to their defaults if they don't exist).
+				readOptions();
+				_optionsModel.setValue(OptionsModel.OPTION_VERSION, appVersion);
+
+				// Add listeners for model events.
+				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+				_feedModel.addEventListener(FeedModelEvent.FEEDS_UPDATED, handleFeedsUpdated);
+				_feedModel.addEventListener(FeedModelEvent.FEED_LIST_UPDATED, handleFeedListUpdated);
+				
+				// TODO: We used to show a transient message on the ticker itself when a feed is added.
+				// Now we handle this in the Add Feed popup from the + button on the ticker tab, so we don't
+				// need these anymore. However, we don't currently do the same thing when a feed is added
+				// from within the OptionsPopup. We need to add similar feedback there (see AddFeedPopup
+				// and AddFeedPanel).
+//				_feedModel.addEventListener(FeedModelEvent.FEED_ADDED, handleFeedAdded);
+//				_feedModel.addEventListener(FeedModelEvent.DUPLICATE_FEED_ADDED, handleDuplicateFeedAdded);
+//				_feedModel.addEventListener(FeedModelEvent.INVALID_FEED, handleInvalidFeed);
+				
+				// Move the ticker to its correct initial location based on the current screen configuration
+				// and the stored preference for which screen and side it should live on.
+				redock(currentScreen, false);	
+				
+				// Show the window.
+				nativeWindow.visible = true;
+				
+				// Register a capturing event listener for mouse downs. We use this to detect drag starts.
+				systemManager.addEventListener(MouseEvent.MOUSE_DOWN, handleMouseDown, true);			
+
+				// Show the welcome screen if there are no feeds; otherwise, start all our timers.
+				if (_feedModel.feeds.length == 0) {
+					showWelcome();
+				}
+				else {
+					startTimers();
+				}
+			}
+			
+			/**
+			 * Handler for log events. Currently, we only show log events in the UI if there's a
+			 * catastrophic failure; other events just go to the log file in the Snackr data folder.
+			 */
+			private function handleLogItem(event: LogEvent): void {
+				if (event.severity == Logger.SEVERITY_SERIOUS) {
+					errorMessage.message = "<b>A serious error occurred.</b> Click here to view the Snackr error log file.\nPlease contact nj@snackr.net about this problem.";
+					errorMessage.visible = true;
+				}
+			}
+			
+			/**
+			 * Returns the screen we're currently on. This Screen object shouldn't be directly cached; callers
+			 * should copy out data they care about (e.g. screen bounds).
+			 * @returns the current screen
+			 */
+			private function get currentScreen(): Screen {
+				// We look at how many screens are available, then remember which screen the user chose
+				// the last time we had this many screens.
+				var curScreenIndex: Number = Number(getOptionWithDefault(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), "0"));
+				return Screen.screens[curScreenIndex];
+			}
+
+			/**
+			 * Loads options from the OptionsModel and sets values on subcomponents appropriately. If a given
+			 * option doesn't already exist, this sets it to its default value.
+			 */
+			private function readOptions(): void {
+				for each (var defaultOptionValue: Array in DEFAULT_OPTIONS) {
+					var curValue: String = getOptionWithDefault(defaultOptionValue[0], defaultOptionValue[1]);
+					interpretOption(defaultOptionValue[0], curValue);
+				}
+			}			
+			
+			/**
+			 * Gets an option from the OptionsModel. If the option doesn't already exist, sets it to the
+			 * given default value.
+			 * @param option The name of the option to set.
+			 * @param defaultValue The default value to set. Note that all option values are stored as String;
+			 * Booleans are converted to "0" (false) and "1" (true) for not particularly good reasons.
+			 */
+			private function getOptionWithDefault(option: String, defaultValue: String): String {
+				var curValue: String = _optionsModel.getValue(option);
+				if (curValue == null) {
+					// Use the default value and write it into the database.
+					_optionsModel.setValue(option, defaultValue);
+					curValue = defaultValue;
+				}
+				return curValue;
+			}
+			
+			/**
+			 * Handles whenever an option changes in the OptionsModel.
+			 */
+			private function handleOptionChange(event: OptionChangeEvent): void {
+				interpretOption(event.option, event.value);
+			}
+			
+			/**
+			 * Takes an option in the OptionsModel and applies it to the appropriate
+			 * subcomponent.
+			 */
+			private function interpretOption(option: String, value: String): void {
+				if (option == OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length)) {
+					redock(currentScreen);
+				}
+				else switch (option) {
+					case OptionsModel.OPTION_TICKER_SPEED: {
+						ticker.speed = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_ALWAYS_IN_FRONT: {
+						alwaysInFront = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT: {
+						_ageLimit = Number(value);
+						break;	
+					}
+					case OptionsModel.OPTION_SCREEN_SIDE: {
+						currentSide = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_FEED_CHECK_MIN_TIME: {
+						_feedModel.feedCheckMinTime = Number(value);
+					}
+					case OptionsModel.OPTION_TICKER_OPACITY: {
+						_backgroundOpacity = Number(value);
+						_bgInvalid = true;
+						invalidateDisplayList();
+					}
+					default:
+						break;
+				}
+			}
+			
+			/**
+			 * Handles whenever the feed list is updated. Currently, we just use this to decide whether
+			 * to show the welcome screen or start the timers.
+			 */
+			private function handleFeedListUpdated(event: Event): void {
+				if (_feedModel.feeds.length == 0) {
+					showWelcome();
+				}
+				else {
+					startTimers();
+				}
+			}
+			
+			/**
+			 * Returns which side of the screen the ticker is currently on.
+			 * @returns the current side (one of the UIUtils.SIDE_* constants)
+			 */
+			private function get currentSide(): Number {
+				return _currentSide;
+			}
+			
+			/**
+			 * Sets the side of the screen the ticker is on.
+			 * @param value The side to move the ticker to (one of the UIUtils.SIDE_* constants).
+			 */
+			private function set currentSide(value: Number): void {
+				// Set the current side and verticality.
+				_currentSide = value;
+				currentState = (isVertical ? "vertical" : (_currentSide == UIUtils.SIDE_TOP ? "top" : ""));
+				
+				// Redraw the ticker background immediately.
+				_bgInvalid = true;
+				invalidateDisplayList();
+				validateNow();
+				
+				// Animate the ticker to the new location.
+				redock(currentScreen);
+			}
+			
+			/**
+			 * Kicks off our timers.
+			 */
+			private function startTimers(): void {
+				if (!_timersStarted) {	
+					_timersStarted = true;	
+					
+					// Show the initial loading spinner.
+					spinner.start();
+					spinner.visible = true;
+					
+					kickQueueFillTimer();
+					
+					_screenChangePollTimer = new Timer(2000);
+					_screenChangePollTimer.addEventListener(TimerEvent.TIMER, handleScreenChangePollTimer);
+					_screenChangePollTimer.start();					
+				}
+			}
+			
+			/**
+			 * Begins animating the ticker.
+			 */
+			private function startTicker(): void {
+				if (!_tickerStarted) {
+					startTimers();
+					
+					// If we're ready to animate the ticker, we must be done loading, so hide the spinner.
+					spinner.visible = false;
+					spinner.stop();
+					
+					_tickerStarted = true;
+					
+					// Add a fake "hint" item to the ticker queue as the first item.
+					if (_hints != null && _hints.hint.length() > 0) {
+						var hint: XML = _hints.hint[Math.floor(Math.random() * _hints.hint.length())];
+						ticker.queueItem({title: hint.title, description: hint.description, imageURL: appIconURL, info: "Snackr Tips"});
+					}
+					else {
+						ticker.queueItem({title: "Welcome to " + appName + "!", imageURL: appIconURL, info: "Narciso (nj) Jaramillo",
+							description: "<a href=\"http://www.snackr.net/\">" + appName + "</a> " + appVersion + " by <a href=\"mailto:nj@snackr.net\">Narciso (nj) Jaramillo</a>"});
+					}
+					
+					// Start the ticker.
+					ticker.animate();
+					ticker.addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
+				}
+			}
+			
+			/**
+			 * Returns the name of the application ("Snackr", of course!)
+			 */
+			private function get appName(): String {
+				return nativeApplication.applicationDescriptor.airAppNS::name;	
+			}
+			
+			/**
+			 * Returns the current version of the application. Note that this is a string, and
+			 * is of the form "v" + version number. Strip off any non-numeric characters off the
+			 * front before using it for numeric version comparisons.
+			 */
+			private function get appVersion(): String {
+				return nativeApplication.applicationDescriptor.airAppNS::version;
+			}
+			
+			/**
+			 * URL to the Snackr application icon.
+			 */
+			private function get appIconURL(): String {
+				use namespace airAppNS;
+				var iconFile: File = File.applicationDirectory.resolvePath(nativeApplication.applicationDescriptor.icon.image48x48);
+				return iconFile.url;
+			}
+			
+			/**
+			 * Handler for the screen change poll timer. Checks if the screen bounds have changed since
+			 * the last time the timer ran; if so, we need to move and resize the ticker appropriately.
+			 */
+			private function handleScreenChangePollTimer(event: TimerEvent): void {
+				if (!(nativeWindow.closed) && !_lastScreenBounds.equals(currentScreen.visibleBounds)) {
+					redock(currentScreen);
+				}
+			}
+			
+			/**
+			 * Handler for clicking on a ticker item. This pops up the detail popup window for that item.
+			 */
+			private function handleTickerItemClick(event: TickerItemClickEvent): void {
+				// TODO: not clear that this should live at this level; maybe it should live in
+				// TickerItem, since items can be reused in different places (e.g. in the StarredItemsPopup)?
+				if (!_ignoreClicks) {					
+					var item: TickerItem = event.tickerItem;
+					
+					// TODO: this is currently obsolete; right-click used to mark an item as read, but now
+					// it collapses the ticker. We should probably go back to making it mark items as read.
+					var doPopup: Boolean = !event.isRightClick;
+					
+					// Close the last detail popup if one is already open.
+					// TODO: should have more general popup management to ensure only one popup is open at a time.
+					if (_lastDetailPopup != null) {
+						if (_lastDetailPopup.data == event.tickerItem.data) {
+							// The user just clicked on the same item again, so just close the popup.
+							doPopup = false;
+							ticker.resume();
+						}
+						_lastDetailPopup.removeEventListener(Event.CLOSE, handleDetailClose);
+						_lastDetailPopup.doClose();
+						_lastDetailPopup = null;
+					}
+					
+					if (doPopup) {
+						// Stop the ticker while the user is reading the item.
+						ticker.pause();
+						
+						// Figure out where to open the popup. We want it to be anchored to the
+						// middle of the item, on the appropriate side of the ticker (depending on
+						// where it's docked).
+						var globalOrigin: Point = item.localToGlobal(new Point(0, 0));
+						globalOrigin.x += item.stage.nativeWindow.bounds.x;
+						globalOrigin.y += item.stage.nativeWindow.bounds.y;
+						
+						var detail: DetailPopup = new DetailPopup();
+						if (isVertical) {
+							detail.anchorPoint = new Point(
+								(currentSide == UIUtils.SIDE_LEFT ? globalOrigin.x + item.width : globalOrigin.x),
+								globalOrigin.y + item.height / 2);
+						}
+						else {
+							detail.anchorPoint = new Point(globalOrigin.x + item.width / 2, 
+								(currentSide == UIUtils.SIDE_TOP ? globalOrigin.y + item.height : globalOrigin.y));
+						}
+						
+						// Set up the detail popup and open it.
+						detail.pointerSide = currentSide;
+						detail.currentScreen = currentScreen;
+						detail.data = item.data;
+						detail.addEventListener(Event.CLOSE, handleDetailClose);
+						detail.open(true);
+						
+						_lastDetailPopup = detail;				
+					}
+					
+					// Mark the item as read.
+					var feedItem: FeedItem = FeedItem(item.data.feedItem);
+					if (feedItem != null) {
+						feedItem.feed.setItemRead(feedItem);
+						item.setRead();
+					}
+				}
+			}
+			
+			/**
+			 * Handler for detail popup close. This restarts the ticker.
+			 */
+			private function handleDetailClose(event: Event): void {
+				if (_lastDetailPopup == event.target) {
+					event.target.removeEventListener(Event.CLOSE, handleDetailClose);
+					_lastDetailPopup = null;
+				}
+				ticker.resume();
+			}
+			
+			/**
+			 * Handles resizes. This forces the background to draw immediately, so that it doesn't get
+			 * out of sync with the window as it's animated.
+			 */
+			private function handleResize(event: Event): void {
+				_bgInvalid = true;
+				invalidateDisplayList();
+				// Force immediate redraw.
+				validateNow();
+			}
+			
+			/**
+			 * Handles when feeds are updated in the model.
+			 */
+			private function handleFeedsUpdated(event: Event): void {
+				kickQueueFillTimer();
+			}
+			
+			/**
+			 * Restarts the queue fill timer.
+			 */
+			private function kickQueueFillTimer(): void {
+				// We don't want to actually start adding stuff to the queue until
+				// we've finished the current batch of feed requests (so we don't
+				// do a fill on every feed fetch, or start filling when more new
+				// stuff is about to come in). So we restart the queue fill timer
+				// each time a feed request finishes. If the timer completes, 
+				// we can go ahead and fill the queue.
+				if (_queueFillTimer == null) {
+					_queueFillTimer = new Timer(1000);
+					_queueFillTimer.addEventListener(TimerEvent.TIMER, handleQueueFillTimer);
+					_queueFillTimer.start();
+				}
+				else {
+					_queueFillTimer.reset();
+					_queueFillTimer.start();
+				}
+			}
+			
+			/**
+			 * Fills the ticker item queue if necessary.
+			 */
+			private function handleQueueFillTimer(event: TimerEvent): void {
+				if (!_tickerStarted) {
+					startTicker();		
+				}
+				
+				// We got to the end of the timer, so we're good to add stuff
+				// to the queue. Since the repeatCount on the timer is 0, we
+				// don't have to restart it.
+				if (ticker.queueRunningLow()) {
+					addItemsToQueue();
+				}
+			}
+
+			/**
+			 * Adds a randomly picked batch of items to the ticker queue.
+			 */			
+			private function addItemsToQueue(): void {
+				var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, _ageLimit);
+				ticker.queueItems(UIUtils.convertFeedItemsToTickerItems(feedItems));
+			}
+			
+			/**
+			 * Returns whether the ticker is currently horizontally or vertically oriented.
+			 */
+			private function get isVertical(): Boolean {
+				return (currentSide == UIUtils.SIDE_LEFT || currentSide == UIUtils.SIDE_RIGHT);
+			}
+
+			/**
+			 * Docks the ticker to the given screen (on the current side, which is dictated by
+			 * the setting of the currentSide option).
+			 * @param screen The screen to dock the ticker to.
+			 * @param animate Whether to animate the ticker to its new position or just jump
+			 * directly there. Default true.
+			 */
+			private function redock(screen: Screen, animate: Boolean = true): void {
+				// Determine the new location of the ticker.
+				var screenBounds: Rectangle = screen.visibleBounds;
+				var newBounds: Rectangle = new Rectangle();
+				if (isVertical) {
+					newBounds.x = (currentSide == UIUtils.SIDE_LEFT ? screenBounds.x : screenBounds.x + screenBounds.width - DEFAULT_WIDTH);
+					newBounds.y = screenBounds.y;
+					newBounds.width = DEFAULT_WIDTH;
+					newBounds.height = screenBounds.height;
+				}
+				else {
+					newBounds.x = screenBounds.x;
+					newBounds.y = (currentSide == UIUtils.SIDE_TOP ? screenBounds.y : screenBounds.y + screenBounds.height - DEFAULT_HEIGHT);	
+					newBounds.width = screenBounds.width;
+					newBounds.height = DEFAULT_HEIGHT;
+				}
+				if (animate && !_lastNativeWindowBounds.equals(newBounds) && !_firstRedock) {
+					// If this isn't the first time we're showing ourselves, and we want to animate,
+					// then animate. Note that we don't set the ticker to be vertical until the animation
+					// ends, since the logic in the ticker for setting its orientation depends on the
+					// ticker being at the new correct size. Since animations are asynchronous, we can't
+					// just do this after the animateToBounds() call--we have to put it in a handler for
+					// the effect-end event.
+					quickFadeOut.play([ticker]);
+					UIUtils.animateToBounds(nativeWindow, newBounds, 500, null, handleRedockAnimateEnd);
+				}
+				else {
+					// Just jump to the new bounds. Since we're not animating, we need to do the same
+					// things that handleRedockAnimateEnd() does.
+					nativeWindow.bounds = newBounds;
+					ticker.isVertical = isVertical;
+				
+					// If we were collapsed before, we're not now...
+					if (_isCollapsed) {
+						collapse();
+					}
+				}
+				
+				// Save off the window bounds so we can figure out what to do next time we have to redock.
+				_lastNativeWindowBounds = newBounds;
+				_lastScreenBounds = screen.visibleBounds;
+				_firstRedock = false;
+			}
+			
+			/**
+			 * Postprocessing after a redock animation.
+			 */
+			private function handleRedockAnimateEnd(event: EffectEvent): void {
+				ticker.isVertical = isVertical;
+				quickFadeIn.play([ticker]);
+				
+				// If we were collapsed before, we're not now...
+				if (_isCollapsed) {
+					collapse();
+				}
+			}
+			
+			/**
+			 * Handler for closing the window. We want to fully exit the application when this happens.
+			 */
+			private function handleCloseClick(): void {
+				exit();
+			}
+			
+			/**
+			 * Handler for the Options button on the ticker tab.
+			 */
+			private function handleOptionsClick(): void {
+				doShowOptions();
+			}
+			
+			/**
+			 * Opens the Options popup.
+			 */
+			private function doShowOptions(): void {
+				if (_optionsPopup != null) {
+					_optionsPopup.doClose();
+					_optionsPopup = null;
+				}
+				else {
+					var options: OptionsPopup = new OptionsPopup();
+					options.currentScreen = currentScreen;
+					options.feedModel = _feedModel;
+					options.optionsModel = _optionsModel;
+					options.popupTitle = appName + " " + appVersion;
+					
+					// Figure out where to place the popup. It should grow out of the options button.
+					if (isVertical) {
+						options.anchorPoint = new Point(
+							(currentSide == UIUtils.SIDE_LEFT ? nativeWindow.bounds.x + width : nativeWindow.bounds.x),
+							nativeWindow.bounds.y + optionsButton.y + (optionsButton.height / 2));
+					}
+					else {
+						options.anchorPoint = new Point(
+							nativeWindow.bounds.x + optionsButton.x + (optionsButton.width / 2),
+							(currentSide == UIUtils.SIDE_TOP ? nativeWindow.bounds.y + height : nativeWindow.bounds.y));
+					}
+					options.pointerSide = currentSide;
+					options.addEventListener(Event.CLOSE, handleOptionsClose);
+					options.open();
+					_optionsPopup = options;				
+				}
+			}
+			
+			/**
+			 * Cleanup after the options popup closes.
+			 */
+			private function handleOptionsClose(event: Event): void {
+				if (event.target == _optionsPopup) {
+					_optionsPopup.removeEventListener(Event.CLOSE, handleOptionsClose);
+					_optionsPopup = null;
+				}
+			}
+			
+			/**
+			 * Draws the background behind the ticker.
+			 */
+			override protected function updateDisplayList(unscaledWidth: Number, unscaledHeight: Number): void {
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+									
+				if (_bgInvalid) {
+					// We have to cheat and use the native window size here. During an animation, Flex doesn't
+					// correctly report the width/height.
+					var desiredWidth: Number = nativeWindow.width;
+					var desiredHeight: Number = nativeWindow.height;
+					
+					// Draw the background, including the tab.
+					graphics.clear();
+					graphics.lineStyle();
+					
+					var gradientMatrix: Matrix = new Matrix();
+					gradientMatrix.createGradientBox(desiredWidth, desiredHeight, Math.PI / 2, 0, 0);
+					graphics.beginGradientFill(GradientType.LINEAR, [0x333333, 0x000000], [_backgroundOpacity, _backgroundOpacity], [0, 255], gradientMatrix, SpreadMethod.PAD);
+					if (isVertical) {
+						// Don't need a tab if we're vertical.
+						graphics.drawRect(0, 0, desiredWidth, desiredHeight);
+					}
+					else {
+						if (currentSide == UIUtils.SIDE_TOP) {
+							graphics.moveTo(0, 0);
+							graphics.lineTo(desiredWidth, 0);
+							graphics.lineTo(desiredWidth, desiredHeight - TAB_HEIGHT);
+							graphics.lineTo(TAB_WIDTH + 5, desiredHeight - TAB_HEIGHT);
+							graphics.curveTo(TAB_WIDTH, desiredHeight - TAB_HEIGHT, TAB_WIDTH, desiredHeight - TAB_HEIGHT + 5);
+							if (TAB_HEIGHT > 10) {
+								graphics.lineTo(TAB_WIDTH, desiredHeight - 5);
+							}
+							graphics.curveTo(TAB_WIDTH, desiredHeight, TAB_WIDTH - 5, desiredHeight);
+							graphics.lineTo(0, desiredHeight);
+							graphics.lineTo(0, 0);
+						}
+						else {
+							graphics.moveTo(0, 0);
+							graphics.lineTo(TAB_WIDTH - 5, 0);
+							graphics.curveTo(TAB_WIDTH, 0, TAB_WIDTH, 5);
+							if (TAB_HEIGHT > 10) {
+								graphics.lineTo(TAB_WIDTH, TAB_HEIGHT - 5);
+							}
+							graphics.curveTo(TAB_WIDTH, TAB_HEIGHT, TAB_WIDTH + 5, TAB_HEIGHT);
+							graphics.lineTo(desiredWidth, TAB_HEIGHT);
+							graphics.lineTo(desiredWidth, desiredHeight);
+							graphics.lineTo(0, desiredHeight);
+							graphics.lineTo(0, 0);
+						}
+					}
+					graphics.endFill();
+					
+					_bgInvalid = false;
+				}
+			}
+
+			/**
+			 * Called when the application is fully finished initializing..
+			 */
+			private function handleApplicationComplete(event: Event): void {
+				checkForUpdate();
+				
+				_updateCheckTimer = new Timer(1000 * 60 * 60);
+				_updateCheckTimer.addEventListener(TimerEvent.TIMER, handleUpdateCheckTimer);
+				_updateCheckTimer.start();
+				
+				// Listen for invoke events. This lets us catch feeds added from Firefox.
+				addEventListener(InvokeEvent.INVOKE, handleInvoke);
+				
+				// Listen for Ctrl-V/paste events.
+			    stage.addEventListener(KeyboardEvent.KEY_DOWN, keyListener);
+			    // Mac only
+			    if (nativeApplication.menu != null) {
+					nativeApplication.menu.addEventListener(Event.SELECT, handleMenuSelect);
+			    }
+			}
+			
+			/**
+			 * Handles when the update timer fires.
+			 */
+			private function handleUpdateCheckTimer(event: TimerEvent): void {
+				checkForUpdate();
+			}
+			
+			/**
+			 * Checks whether an update to Snackr is available. This is called on startup and once an hour thereafter.
+			 */
+			private function checkForUpdate(): void {
+				if (_optionsModel.getValue(OptionsModel.OPTION_CHECK_FOR_UPDATES) == "1") {
+					var service: HTTPService = new HTTPService();
+					service.url = UPDATE_INFO_URL;
+					service.resultFormat = "e4x";
+					service.requestTimeout = FETCH_TIMEOUT;
+					service.addEventListener(ResultEvent.RESULT, handleUpdateCheckResult);
+					service.addEventListener(FaultEvent.FAULT, handleUpdateCheckFault);
+					service.send();
+				}
+			}
+			
+			/**
+			 * Handler for the fetch of the update info XML file.
+			 */
+			private function handleUpdateCheckResult(event: ResultEvent): void {
+				var newVersion: String = event.result.version.toString();
+				if (newVersion != null) {
+					var newVersionNum: Number = extractVersion(newVersion);
+					if (newVersionNum > extractVersion(appVersion)) {
+						// A new version is available. Ask the user if s/he wants to install it.
+						var updatePopup: UpdatePopup = new UpdatePopup();
+						updatePopup.currentScreen = currentScreen;
+						updatePopup.newVersion = newVersion;
+						updatePopup.oldVersion = appVersion;
+						updatePopup.updaterURL = event.result.url.toString();
+						updatePopup.updateInfoHTML = event.result.info.toString();
+						updatePopup.open(false);
+						updatePopup.anchorPoint = centerAnchorPoint;
+						updatePopup.pointerSide = currentSide;
+						updatePopup.activate();
+					}
+				}
+			}
+	
+			/**
+			 * Returns a point in the middle of the ticker, at the edge nearer the center of the screen.
+			 * Useful for popups that need to come out of the ticker and don't otherwise have a natural
+			 * place to spring out of.
+			 */
+			private function get centerAnchorPoint(): Point {
+				var result: Point;
+				if (isVertical) {
+					result = new Point(
+						(currentSide == UIUtils.SIDE_LEFT ? nativeWindow.bounds.x + width : nativeWindow.bounds.x),
+						nativeWindow.bounds.y + nativeWindow.bounds.height / 2);
+				}
+				else {
+					result = new Point(
+						nativeWindow.bounds.x + nativeWindow.bounds.width / 2, 
+						(currentSide == UIUtils.SIDE_TOP ? nativeWindow.bounds.y + nativeWindow.bounds.height - TAB_HEIGHT :
+							nativeWindow.bounds.y + TAB_HEIGHT));
+				}
+				return result;	
+			}
+			
+			/**
+			 * Opens the initial Welcome window. Currently, we also show this if the user ever deletes all
+			 * his/her feeds.
+			 */
+			private function showWelcome(): void {
+				var welcome: GettingStartedPopup = new GettingStartedPopup();
+				welcome.currentScreen = currentScreen;
+				welcome.feedModel = _feedModel;
+				welcome.optionsModel = _optionsModel;
+				welcome.open(false);
+				welcome.anchorPoint = centerAnchorPoint;
+				welcome.pointerSide = currentSide;
+				welcome.activate();
+			}
+			
+			/**
+			 * Handles a failure in the update check. Currently, we just log this and don't tell the user.
+			 */
+			private function handleUpdateCheckFault(event: FaultEvent): void {
+				Logger.instance.log("Couldn't check for update at " + UPDATE_INFO_URL + ": " + event.message,
+					Logger.SEVERITY_NORMAL);
+			}
+			
+			/**
+			 * Given a version string, extracts the numeric portion of the version.
+			 */
+			private function extractVersion(versionStr: String): Number {
+				return Number(versionStr.replace(/[^0-9\.]+/g, ""));
+			}
+			
+			/**
+			 * Handles an "invoke" call, which should happen when a browser wants to tell Snackr to
+			 * subscribe to a feed. Currently, this only works with Firefox on Windows.
+			 */
+			private function handleInvoke(event: InvokeEvent): void {
+				Logger.instance.log("Handling invoke: " + event.arguments[0]);
+				if (event.arguments.length > 0 && event.arguments[0] != "") {
+					addFeed(event.arguments[0]);
+				}
+			}			
+
+			/**
+			 * Handles a selection from the main menu. Currently, we just use this to hack into
+			 * "Paste" to make it add a feed.
+			 */
+			private function handleMenuSelect(event: Event): void {
+				// TODO: make sure we're not actually focused in a text field...
+				if (NativeMenuItem(event.target).label == "Paste") {
+					event.preventDefault();
+					doPaste();
+				}
+			}
+			
+			/**
+			 * Handles a keypress anywhere in the app. Currently, we use this to hack into Cmd/Ctrl-V
+			 * to make it add a feed.
+			 */
+			private function keyListener(event:KeyboardEvent): void {
+				// TODO: make sure we're not actually focused in a text field...
+				if (event.ctrlKey && String.fromCharCode(event.charCode) == "v") {
+					event.preventDefault();
+					doPaste();
+				}
+			}
+			
+			/**
+			 * Adds a feed from the clipboard.
+			 */
+			private function doPaste(): void {
+				var url: String = UIUtils.getURLFromClipboard();
+				if (url != "") {
+					addFeed(url, true);
+				}
+			}
+			
+			/**
+			 * Adds a feed. If there's a URL on the clipboard, we automatically populate the popup with it.
+			 * @param url The URL to add, or null if we should just check the clipboard.
+			 * @param checkNow If true, automatically start trying to add the feed instead of waiting for the user to
+			 * click OK. Default false.
+			 */
+			private function addFeed(url: String = null, checkNow: Boolean = false): void {
+				if (_addFeedPopup == null) {
+					if (url == null || url == "") {
+						url = UIUtils.getURLFromClipboard();
+					}
+					_addFeedPopup = new AddFeedPopup();
+					_addFeedPopup.currentScreen = currentScreen;
+					_addFeedPopup.feedModel = _feedModel;
+					_addFeedPopup.checkNow = checkNow;
+					if (isVertical) {
+						_addFeedPopup.anchorPoint = new Point(
+							(currentSide == UIUtils.SIDE_LEFT ? nativeWindow.bounds.x + width : nativeWindow.bounds.x),
+							nativeWindow.bounds.y + addFeedButton.y + (addFeedButton.height / 2));
+					}
+					else {
+						_addFeedPopup.anchorPoint = new Point(
+							nativeWindow.bounds.x + addFeedButton.x + (addFeedButton.width / 2),
+							(currentSide == UIUtils.SIDE_TOP ? nativeWindow.bounds.y + height : nativeWindow.bounds.y));
+					}
+					_addFeedPopup.pointerSide = currentSide;
+					if (url != null && url != "") {
+						_addFeedPopup.feedURL = url;
+					}
+					_addFeedPopup.addEventListener(Event.CLOSE, handleAddFeedClose);
+					_addFeedPopup.open();
+				}
+			}
+
+/*			
+			private function handleFeedAdded(event: FeedModelEvent): void {
+				if (_tickerStarted) {
+					showTransientMessage("Added feed: " + event.url);
+				}
+			}
+			
+			private function handleDuplicateFeedAdded(event: FeedModelEvent): void {
+				if (_tickerStarted) {
+					showTransientMessage("Feed already exists in Snackr: " + event.url);
+				}
+			}
+			
+			private function handleInvalidFeed(event: FeedModelEvent): void {
+				if (_tickerStarted) {
+					showTransientMessage("URL is not a feed or auto-discoverable site: " + event.url);
+				}
+			}
+*/
+			
+			/**
+			 * Shows a brief message overlaid on the ticker, then fades it out.
+			 */
+			private function showTransientMessage(message: String): void {
+				overlayMessage.message = message;
+				overlayMessage.visible = true;
+				var overlayTimer: Timer = new Timer(MESSAGE_DURATION, 1);
+				overlayTimer.addEventListener(TimerEvent.TIMER, handleOverlayTimer);
+				overlayTimer.start();
+			}
+			
+			/**
+			 * Hides the overlay message when the timer runs out.
+			 */
+			private function handleOverlayTimer(event: TimerEvent): void {
+				overlayMessage.visible = false;
+			}
+			
+			/**
+			 * Cleans up on application exit.
+			 */
+			private function handleClosing(event: Event): void {
+				if (_sqlConnection != null) {
+					_sqlConnection.close();
+					_sqlConnection = null;
+				}
+				if (_queueFillTimer != null) {
+					_queueFillTimer.stop();
+					_queueFillTimer = null;
+				}
+				if (_screenChangePollTimer != null) {
+					_screenChangePollTimer.stop();
+					_screenChangePollTimer = null;
+				}
+				if (_feedModel != null) {
+					_feedModel.dispose();
+					_feedModel = null;
+				}
+								
+				Logger.instance.log("Snackr closing");
+			}
+			
+			/**
+			 * Handles a right click on the ticker. Currently this collapses it.
+			 */
+			private function handleRightClick(event: Event): void {
+				collapse();
+			}
+			
+			/**
+			 * Handles a click on the Collapse button. This toggles between collapsed and expanded.
+			 */
+			private function handleCollapseClick(event: Event): void {
+				if (_isCollapsed) {
+					expand();
+				}
+				else {
+					collapse();
+				}
+			}
+			
+			/**
+			 * Collapses the ticker to a thin line, so only the tab is showing. This also pauses the ticker.
+			 */
+			private function collapse(): void {
+				_isCollapsed = true;
+				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "collapseButton" : "expandButton");
+				ticker.pause();
+				if (currentSide == UIUtils.SIDE_TOP) {
+					resizeToY(true, currentScreen.visibleBounds.y + TAB_HEIGHT + 4);
+				}
+				else {
+					resizeToY(false, currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - 4 - TAB_HEIGHT);
+				}
+			}
+			
+			/**
+			 * Expands the ticker from its collapsed state and restarts the ticker.
+			 */
+			private function expand(): void {
+				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "expandButton" : "collapseButton");
+				ticker.resume();
+				var newY: int;
+				var resizeFromBottom: Boolean = false;
+				if (isVertical) {
+					newY = currentScreen.visibleBounds.y;
+				}
+				else {
+					if (currentSide == UIUtils.SIDE_TOP) {
+						resizeFromBottom = true;
+						newY = currentScreen.visibleBounds.y + DEFAULT_HEIGHT;
+					}
+					else {
+						newY = currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - DEFAULT_HEIGHT;
+					}
+				}
+				
+				// We can't just turn off _isCollapsed here--we want it to happen after the resize is done.
+				// So we add an effect-end handler to do it.
+				resizeToY(resizeFromBottom, newY, function (event: EffectEvent): void { _isCollapsed = false });
+			}
+			
+			/**
+			 * Cleans up after the Add Feed popup closes.
+			 */
+			private function handleAddFeedClose(event: Event): void {
+				if (event.target == _addFeedPopup) {
+					_addFeedPopup.removeEventListener(Event.CLOSE, handleAddFeedClose);
+					_addFeedPopup = null;
+				}
+			}
+
+			/**
+			 * Animates the ticker to a new height. Used during collapsing/expanding.
+			 */
+			private function resizeToY(resizeFromBottom: Boolean, newY: Number, effectEndHandler: Function = null): void {
+				var m: AnimateRectProperty = new AnimateRectProperty(nativeWindow);
+				m.duration = 150;
+				m.property = "bounds";
+				if (resizeFromBottom) {
+					m.toValue = new Rectangle(nativeWindow.x, nativeWindow.y, nativeWindow.width, newY - nativeWindow.y);
+				}
+				else {
+					m.toValue = new Rectangle(nativeWindow.x, newY,	nativeWindow.width, nativeWindow.height - (newY - nativeWindow.y));
+				}
+				m.easingFunction = mx.effects.easing.Cubic.easeOut;
+				if (effectEndHandler != null) {
+					m.addEventListener(EffectEvent.EFFECT_END, effectEndHandler);
+				}
+				m.play();
+			}
+			
+			/**
+			 * Opens the log file in a browser.
+			 */
+			private function showLogFile(): void {
+				navigateToURL(new URLRequest(Logger.instance.logFile.url));
+			}
+			
+			/**
+			 * Handles a mouse down on the application. We use this to check if we need to start a ticker drag.
+			 */
+			private function handleMouseDown(event: MouseEvent): void {
+				// If we were ignoring clicks (because of a previous drag), start handling them again.
+				_ignoreClicks = false;
+				
+				// Register to listen for mouse move/mouse up. If the user moves the mouse past a certain
+				// threshold, we start a drag. We add these as capturing event handlers to the system manager
+				// so we get them in advance of any of our subcomponents.
+				systemManager.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseMove, true);
+				systemManager.addEventListener(MouseEvent.MOUSE_UP, handleMouseUp, true);
+				_dragStart = new Point(nativeWindow.bounds.x + event.stageX, nativeWindow.bounds.y + event.stageY);
+				_dragCurrent = new Point(_dragStart.x, _dragStart.y);
+				Logger.instance.log("Mouse down", Logger.SEVERITY_DEBUG);
+			}
+			
+			/**
+			 * Handles a mouse move on the application. This is only active during a ticker drag.
+			 */
+			private function handleMouseMove(event: MouseEvent): void {
+				_dragCurrent.x = nativeWindow.bounds.x + event.stageX;
+				_dragCurrent.y = nativeWindow.bounds.y + event.stageY;
+				if (!_isDragging) {
+					// Check if we've moved past the drag threshold.
+					if ((Math.abs(_dragCurrent.x - _dragStart.x) > DRAG_START_THRESHOLD) || (Math.abs(_dragCurrent.y - _dragStart.y) > DRAG_START_THRESHOLD)) {
+						_isDragging = true;		
+							
+						// Start ignoring clicks. There isn't really a good way to prevent the current mouseDown/mouseUp
+						// from being handled, so we just ignore clicks until we get another mouseDown.
+						_ignoreClicks = true;
+						
+						// Begin a native window move. There isn't a good way in AIR right now to manually handle
+						// window drags, since we can't capture mouse events that occur when the mouse is outside the 
+						// window. So we just let the native window drag happen, then figure out where the user wants
+						// to "toss" the ticker to afterwards.
+						Logger.instance.log("Drag started", Logger.SEVERITY_DEBUG);
+						event.stopImmediatePropagation();
+						nativeWindow.addEventListener(NativeWindowBoundsEvent.MOVE, handleNativeWindowSystemMove);
+						_origBounds = nativeWindow.bounds;
+						nativeWindow.startMove();
+					}
+				}
+			}
+			
+			private function handleNativeWindowSystemMove(event: NativeWindowBoundsEvent): void {
+				// TODO: as we're moving, create a ghost window where we'll end up
+			}	
+
+			/**
+			 * Based on the position of the window at the start of a drag and the position at the end,
+			 * determine heuristically where we should move the ticker.
+			 * @returns an object with two fields: newScreenIndex (which screen we should end up on) and
+			 * newSide (which side we should end up on).
+			 */
+			private function getNewWindowLocation(beforeBounds: Rectangle, afterBounds: Rectangle): Object {
+				// Since we aren't actually tracking the mouse pointer--we only get the
+				// old and new bounds--we use the difference in values between the old and new bounds to
+				// figure out what to do. 
+				// -- If the new bounds is mostly on a different screen, then
+				//    we move it to the same side of that screen as the original location. 
+				// -- If the new bounds is mostly on the same screen, but shows significant 
+				//    movement in a particular direction, we assume the user wants the window to move to the 
+				//    opposite side in that direction. 
+				// -- If neither of those is the case, we snap back to the original location.
+				
+				var curScreenIndex: Number = Number(getOptionWithDefault(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), "0"));
+				var result: Object = { newScreenIndex: curScreenIndex, newSide: currentSide };
+				
+				// Figure out which screen has the largest intersection with the bounds.
+				var intersectRect: Rectangle = null;
+				var largestIntersectScreen: Number = curScreenIndex;
+				for (var i: Number = 0; i < Screen.screens.length; i++) {
+					var newIntersectRect: Rectangle = Screen(Screen.screens[i]).visibleBounds.intersection(afterBounds);
+					if (intersectRect == null ||
+						(newIntersectRect.width * newIntersectRect.height > intersectRect.width * intersectRect.height)) {
+						intersectRect = newIntersectRect;
+						largestIntersectScreen = i;
+					}
+				}
+				if (largestIntersectScreen != curScreenIndex) {
+					result.newScreenIndex = largestIntersectScreen;					
+				}
+				else {
+					// We're on the same screen. Figure out how far away we are from the original side, and in what
+					// direction.
+					var newSide: Number = currentSide;
+					if (currentSide == UIUtils.SIDE_TOP || currentSide == UIUtils.SIDE_BOTTOM) {
+						// Orthogonal moves get priority over opposite-side.
+						if (afterBounds.x < beforeBounds.x - DRAG_COMMIT_THRESHOLD_SIDEWAYS) {
+							newSide = UIUtils.SIDE_LEFT;
+						}
+						else if (afterBounds.x > beforeBounds.x + DRAG_COMMIT_THRESHOLD_SIDEWAYS) {
+							newSide = UIUtils.SIDE_RIGHT;
+						}
+						else if (currentSide == UIUtils.SIDE_TOP && afterBounds.y > beforeBounds.y + DRAG_COMMIT_THRESHOLD_OPPOSITE) {
+							newSide = UIUtils.SIDE_BOTTOM;
+						}
+						else if (currentSide == UIUtils.SIDE_BOTTOM && afterBounds.y < beforeBounds.y - DRAG_COMMIT_THRESHOLD_OPPOSITE) {
+							newSide = UIUtils.SIDE_TOP;
+						}
+					}
+					else {
+						if (afterBounds.y < beforeBounds.y - DRAG_COMMIT_THRESHOLD_SIDEWAYS) {
+							newSide = UIUtils.SIDE_TOP;
+						}
+						else if (afterBounds.y > beforeBounds.y + DRAG_COMMIT_THRESHOLD_SIDEWAYS) {
+							newSide = UIUtils.SIDE_BOTTOM;
+						}
+						else if (currentSide == UIUtils.SIDE_LEFT && afterBounds.x > beforeBounds.x + DRAG_COMMIT_THRESHOLD_OPPOSITE) {
+							newSide = UIUtils.SIDE_RIGHT;
+						}
+						else if (currentSide == UIUtils.SIDE_RIGHT && afterBounds.x < beforeBounds.x - DRAG_COMMIT_THRESHOLD_OPPOSITE) {
+							newSide = UIUtils.SIDE_LEFT;
+						}
+					}
+					
+					result.newSide = newSide;
+				}
+				
+				return result;
+			}
+			
+			/**
+			 * Clean up at the end of a ticker drag.
+			 */
+			private function finishDrag(): void {				
+				systemManager.removeEventListener(MouseEvent.MOUSE_MOVE, handleMouseMove, true);
+				systemManager.removeEventListener(MouseEvent.MOUSE_UP, handleMouseUp, true);
+				_isDragging = false;
+				_dragStart = null;
+				_dragCurrent = null;
+				_origBounds = null;
+			}
+			
+			/**
+			 * Handle the end of a ticker drag.
+			 */
+			private function handleMouseUp(event: MouseEvent): void {
+				if (_isDragging) {
+					var newLocation: Object = getNewWindowLocation(_origBounds, nativeWindow.bounds);
+					var curScreenIndex: Number = Number(getOptionWithDefault(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), "0"));
+					
+					// Set the new screen or side in the options model. This will eventually flow back to us and cause us to redock.
+					if (newLocation.newScreenIndex != curScreenIndex) {
+						_optionsModel.setValue(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), String(newLocation.newScreenIndex));					
+					}
+					else if (newLocation.newSide != currentSide) {
+						_optionsModel.setValue(OptionsModel.OPTION_SCREEN_SIDE, String(newLocation.newSide));					
+					}
+					else {
+						// Snap back to where we are.
+						redock(currentScreen);
+					}
+					nativeWindow.removeEventListener(NativeWindowBoundsEvent.MOVE, handleNativeWindowSystemMove);
+					Logger.instance.log("Drag finished", Logger.SEVERITY_DEBUG);
+				}
+				finishDrag();
+			}
+			
+			/**
+			 * Handle a click at the top level of the application. If the user clicks anywhere on the ticker when
+			 * we're collapsed, we uncollapse.
+			 */
+			private function handleClick(event: MouseEvent): void {
+				if (!_ignoreClicks && (event.target == this || event.target is TickerItem) && _isCollapsed) {
+					expand();
+				}
+			}		
+			
+			/**
+			 * Handle a click on the "read starred items" button in the ticker tab.
+			 */
+			private function handleReadStarredClick(): void {
+				if (_starredItemsPopup != null) {
+					_starredItemsPopup.doClose();
+					_starredItemsPopup = null;
+				}
+				else {
+					var starredItemsPopup: StarredItemsPopup = new StarredItemsPopup();
+					starredItemsPopup.currentScreen = currentScreen;
+					starredItemsPopup.feedModel = _feedModel;
+					if (isVertical) {
+						starredItemsPopup.anchorPoint = new Point(
+							(currentSide == UIUtils.SIDE_LEFT ? nativeWindow.bounds.x + width : nativeWindow.bounds.x),
+							nativeWindow.bounds.y + starButton.y + (starButton.height / 2));
+					}
+					else {
+						starredItemsPopup.anchorPoint = new Point(
+							nativeWindow.bounds.x + starButton.x + (starButton.width / 2),
+							(currentSide == UIUtils.SIDE_TOP ? nativeWindow.bounds.y + height : nativeWindow.bounds.y));
+					}
+					starredItemsPopup.pointerSide = currentSide;
+					starredItemsPopup.addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
+					starredItemsPopup.open();
+					_starredItemsPopup = starredItemsPopup;				
+				}				
+			}	
+		]]>
+	</mx:Script>
+	<ticker:Ticker id="ticker" left="0" right="0" top="25" bottom="5"/>
+	<mx:Button id="addFeedButton" styleName="addFeedButton" y="2" width="16" height="16" x="2" click="addFeed()" toolTip="Add Feed"/>
+	<mx:Button id="optionsButton" y="2" width="16" height="16" x="22" styleName="optionsButton" click="handleOptionsClick()" toolTip="Options"/>
+	<mx:Button id="starButton" y="2" width="16" height="16" x="42" styleName="readStarredButton" click="handleReadStarredClick()" toolTip="Read Starred Items"/>
+	<mx:Button id="collapseButton" y="2" width="16" height="16" x="62" styleName="collapseButton" click="handleCollapseClick(event)" toolTip="Collapse"/>
+	<mx:Button id="closeButton" y="2" width="16" height="16" x="82" styleName="closeButton" click="handleCloseClick()" toolTip="Quit Snackr"/>
+	<overlays:MessageOverlay id="errorMessage" backgroundColor="#FF0000" horizontalCenter="0" verticalCenter="10" visible="false" click="showLogFile()" showEffect="Fade" hideEffect="Fade"/>
+	<overlays:MessageOverlay id="overlayMessage" backgroundColor="#E3702D" horizontalCenter="0" verticalCenter="10" visible="false" showEffect="Fade" hideEffect="Fade"/>
+	<utils:Spinner id="spinner" horizontalCenter="0" verticalCenter="10" visible="false" showEffect="Fade"/>
+	<mx:Fade id="quickFadeOut" alphaFrom="1" alphaTo="0" duration="150"/>
+	<mx:Fade id="quickFadeIn" alphaFrom="0" alphaTo="1" duration="150"/>
+	<mx:states>
+		<mx:State name="vertical">
+			<mx:SetStyle target="{ticker}" name="left" value="5"/>
+			<mx:SetStyle target="{ticker}" name="right" value="5"/>
+			<mx:SetStyle target="{ticker}" name="top" value="20"/>
+			<mx:SetStyle target="{ticker}" name="bottom" value="0"/>
+			<mx:SetStyle target="{spinner}" name="verticalCenter" value="0"/>
+		</mx:State>
+		<mx:State name="top">
+			<mx:SetStyle target="{ticker}" name="top" value="5"/>
+			<mx:SetStyle target="{ticker}" name="bottom" value="25"/>
+			<mx:SetProperty target="{addFeedButton}" name="y"/>
+			<mx:SetProperty target="{optionsButton}" name="y"/>
+			<mx:SetProperty target="{collapseButton}" name="y"/>
+			<mx:SetProperty target="{closeButton}" name="y"/>
+			<mx:SetStyle target="{addFeedButton}" name="bottom" value="2"/>
+			<mx:SetStyle target="{optionsButton}" name="bottom" value="2"/>
+			<mx:SetStyle target="{collapseButton}" name="bottom" value="2"/>
+			<mx:SetStyle target="{starButton}" name="bottom" value="2"/>
+			<mx:SetStyle target="{closeButton}" name="bottom" value="2"/>
+			<mx:SetProperty target="{collapseButton}" name="styleName" value="expandButton"/>		
+			<mx:SetStyle target="{errorMessage}" name="verticalCenter" value="-10"/>
+			<mx:SetStyle target="{overlayMessage}" name="verticalCenter" value="-10"/>
+			<mx:SetStyle target="{spinner}" name="verticalCenter" value="-10"/>
+		</mx:State>
+	</mx:states>
+</mx:WindowedApplication>

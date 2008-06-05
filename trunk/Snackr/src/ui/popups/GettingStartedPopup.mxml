@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	desiredWidth="452" desiredHeight="250" 
+	defaultButton="{_okButton}" title="Getting Started">
+	<popupChildren>
+		<mx:Label y="10" text="Welcome to Snackr! To get started, you need some feeds." fontSize="16" left="10" right="21" visible="false"/>
+		<mx:Label y="53" text="What would you like to do?" left="10" right="276" fontSize="14" visible="false"/>
+		<mx:RadioButton id="_radioSample" y="81" label="Start with a sample feed set" left="12" right="243" groupName="buttonGroup" selected="true" fontSize="14" visible="false"/>
+		<mx:RadioButton id="_radioImport" y="113" label="Import a feed list (OPML) from another feed reader" left="12" right="136" groupName="buttonGroup" fontSize="14" visible="false"/>
+		<mx:RadioButton id="_radioManual" y="145" label="Add feeds manually using the + button on the ticker tab" left="12" right="94" groupName="buttonGroup" fontSize="14" visible="false"/>
+		<mx:Button id="_okButton" label="OK" width="64" bottom="10" right="10" click="handleOKClick()" visible="false"/>
+	</popupChildren>
+	<mx:RadioButtonGroup id="buttonGroup"/>
+	<mx:RadioButtonGroup id="fontGroup"/>
+	
+	<mx:Script>
+		<![CDATA[
+			import model.options.OptionsModel;
+			import model.feeds.FeedModel;
+			
+			private var _feedModel: FeedModel = null;
+			private var _optionsModel: OptionsModel = null;
+			
+			public function set feedModel(value: FeedModel): void {
+				_feedModel = value;
+			}
+			
+			public function set optionsModel(value: OptionsModel): void {
+				_optionsModel = value;
+			}
+			
+			private function handleOKClick(): void {
+				if (_radioSample.selected) {
+					_feedModel.loadOPMLFile(File.applicationDirectory.resolvePath("sampleFeeds.xml"));	
+					doClose();		
+				}
+				else if (_radioImport.selected) {
+					doImport();
+				}
+				else if (_radioManual.selected) {
+					doClose();
+				}
+				else {
+					// Shouldn't happen...
+					doClose();
+				}
+			}
+
+			private function doImport(): void {
+				var file: File = File.documentsDirectory;
+				file.browseForOpen("Choose OPML File");
+				file.addEventListener(Event.SELECT, handleImportFileSelected);
+			}
+			
+			private function handleImportFileSelected(event: Event): void {
+				_feedModel.loadOPMLFile(File(event.target));
+				doClose();
+			}		
+		]]>
+	</mx:Script>
+</Popup>

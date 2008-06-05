@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" desiredWidth="450" desiredHeight="110"
+	defaultButton="{_okButton}" xmlns:utils="ui.utils.*" close="handleClose(event)">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.EffectEvent;
+			import mx.events.CloseEvent;
+			import model.feeds.FeedModelEvent;
+			import model.feeds.FeedModel;
+			
+			static private var CLOSE_DELAY_TIME: Number = 5000;
+			
+			private var _feedModel: FeedModel = null;
+
+			[Bindable]
+			public var feedURL: String = "";
+			
+			[Bindable]
+			public var checkNow: Boolean = false;
+
+			[Bindable]
+			public function get feedModel(): FeedModel {
+				return _feedModel;
+			}
+			public function set feedModel(value: FeedModel): void {
+				_feedModel = value;
+				_feedModel.addEventListener(FeedModelEvent.FEED_ADDED, handleFeedCheck);
+				_feedModel.addEventListener(FeedModelEvent.DUPLICATE_FEED_ADDED, handleFeedCheck);
+				_feedModel.addEventListener(FeedModelEvent.INVALID_FEED, handleFeedCheck);
+			}
+						
+			private function handleFeedURLChange(): void {
+				feedURL = _feedURLInput.text;
+			}
+			
+			override protected function handleOpenAnimationComplete(): void {
+				_feedURLInput.setFocus();
+				if (checkNow) {
+					handleOK();
+				}
+			}
+
+			// TODO: should probably have a separate class for handling feed validation/discovery
+			// that gets instantiated per request, rather than just using the feed model directly.			
+			private function handleOK(): void {
+				_statusLabel.clearStyle("color");
+				_statusLabel.text = "Checking...";
+				_feedModel.addOrDiscoverNewFeed(_feedURLInput.text);
+				currentState = "checkFeed";
+				_spinner.start();
+			}
+			
+			private function handleFeedCheck(event: FeedModelEvent): void {
+				_spinner.stop();
+				feedURL = event.url;
+				if (event.type == FeedModelEvent.FEED_ADDED) {
+					currentState = "checkComplete";
+					_message.text = "Feed added successfully.";
+					startCloseTimer();
+				}
+				else if (event.type == FeedModelEvent.DUPLICATE_FEED_ADDED) {
+					currentState = "checkComplete";
+					_message.text = "Feed already exists in Snackr.";
+					startCloseTimer();
+				}
+				else if (event.type == FeedModelEvent.INVALID_FEED) {
+					currentState = "";
+					_statusLabel.text = "Couldn't get feed. Please try a different URL.";
+					_statusLabel.setStyle("color", 0xFF0000);
+				}
+			}
+			
+			private function handleCancel(): void {
+				doClose();
+			}
+			
+			private function startCloseTimer(): void {
+				var timer: Timer = new Timer(CLOSE_DELAY_TIME, 1);
+				timer.addEventListener(TimerEvent.TIMER_COMPLETE, handleCloseTimerComplete);
+				timer.start();
+			}
+			
+			private function handleCloseTimerComplete(event: TimerEvent): void {
+				doClose();
+			}
+			
+			private function handleClose(event: Event): void {
+				if (_feedModel != null) {
+					_feedModel.removeEventListener(FeedModelEvent.FEED_ADDED, handleFeedCheck);
+					_feedModel.removeEventListener(FeedModelEvent.DUPLICATE_FEED_ADDED, handleFeedCheck);
+					_feedModel.removeEventListener(FeedModelEvent.INVALID_FEED, handleFeedCheck);					
+				}
+			}
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<mx:Label id="_inputLabel" x="10" y="14" text="Add feed:"/>
+		<mx:TextInput left="75" y="12" right="10" id="_feedURLInput" text="{feedURL}" change="handleFeedURLChange()"/>
+		<mx:Label id="_statusLabel" left="75" y="38" right="40"/>
+		<mx:Button id="_okButton" label="OK" right="87" width="70" bottom="10" click="handleOK()" 
+			enabled="{feedURL != ''}"/>
+		<mx:Button id="_cancelButton" right="10" label="Cancel" width="70" bottom="10" click="handleCancel()"/>		
+	</popupChildren>
+	<states>
+		<mx:State name="checkFeed">
+			<mx:SetProperty target="{_okButton}" name="enabled" value="false"/>
+			<mx:AddChild relativeTo="{childContainer}" position="lastChild">
+				<mx:Canvas id="_spinnerCanvas" left="0" top="0" right="0" bottom="0" backgroundColor="#000000" backgroundAlpha="0.8">
+					<utils:Spinner id="_spinner" horizontalCenter="0" verticalCenter="0"/>
+				</mx:Canvas>
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="checkComplete" basedOn="checkFeed">
+			<mx:RemoveChild target="{_spinnerCanvas}"/>
+			<mx:RemoveChild target="{_inputLabel}"/>
+			<mx:RemoveChild target="{_feedURLInput}"/>
+			<mx:RemoveChild target="{_statusLabel}"/>
+			<mx:RemoveChild target="{_okButton}"/>
+			<mx:RemoveChild target="{_cancelButton}"/>
+			<mx:AddChild relativeTo="{childContainer}" position="lastChild">
+				<mx:Canvas id="_messageBG" horizontalCenter="0" verticalCenter="0" backgroundColor="#009900" backgroundAlpha="0.8">
+					<mx:Label id="_message" left="4" top="4" right="4" bottom="4"/>
+				</mx:Canvas>
+			</mx:AddChild>
+		</mx:State>
+	</states>
+</Popup>

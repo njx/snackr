@@ -1,0 +1,232 @@
+/*
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+global
+{
+	fontFamily: "Myriad Web";
+	color: #FFFFFF;
+	themeColor: #666666;
+	fontSize: 12;
+}
+@font-face
+{
+	fontFamily: "Myriad Web";
+	fontWeight: normal;
+	fontStyle: normal;
+	src: url("MYRIAD.TTF");
+}
+@font-face
+{
+	fontFamily: "Myriad Web";
+	fontWeight: bold;
+	fontStyle: normal;
+	src: url("MYRIADB.TTF");
+}
+.nonWesternLabel
+{
+	fontFamily: Verdana;
+}
+.westernLabel
+{
+	fontFamily: "Myriad Web";
+}
+LinkButton
+{
+	paddingLeft: 0;
+	paddingTop: 0;
+	paddingRight: 0;
+	paddingBottom: 0;
+	cornerRadius: 3;
+}
+Button
+{
+	cornerRadius: 0;
+	highlightAlphas: 0, 0;
+	fillColors: #222222, #222222, #333333, #333333;
+	fillAlphas: 1.0, 1.0, 1.0, 1.0;
+	textRollOverColor: #FFFFFF;
+	borderColor: #444444;
+}
+ComboBox
+{
+	cornerRadius: 0;
+	highlightAlphas: 0.1, 0;
+	fillColors: #222222, #111111, #333333, #222222;
+	fillAlphas: 1.0, 1.0, 1.0, 1.0;
+	textRollOverColor: #FFFFFF;
+	textSelectedColor: #FFFFFF;
+	borderColor: #444444;
+	dropDownStyleName: comboBoxDropDown;
+	fontWeight: normal;
+}
+.comboBoxDropDown
+{
+	backgroundColor: #222222;
+	rollOverColor: #444444;
+	selectionColor: #666666;
+	textSelectedColor: #FFFFFF;
+}
+DataGrid
+{
+ 	backgroundAlpha: 0;
+ 	headerColors: #222222, #222222;
+ 	borderColor: #222222;
+	headerSeparatorSkin: Embed(source="empty.swf", symbol="Panel_titleBackgroundSkin");
+	verticalGridLines: false;
+	rollOverColor: #444444;
+	textRollOverColor: #FFFFFF;
+	selectionColor: #666666;
+	textSelectedColor: #FFFFFF;
+}
+List
+{
+ 	backgroundAlpha: 0;
+	borderStyle: none;
+	rollOverColor: #111111;
+	selectionColor: #111111;
+}
+ScrollBar
+{
+	fillColors: #666666, #666666;
+	highlightAlphas: 0, 0;
+	fillAlphas: 1.0, 1.0;
+	trackColors: #666666, #666666;
+	borderColor: #333333;
+}
+TabNavigator
+{
+	backgroundColor: #222222;
+	borderColor: #222222;
+	tabStyleName: tabNavigatorTab;
+	firstTabStyleName: tabNavigatorTab;
+	lastTabStyleName: tabNavigatorTab;
+	selectedTabTextStyleName: tabNavigatorSelectedTabText;
+}
+.tabNavigatorTab
+{
+	borderColor: #222222;
+	fillColors: #111111, #111111;
+	selectedFillColors: #333333, #333333;
+	fillAlphas: 0.9, 0.9;
+	highlightAlphas: 0, 0;
+	textRollOverColor: #FFFFFF;
+	textSelectedColor: #FFFFFF;
+}
+.tabNavigatorSelectedTabText
+{
+	color: #FFFFFF;
+}
+Panel
+{
+	backgroundColor: #000000;
+	borderColor: #666666;
+	borderAlpha: 0.9;
+	modalTransparencyColor: #000000;
+	modalTransparency: 0.7;
+	modalTransparencyBlur: 0;
+}
+TextInput
+{
+	backgroundColor: #666666;
+	borderColor: #000000;
+}
+ToolTip
+{
+	backgroundColor: #000000;
+	backgroundAlpha: 0.9;
+}
+RadioButton
+{
+	fillAlphas: 1.0, 1.0;
+	fillColors: #CCCCCC, #666666;
+}
+Image
+{
+	brokenImageSkin: Embed(source="empty.swf", symbol="Panel_titleBackgroundSkin");
+	brokenImageBorderSkin: Embed(source="empty.swf", symbol="Panel_titleBackgroundSkin");
+}
+.addFeedButton
+{
+	upSkin: Embed(source="addFeedUp.png");
+	overSkin: Embed(source="addFeedOver.png");
+	downSkin: Embed(source="addFeedDown.png");
+}
+.closeButton
+{
+	upSkin: Embed(source="closeUp.png");
+	overSkin: Embed(source="closeOver.png");
+	downSkin: Embed(source="closeDown.png");
+}
+.collapseButton
+{
+	upSkin: Embed(source="collapseUp.png");
+	overSkin: Embed(source="collapseOver.png");
+	downSkin: Embed(source="collapseDown.png");
+}
+.expandButton
+{
+	upSkin: Embed(source="expandUp.png");
+	overSkin: Embed(source="expandOver.png");
+	downSkin: Embed(source="expandDown.png");
+}
+.optionsButton
+{
+	upSkin: Embed(source="optionsUp.png");
+	overSkin: Embed(source="optionsOver.png");
+	downSkin: Embed(source="optionsDown.png");
+}
+.markStarButton
+{
+	upSkin: Embed(source="starUnstarred.png");
+	overSkin: Embed(source="starFilled.png");
+	downSkin: Embed(source="starFilled.png");
+}
+.unmarkStarButton
+{
+	upSkin: Embed(source="starFilled.png");
+	overSkin: Embed(source="starFilled.png");
+	downSkin: Embed(source="starFilled.png");
+}
+.readStarredButton
+{
+	upSkin: Embed(source="starUp.png");
+	overSkin: Embed(source="starOver.png");
+	downSkin: Embed(source="starDown.png");
+}
+CheckBox
+{
+	disabledIcon: Embed(source="CheckBox_disabledIcon.png");
+	downIcon: Embed(source="CheckBox_downIcon.png");
+	overIcon: Embed(source="CheckBox_overIcon.png");
+	selectedDisabledIcon: Embed(source="CheckBox_selectedDisabledIcon.png");
+	selectedDownIcon: Embed(source="CheckBox_selectedDownIcon.png");
+	selectedOverIcon: Embed(source="CheckBox_selectedOverIcon.png");
+	selectedUpIcon: Embed(source="CheckBox_selectedUpIcon.png");
+	upIcon: Embed(source="CheckBox_upIcon.png");
+	textSelectedColor: #FFFFFF;
+}

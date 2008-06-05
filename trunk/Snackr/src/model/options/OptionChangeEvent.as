@@ -30,13 +30,28 @@ package model.options
 {
 	import flash.events.Event;
 
+	/**
+	 * Event broadcast when options are changed in the OptionsModel.
+	 */
 	public class OptionChangeEvent extends Event
 	{
+		/**
+		 * The event type for option changes.
+		 */
 		static public const OPTION_CHANGE: String = "optionChange";
 		
+		/**
+		 * The name of the option that was changed.
+		 */
 		public var option: String;
+		/**
+		 * The new value. See OptionsModel.setValue() for details.
+		 */
 		public var value: String;
 		
+		/**
+		 * Constructor.
+		 */
 		public function OptionChangeEvent(option: String, value: String)
 		{
 			super(OPTION_CHANGE);

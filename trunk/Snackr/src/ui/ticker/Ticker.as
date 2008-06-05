@@ -39,7 +39,6 @@ package ui.ticker
 
 	public class Ticker extends UIComponent
 	{
-		
 		static public const QUEUE_RUNNING_LOW: String = "queueRunningLow";
 		
 		// TODO: should make this changeable

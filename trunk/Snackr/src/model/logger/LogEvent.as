@@ -30,13 +30,28 @@ package model.logger
 {
 	import flash.events.Event;
 
+	/**
+	 * Event that is broadcasted whenever an item is logged.
+	 */
 	public class LogEvent extends Event
 	{
+		/**
+		 * Event type for log events.
+		 */
 		static public const LOG_ITEM: String = "logItem";
 		
+		/**
+		 * The message that was logged.
+		 */
 		public var message: String = "";
+		/**
+		 * Severity of the log message (see documentation in Logger).
+		 */
 		public var severity: Number = Logger.SEVERITY_NORMAL;
 		
+		/**
+		 * Constructor.
+		 */
 		public function LogEvent(message: String, severity: Number)
 		{
 			super(LOG_ITEM);

@@ -33,34 +33,64 @@ package model.logger
 	import flash.filesystem.FileMode;
 	import flash.filesystem.FileStream;
 	
+	/**
+	 * Class that logs messages to a log file and/or the debug console.
+	 * The log file lives in the user's documents folder (~/Documents or My Documents), in the Snackr subfolder.
+	 */
 	public class Logger extends EventDispatcher
 	{
-		// SEVERITY_DEBUG messages are only output in the debug console.
+		/** 
+		 * Severity for messages that should only be output to the debug console.
+		 */
 		static public const SEVERITY_DEBUG: Number = -5;
 		
-		// SEVERITY_NORMAL messages are output to both the debug console and the log file.
+		/**
+		 * Severity for messages that should be output to both the debug console and the log file.
+		 */
 		static public const SEVERITY_NORMAL: Number = 0;
 		
-		// SEVERITY_SERIOUS messages are output to the debug console and log file, and the user is warned about them.
+		/**
+		 * Severity for messages that should be output to the debug console, the log file, and a UI warning.
+		 */
 		static public const SEVERITY_SERIOUS: Number = 5;
 		
+		/**
+		 * Singleton instance of the logger.
+		 */
 		static private var _logger: Logger = new Logger();
 		
+		/**
+		 * Returns the singleton logger instance.
+		 */
 		static public function get instance(): Logger {
 			return _logger;
 		}
 
+		/**
+		 * Handle to the log file.
+		 */
 		private var _logFile: File = null;
 		
+		/**
+		 * Sets up the log file.
+		 */
 		public function initialize(logFile: File): void {
 			// TODO: should limit the log file size, or perhaps just always start a new log file on startup.
 			_logFile = logFile;
 		}
 		
+		/**
+		 * Returns the log file.
+		 */
 		public function get logFile(): File {
 			return _logFile;
 		}
 		
+		/**
+		 * Logs a message to the log file/debug console/user warning.
+		 * @param message The message to log.
+		 * @param severity How serious the message is, which determines what the message is written to. See the constants above.
+		 */
 		public function log(message: String, severity: Number = SEVERITY_NORMAL): void {
 			trace(message);
 			

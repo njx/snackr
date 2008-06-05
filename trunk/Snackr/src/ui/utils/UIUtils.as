@@ -127,6 +127,8 @@ package ui.utils
 			anim.play();
 		}
 		
+		// TODO: this should probably turn into a generic ITickerItemData interface and an adapter that
+		// glues a FeedItem into a TickerItem.
 		static public function convertFeedItemsToTickerItems(feedItems: Array): Array {
 			var result: Array = new Array();
 			for each (var feedItem: FeedItem in feedItems) {

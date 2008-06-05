@@ -28,6 +28,8 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+<!-- Panel that appears when the user clicks on Add Feed from the Options popup. -->
+
 <mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="452" height="120" 
 	defaultButton="{_okButton}" title="Add Feed" creationComplete="_feedURLInput.setFocus()">
 	<mx:Label x="10" y="10" text="Feed URL:"/>
@@ -40,6 +42,8 @@
 		<![CDATA[
 			import mx.controls.Alert;
 			import mx.events.CloseEvent;
+			
+			// TODO: This needs to incorporate the feedback functionality from the AddFeedPopup.
 			
 			[Bindable]
 			public var feedURL: String = "";

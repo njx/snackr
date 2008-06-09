@@ -32,15 +32,27 @@
 	initialWidth="160" initialHeight="50" desiredWidth="220" desiredHeight="400">
 	<mx:Script>
 		<![CDATA[
+			import ui.ticker.TickerItem;
+			import mx.collections.ArrayCollection;
+			import ui.ticker.TickerItemClickEvent;
 			import ui.utils.UIUtils;
 			import model.feeds.FeedModel;
+			import model.feeds.FeedItem;
 			import model.logger.Logger;
 
 			[Bindable] public var feedModel: FeedModel;
 			
+			public var currentSide: Number;
+			
 			override protected function handleCreationComplete(event: Event): void {
 				super.handleCreationComplete(event);
 				
+				refreshItemList();
+				addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
+				DetailPopupManager.instance.addEventListener(DetailPopupManagerEvent.DETAIL_POPUP_CLOSE, handleDetailPopupClose);
+			}		
+			
+			private function refreshItemList(): void {
 				var starredItems: Array = feedModel.getStarredItems();
 				if (starredItems == null || starredItems.length == 0) {
 					currentState = "noStarred";
@@ -49,7 +61,32 @@
 					currentState = "";
 					itemList.dataProvider = UIUtils.convertFeedItemsToTickerItems(starredItems);
 				}
-			}		
+			}
+
+			/**
+			 * Handler for clicking on a ticker item. This pops up the detail popup window for that item.
+			 */
+			private function handleTickerItemClick(event: TickerItemClickEvent): void {
+				var item: TickerItem = event.tickerItem;
+				DetailPopupManager.instance.popUpItem(item, true, currentScreen, currentSide);
+			}
+			
+			/**
+			 * Handler for detail popup close. If the item is unstarred, we remove it from the list.
+			 */
+			private function handleDetailPopupClose(event: DetailPopupManagerEvent): void {
+				var feedItem: FeedItem = FeedItem(event.popup.data.feedItem);
+				if (feedItem != null && !feedItem.starred) {
+					// TODO: just remove the one item
+					refreshItemList();
+				}
+			}
+			
+			override public function doClose(): void {
+				super.doClose();
+				DetailPopupManager.instance.closePopups();
+			}
+		
 		]]>
 	</mx:Script>
 	<popupChildren>

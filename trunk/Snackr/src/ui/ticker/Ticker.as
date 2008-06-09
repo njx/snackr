@@ -28,18 +28,25 @@
 
 package ui.ticker
 {
+	import flash.display.Screen;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	
+	import model.feeds.FeedItem;
 	import model.logger.Logger;
 	
 	import mx.core.UIComponent;
 	import mx.events.MoveEvent;
 	import mx.events.ResizeEvent;
+	
+	import ui.popups.DetailPopupManager;
+	import ui.popups.DetailPopupManagerEvent;
 
 	public class Ticker extends UIComponent
 	{
 		static public const QUEUE_RUNNING_LOW: String = "queueRunningLow";
+		
+		static private const EDGE_PADDING: Number = 5;
 		
 		// TODO: should make this changeable
 		static private const ITEM_WIDTH: Number = 215;
@@ -59,6 +66,10 @@ package ui.ticker
 		private var _mask: Sprite = new Sprite();
 		private var _maskInvalid: Boolean = true;
 		private var _isVertical: Boolean = false;
+		private var _pauseRequesters: int = 0;
+		
+		public var currentScreen: Screen;
+		public var currentSide: Number;
 		
 		public function Ticker()
 		{
@@ -208,7 +219,11 @@ package ui.ticker
 			addChild(_childContainer);
 			addEventListener(ResizeEvent.RESIZE, handleResize);
 			addEventListener(MoveEvent.MOVE, handleMove);
-			doResize();			
+			addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
+			doResize();
+			
+			DetailPopupManager.instance.addEventListener(DetailPopupManagerEvent.DETAIL_POPUP_OPEN, handleDetailPopupOpen);
+			DetailPopupManager.instance.addEventListener(DetailPopupManagerEvent.DETAIL_POPUP_CLOSE, handleDetailPopupClose);
 		}
 		
 		private function handleResize(event: ResizeEvent): void {
@@ -228,12 +243,12 @@ package ui.ticker
 			
 			var i: Number;
 			if (_isVertical) {
-				_childContainer.width = width;
+				_childContainer.width = width - 2 * EDGE_PADDING;
 				_childContainer.height = height + (ITEM_HEIGHT + ITEM_PADDING) * (ITEM_BUFFER + 1);
 			}
 			else {
 				_childContainer.width = width + (ITEM_WIDTH + ITEM_PADDING) * (ITEM_BUFFER + 1);
-				_childContainer.height = height;
+				_childContainer.height = height - 2 * EDGE_PADDING;
 			}
 			fillItemsFromQueue();
 		}
@@ -241,22 +256,30 @@ package ui.ticker
 		public function animate(): void {
 			// Start on right-hand/top side.
 			if (_isVertical) {
+				_childContainer.x = EDGE_PADDING;
 				_childContainer.y = height;
 			}
 			else {
 				_childContainer.x = width;
+				_childContainer.y = EDGE_PADDING;
 			}
 			_frameCount = 0;
 			addEventListener(Event.ENTER_FRAME, handleEnterFrame);
 		}
 		
 		public function pause(): void {
-			removeEventListener(Event.ENTER_FRAME, handleEnterFrame);
+			if (_pauseRequesters == 0) {
+				removeEventListener(Event.ENTER_FRAME, handleEnterFrame);
+			}
+			_pauseRequesters++;
 		}
 		
 		public function resume(): void {
-			_frameCount = 0;
-			addEventListener(Event.ENTER_FRAME, handleEnterFrame);
+			_pauseRequesters--;
+			if (_pauseRequesters == 0) {
+				_frameCount = 0;
+				addEventListener(Event.ENTER_FRAME, handleEnterFrame);
+			}
 		}
 		
 		private function handleEnterFrame(event: Event): void {
@@ -355,6 +378,44 @@ package ui.ticker
 			}
 		}
 		
+		/**
+		 * Handler for clicking on a ticker item. This pops up the detail popup window for that item.
+		 */
+		private function handleTickerItemClick(event: TickerItemClickEvent): void {
+			var item: TickerItem = event.tickerItem;
+			
+			// Create the detail popup.
+			DetailPopupManager.instance.popUpItem(item, isVertical, currentScreen, currentSide);
+
+			// Mark the item as read.
+			var feedItem: FeedItem = FeedItem(item.data.feedItem);
+			if (feedItem != null) {
+				feedItem.feed.setItemRead(feedItem);
+				item.setRead();
+			}
+		}
+		
+		/**
+		 * Handler for when detail popups open. Pauses the ticker.
+		 */
+		private function handleDetailPopupOpen(event: DetailPopupManagerEvent): void {
+			pause();
+		}
+		
+		/**
+		 * Handler for when detail popups close. Resumes the ticker.
+		 */
+		private function handleDetailPopupClose(event: DetailPopupManagerEvent): void {
+			resume();
+		}
+		
+		/**
+		 * Updates our display list. Most of our actual display list management is handled in the scrolling
+		 * code or the resize handler; all we do here is update our clipping mask to take into account
+		 * any change in size. Normally you don't have to worry about dealing with clipping in Flex apps,
+		 * but since we're using a raw UIComponent as the container for our scrolling items, and UIComponent
+		 * doesn't handle clipping, we have to manage clipping manually.
+		 */
 		override protected function updateDisplayList(unscaledWidth: Number, unscaledHeight: Number): void {
 			super.updateDisplayList(unscaledWidth, unscaledHeight);
 			

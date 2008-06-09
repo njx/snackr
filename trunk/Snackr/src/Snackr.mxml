@@ -38,6 +38,7 @@
 	<mx:Style source="styles/styles.css"/>
 	<mx:Script>
 		<![CDATA[
+			import ui.popups.DetailPopupManager;
 		
 			// In addition to being the main window, this acts as the main controller for the
 			// application. In general, individual components such as the ticker and the
@@ -225,10 +226,6 @@
 			private var _backgroundOpacity: Number = 0.9;
 
 			/**
-			 * The last DetailPopup shown, if any.
-			 */
-			private var _lastDetailPopup: DetailPopup = null;
-			/**
 			 * The current OptionsPopup being shown, if any.
 			 */
 			private var _optionsPopup: OptionsPopup = null;
@@ -281,12 +278,6 @@
 			 * The original bounds of the window when the drag started.
 			 */
 			private var _origBounds: Rectangle = null;
-			/**
-			 * Whether to ignore clicks. This is a workaround for the fact that even if the user
-			 * starts a drag, the mouseDown still gets processed by the underlying component. 
-			 * To avoid that, we ignore the first click we get after a drag. See handleMouseMove();
-			 */
-			private var _ignoreClicks: Boolean = false;	
 
 			/**
 			 * The XML containing the startup hints.
@@ -366,6 +357,10 @@
 				// Register a capturing event listener for mouse downs. We use this to detect drag starts.
 				systemManager.addEventListener(MouseEvent.MOUSE_DOWN, handleMouseDown, true);			
 
+				// Register event listeners for mouse over/out, so we can pause the ticker.
+				systemManager.addEventListener(MouseEvent.ROLL_OVER, handleRollOver, true);
+				systemManager.addEventListener(MouseEvent.ROLL_OUT, handleRollOut, true);
+
 				// Show the welcome screen if there are no feeds; otherwise, start all our timers.
 				if (_feedModel.feeds.length == 0) {
 					showWelcome();
@@ -375,6 +370,25 @@
 				}
 			}
 			
+			/**
+			 * Handler for the rollover event. When the user mouses over the ticker, we pause so it's easier to
+			 * target items/stars.
+			 */
+			private function handleRollOver(event: MouseEvent): void {
+				if (event.target == ticker) {
+					ticker.pause();
+				}
+			}
+			
+			/**
+			 * Handler for the roll out event. We unpause the ticker.
+			 */
+			private function handleRollOut(event: MouseEvent): void {
+				if (event.target == ticker && !_isCollapsed) {
+					ticker.resume();
+				}
+			}
+		
 			/**
 			 * Handler for log events. Currently, we only show log events in the UI if there's a
 			 * catastrophic failure; other events just go to the log file in the Snackr data folder.
@@ -554,7 +568,6 @@
 					
 					// Start the ticker.
 					ticker.animate();
-					ticker.addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
 				}
 			}
 			
@@ -591,84 +604,6 @@
 				if (!(nativeWindow.closed) && !_lastScreenBounds.equals(currentScreen.visibleBounds)) {
 					redock(currentScreen);
 				}
-			}
-			
-			/**
-			 * Handler for clicking on a ticker item. This pops up the detail popup window for that item.
-			 */
-			private function handleTickerItemClick(event: TickerItemClickEvent): void {
-				// TODO: not clear that this should live at this level; maybe it should live in
-				// TickerItem, since items can be reused in different places (e.g. in the StarredItemsPopup)?
-				if (!_ignoreClicks) {					
-					var item: TickerItem = event.tickerItem;
-					
-					// TODO: this is currently obsolete; right-click used to mark an item as read, but now
-					// it collapses the ticker. We should probably go back to making it mark items as read.
-					var doPopup: Boolean = !event.isRightClick;
-					
-					// Close the last detail popup if one is already open.
-					// TODO: should have more general popup management to ensure only one popup is open at a time.
-					if (_lastDetailPopup != null) {
-						if (_lastDetailPopup.data == event.tickerItem.data) {
-							// The user just clicked on the same item again, so just close the popup.
-							doPopup = false;
-							ticker.resume();
-						}
-						_lastDetailPopup.removeEventListener(Event.CLOSE, handleDetailClose);
-						_lastDetailPopup.doClose();
-						_lastDetailPopup = null;
-					}
-					
-					if (doPopup) {
-						// Stop the ticker while the user is reading the item.
-						ticker.pause();
-						
-						// Figure out where to open the popup. We want it to be anchored to the
-						// middle of the item, on the appropriate side of the ticker (depending on
-						// where it's docked).
-						var globalOrigin: Point = item.localToGlobal(new Point(0, 0));
-						globalOrigin.x += item.stage.nativeWindow.bounds.x;
-						globalOrigin.y += item.stage.nativeWindow.bounds.y;
-						
-						var detail: DetailPopup = new DetailPopup();
-						if (isVertical) {
-							detail.anchorPoint = new Point(
-								(currentSide == UIUtils.SIDE_LEFT ? globalOrigin.x + item.width : globalOrigin.x),
-								globalOrigin.y + item.height / 2);
-						}
-						else {
-							detail.anchorPoint = new Point(globalOrigin.x + item.width / 2, 
-								(currentSide == UIUtils.SIDE_TOP ? globalOrigin.y + item.height : globalOrigin.y));
-						}
-						
-						// Set up the detail popup and open it.
-						detail.pointerSide = currentSide;
-						detail.currentScreen = currentScreen;
-						detail.data = item.data;
-						detail.addEventListener(Event.CLOSE, handleDetailClose);
-						detail.open(true);
-						
-						_lastDetailPopup = detail;				
-					}
-					
-					// Mark the item as read.
-					var feedItem: FeedItem = FeedItem(item.data.feedItem);
-					if (feedItem != null) {
-						feedItem.feed.setItemRead(feedItem);
-						item.setRead();
-					}
-				}
-			}
-			
-			/**
-			 * Handler for detail popup close. This restarts the ticker.
-			 */
-			private function handleDetailClose(event: Event): void {
-				if (_lastDetailPopup == event.target) {
-					event.target.removeEventListener(Event.CLOSE, handleDetailClose);
-					_lastDetailPopup = null;
-				}
-				ticker.resume();
 			}
 			
 			/**
@@ -790,6 +725,8 @@
 				_lastNativeWindowBounds = newBounds;
 				_lastScreenBounds = screen.visibleBounds;
 				_firstRedock = false;
+				ticker.currentScreen = currentScreen;
+				ticker.currentSide = currentSide;
 			}
 			
 			/**
@@ -828,6 +765,8 @@
 					_optionsPopup = null;
 				}
 				else {
+					DetailPopupManager.instance.closePopups();
+
 					var options: OptionsPopup = new OptionsPopup();
 					options.currentScreen = currentScreen;
 					options.feedModel = _feedModel;
@@ -1089,6 +1028,8 @@
 			 */
 			private function addFeed(url: String = null, checkNow: Boolean = false): void {
 				if (_addFeedPopup == null) {
+					DetailPopupManager.instance.closePopups();
+					
 					if (url == null || url == "") {
 						url = UIUtils.getURLFromClipboard();
 					}
@@ -1200,6 +1141,8 @@
 			 * Collapses the ticker to a thin line, so only the tab is showing. This also pauses the ticker.
 			 */
 			private function collapse(): void {
+				DetailPopupManager.instance.closePopups();
+
 				_isCollapsed = true;
 				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "collapseButton" : "expandButton");
 				ticker.pause();
@@ -1278,8 +1221,8 @@
 			 * Handles a mouse down on the application. We use this to check if we need to start a ticker drag.
 			 */
 			private function handleMouseDown(event: MouseEvent): void {
-				// If we were ignoring clicks (because of a previous drag), start handling them again.
-				_ignoreClicks = false;
+				// Remove our "ignore clicks" handler, if any.
+				systemManager.removeEventListener(MouseEvent.CLICK, handleIgnoreMouseClick, true);
 				
 				// Register to listen for mouse move/mouse up. If the user moves the mouse past a certain
 				// threshold, we start a drag. We add these as capturing event handlers to the system manager
@@ -1304,7 +1247,7 @@
 							
 						// Start ignoring clicks. There isn't really a good way to prevent the current mouseDown/mouseUp
 						// from being handled, so we just ignore clicks until we get another mouseDown.
-						_ignoreClicks = true;
+						addEventListener(MouseEvent.CLICK, handleIgnoreMouseClick, true);
 						
 						// Begin a native window move. There isn't a good way in AIR right now to manually handle
 						// window drags, since we can't capture mouse events that occur when the mouse is outside the 
@@ -1439,10 +1382,16 @@
 			 * we're collapsed, we uncollapse.
 			 */
 			private function handleClick(event: MouseEvent): void {
-				if (!_ignoreClicks && (event.target == this || event.target is TickerItem) && _isCollapsed) {
+				if ((event.target == this || event.target is TickerItem) && _isCollapsed) {
 					expand();
 				}
 			}		
+			
+			private function handleIgnoreMouseClick(event: MouseEvent): void {
+				// Swallow the event and remove this handler so we don't ignore another one.
+				event.stopImmediatePropagation();
+				removeEventListener(MouseEvent.CLICK, handleIgnoreMouseClick, true);
+			}
 			
 			/**
 			 * Handle a click on the "read starred items" button in the ticker tab.
@@ -1453,8 +1402,11 @@
 					_starredItemsPopup = null;
 				}
 				else {
+					DetailPopupManager.instance.closePopups();
+
 					var starredItemsPopup: StarredItemsPopup = new StarredItemsPopup();
 					starredItemsPopup.currentScreen = currentScreen;
+					starredItemsPopup.currentSide = (currentSide == UIUtils.SIDE_RIGHT ? UIUtils.SIDE_RIGHT : UIUtils.SIDE_LEFT);
 					starredItemsPopup.feedModel = _feedModel;
 					if (isVertical) {
 						starredItemsPopup.anchorPoint = new Point(
@@ -1467,14 +1419,13 @@
 							(currentSide == UIUtils.SIDE_TOP ? nativeWindow.bounds.y + height : nativeWindow.bounds.y));
 					}
 					starredItemsPopup.pointerSide = currentSide;
-					starredItemsPopup.addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
 					starredItemsPopup.open();
 					_starredItemsPopup = starredItemsPopup;				
 				}				
 			}	
 		]]>
 	</mx:Script>
-	<ticker:Ticker id="ticker" left="0" right="0" top="25" bottom="5"/>
+	<ticker:Ticker id="ticker" left="0" right="0" top="20" bottom="0"/>
 	<mx:Button id="addFeedButton" styleName="addFeedButton" y="2" width="16" height="16" x="2" click="addFeed()" toolTip="Add Feed"/>
 	<mx:Button id="optionsButton" y="2" width="16" height="16" x="22" styleName="optionsButton" click="handleOptionsClick()" toolTip="Options"/>
 	<mx:Button id="starButton" y="2" width="16" height="16" x="42" styleName="readStarredButton" click="handleReadStarredClick()" toolTip="Read Starred Items"/>
@@ -1487,15 +1438,15 @@
 	<mx:Fade id="quickFadeIn" alphaFrom="0" alphaTo="1" duration="150"/>
 	<mx:states>
 		<mx:State name="vertical">
-			<mx:SetStyle target="{ticker}" name="left" value="5"/>
-			<mx:SetStyle target="{ticker}" name="right" value="5"/>
+			<mx:SetStyle target="{ticker}" name="left" value="0"/>
+			<mx:SetStyle target="{ticker}" name="right" value="0"/>
 			<mx:SetStyle target="{ticker}" name="top" value="20"/>
 			<mx:SetStyle target="{ticker}" name="bottom" value="0"/>
 			<mx:SetStyle target="{spinner}" name="verticalCenter" value="0"/>
 		</mx:State>
 		<mx:State name="top">
-			<mx:SetStyle target="{ticker}" name="top" value="5"/>
-			<mx:SetStyle target="{ticker}" name="bottom" value="25"/>
+			<mx:SetStyle target="{ticker}" name="top" value="0"/>
+			<mx:SetStyle target="{ticker}" name="bottom" value="20"/>
 			<mx:SetProperty target="{addFeedButton}" name="y"/>
 			<mx:SetProperty target="{optionsButton}" name="y"/>
 			<mx:SetProperty target="{collapseButton}" name="y"/>

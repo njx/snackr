@@ -3,6 +3,8 @@
 
 ==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.34-TEST.air v0.34 TEST build]==
 
+Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database]!
+
   * Implemented ability to "star" items so you can read them later. Click the star icon in the item popup to star an item, then read starred items by clicking the star icon in the ticker tab.
   * Added option to configure feed fetch interval globally (#54). This is at the bottom of the Feeds tab in the Options popup. You can also force all feeds to get refreshed here.
   * Added option to set transparency of ticker window (#55). This is in the Preferences tab of the Options popup.

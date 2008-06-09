@@ -113,7 +113,9 @@
 			private function updateHTML(): void {
 				// If the description is empty, just open the actual HTML page.
 				if (_data.description == undefined || _data.description == null || String(_data.description).replace(/\s+/g, "") == "") {
-					html.location = data.link;
+					if (data.link != null) {
+						html.location = data.link;
+					}
 				}
 				else {
 					html.htmlText = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><body>' + _data.description + '</body></html>';

@@ -283,6 +283,26 @@ package model.feeds
 		}
 		
 		/**
+		 * Gets the href from a <link> with rel="alternate".
+		 * 
+		 * This is needed because not all <link>s have a rel attribute and e4x chokes in this instance.
+		 */
+		private function getAlternateLinkHref(result : XML) : String {
+			for each (var link : XML in result.link) {
+				try {
+					// Bug 118: If no alternate is specified, don't throw an exception.
+					if (link.@rel == "alternate") {
+						return link.@href;
+						break;
+					}
+				} catch (e : Error) {
+					//nothing
+				}
+			}
+			return null;
+		}
+		
+		/**
 		 * Parses the XML for a given feed, stores any new or updated items in the database,
 		 * and deletes any items that have expired from the feed.
 		 * @param event The result event for the fetch.
@@ -387,9 +407,8 @@ package model.feeds
 				use namespace atom10;
 				name = result.title;
 				// TODO: what if more than one link?
-				homeURL = result.link.(@rel=="alternate").@href;
+				homeURL = getAlternateLinkHref(result);
 				logoURL = result.logo;
-
 				for each (var entry: XML in result.entry) {
 					if (existingItems[entry.id.toString()] != undefined) {
 						// We don't update the existing item, to improve performance. This does mean we won't
@@ -430,8 +449,22 @@ package model.feeds
 							// will get earlier timestamps this way...but it's better than nothing.
 							insertStatement.parameters[":timestamp"] = new Date();
 						}
-						// TODO: what if more than one link?
-						insertStatement.parameters[":link"] = entry.link.(@rel=="alternate").@href;
+						insertStatement.parameters[":link"] = getAlternateLinkHref(entry);
+						if (insertStatement.parameters[":link"] == null) {
+							// Bug #119: grab first link if no alternate
+							// see: http://podcast.phparch.com/podcast/rss/index.xml
+							for each (var link : XML in entry.link) {
+								try {
+									// we don't want enclosures
+									if (link.@rel != "enclosure") {
+										insertStatement.parameters[":link"] = link.@href;
+									}
+								} catch (e : Error) {
+									// no rel is good too
+									insertStatement.parameters[":link"] = link.@href;
+								}
+							}
+						}
 						// TODO: what about summary?
 						insertStatement.parameters[":description"] = entry.content.toString();
 						insertStatement.parameters[":wasRead"] = false;

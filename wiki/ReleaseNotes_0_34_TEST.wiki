@@ -4,8 +4,8 @@
 ==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.34-TEST.air v0.34 TEST build]==
 
   * Implemented ability to "star" items so you can read them later. Click the star icon in the item popup to star an item, then read starred items by clicking the star icon in the ticker tab.
-  * Added option to configure feed fetch interval globally (#54)
-  * Added option to set transparency of ticker window (#55)
+  * Added option to configure feed fetch interval globally (#54). This is at the bottom of the Feeds tab in the Options popup. You can also force all feeds to get refreshed here.
+  * Added option to set transparency of ticker window (#55). This is in the Preferences tab of the Options popup.
   * Fixed #1: Snackr is not always-on-top on first launch even though it's set that way by default in prefs
   * Fixed #2: Snackr seems to think some English titles have non-Western chars and falls back to Verdana when it shouldn't (e.g. NYTimes headlines)
   * Fixed #27: Code cleanup: Popup should auto-hide managed children on init (right now all children have to have visible="false" set manually)

@@ -37,6 +37,7 @@
 		<![CDATA[
 			import mx.events.FlexEvent;
 			import mx.events.ItemClickEvent;
+			import model.feeds.FeedItem;
 			
 			static public const IMAGE_SIDE_LEFT: Number = 0;
 			static public const IMAGE_SIDE_RIGHT: Number = 1;
@@ -179,16 +180,12 @@
 			<mx:SetStyle target="{infoBox}" name="left" value="2"/>
 		</mx:State>
 		<mx:State name="noImageRight" basedOn="noImage">
-			<mx:SetProperty name="width" value="200"/>
-			<mx:SetProperty name="height" value="65"/>
 			<mx:RemoveChild target="{vRule}"/>
 			<mx:AddChild position="lastChild">
 				<mx:HRule bottom="7" left="0" right="15" strokeWidth="1" strokeColor="#FFFFFF" alpha="0.1"/>
 			</mx:AddChild>
 		</mx:State>
 		<mx:State name="imageRight">
-			<mx:SetProperty name="width" value="200"/>
-			<mx:SetProperty name="height" value="65"/>
 			<mx:SetStyle target="{imageHolder}" name="left"/>
 			<mx:SetStyle target="{imageHolder}" name="right" value="16"/>
 			<mx:SetStyle target="{title}" name="left" value="2"/>
@@ -209,7 +206,7 @@
 		<utils:SmoothImage id="image" visible="false" source="{data.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
 	</mx:Canvas>
 	<utils:CharSetDetectingText id="title" y="0" left="52" right="17" htmlText="{data.title}" fontSize="12" height="36" selectable="false"/>
-	<mx:HBox id="infoBox" y="35" left="52" right="17" horizontalGap="5">
+	<mx:HBox id="infoBox" y="35" left="52" right="17" horizontalGap="1">
 		<utils:CharSetDetectingLabel id="info" text="{data.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip=""/>
 		<utils:CharSetDetectingLabel id="info2" text="{data.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip=""/>		
 	</mx:HBox>

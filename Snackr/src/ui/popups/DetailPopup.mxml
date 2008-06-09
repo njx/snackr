@@ -66,6 +66,16 @@
 					_dataChanged = false;
 					updateHTML();
 				}
+				if (!_isLoading) {
+					// We don't actually want to update the controls here if we haven't done the
+					// opening animation yet, because we don't want the "View Post" link and star
+					// button to appear until after that's done.
+					updateControls();
+				}
+			}
+			
+			override protected function handleOpenAnimationComplete(): void {
+				updateControls();
 			}
 			
 			private function updateControls(): void {
@@ -100,10 +110,6 @@
 				updateHTML();
 			}
 
-			override protected function handleOpenAnimationComplete(): void {
-				updateControls();
-			}
-			
 			private function updateHTML(): void {
 				// If the description is empty, just open the actual HTML page.
 				if (_data.description == undefined || _data.description == null || String(_data.description).replace(/\s+/g, "") == "") {
@@ -160,7 +166,7 @@
 					var feedItem: FeedItem = data.feedItem;
 					feedItem.feed.setItemStarred(feedItem, !feedItem.starred);
 				}
-				updateControls();
+				invalidateProperties();
 			}
 			
 		]]>

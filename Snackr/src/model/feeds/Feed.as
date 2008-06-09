@@ -288,15 +288,13 @@ package model.feeds
 		 * This is needed because not all <link>s have a rel attribute and e4x chokes in this instance.
 		 */
 		private function getAlternateLinkHref(result : XML) : String {
+			use namespace atom03;
+			use namespace atom10;
 			for each (var link : XML in result.link) {
-				try {
-					// Bug 118: If no alternate is specified, don't throw an exception.
-					if (link.@rel == "alternate") {
-						return link.@href;
-						break;
-					}
-				} catch (e : Error) {
-					//nothing
+				// Bug 118: If no alternate is specified, don't throw an exception. Treat
+				// no rel as the same as alternate.
+				if (link.@rel == undefined || link.@rel == "alternate") {
+					return link.@href;
 				}
 			}
 			return null;
@@ -450,21 +448,6 @@ package model.feeds
 							insertStatement.parameters[":timestamp"] = new Date();
 						}
 						insertStatement.parameters[":link"] = getAlternateLinkHref(entry);
-						if (insertStatement.parameters[":link"] == null) {
-							// Bug #119: grab first link if no alternate
-							// see: http://podcast.phparch.com/podcast/rss/index.xml
-							for each (var link : XML in entry.link) {
-								try {
-									// we don't want enclosures
-									if (link.@rel != "enclosure") {
-										insertStatement.parameters[":link"] = link.@href;
-									}
-								} catch (e : Error) {
-									// no rel is good too
-									insertStatement.parameters[":link"] = link.@href;
-								}
-							}
-						}
 						// TODO: what about summary?
 						insertStatement.parameters[":description"] = entry.content.toString();
 						insertStatement.parameters[":wasRead"] = false;

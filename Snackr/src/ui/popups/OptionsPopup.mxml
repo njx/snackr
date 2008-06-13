@@ -33,6 +33,7 @@
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" close="handleClose(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
+			import mx.collections.ArrayCollection;
 			import ui.utils.UIUtils;
 			import mx.events.PropertyChangeEvent;
 			import mx.events.EffectEvent;
@@ -95,7 +96,7 @@
 					case OptionsModel.OPTION_TICKER_SPEED: {
 						var speed: Number = Number(value);
 						var sliderValue: Number = _speeds.length - 1;
-						for (var i: uint = 0; i < _speeds.length; i++) {
+						for (var i: int = 0; i < _speeds.length; i++) {
 							if (speed <= _speeds[i]) {
 								sliderValue = i;
 								break;
@@ -114,11 +115,14 @@
 							ageLimitCheck.selected = false;
 							ageLimitInput.text = "";
 							ageLimitInput.enabled = false;
+							ageLimitUnitsCombo.enabled = false;
 						}
 						else {
 							ageLimitCheck.selected = true;
 							ageLimitInput.text = value;
 							ageLimitInput.enabled = true;
+							ageLimitUnitsCombo.enabled = true;
+							setOption(OptionsModel.OPTION_AGE_LIMIT_UNITS, _optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT_UNITS));
 						}
 						break;
 					}
@@ -136,6 +140,17 @@
 					}
 					case OptionsModel.OPTION_TICKER_OPACITY: {
 						opacitySlider.value = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT_UNITS: {
+						var comboItem: Object = null;
+						var comboData: ArrayCollection = ArrayCollection(ageLimitUnitsCombo.dataProvider);
+						for (i = 0; i < comboData.length; i++) {
+							if (comboData.getItemAt(i).value == value) {
+								ageLimitUnitsCombo.selectedItem = comboData.getItemAt(i);
+								break;
+							}
+						}
 						break;
 					}
 					default:
@@ -282,6 +297,17 @@
 				}
 			}
 			
+			private function handleAgeLimitUnitsChange(event: Event): void {
+				var value: String = null;
+				if (ageLimitUnitsCombo.selectedItem.value == "hours") {
+					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_HOURS;
+				}
+				else {
+					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS;
+				}
+				_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT_UNITS, value);
+			}
+			
 			private function handleAgeLimitInput(event: Event): void {
 				if (ageLimitCheck.selected) {
 					var value: Number = Number(ageLimitInput.text);
@@ -371,7 +397,12 @@
 				<mx:CheckBox id="alwaysInFrontCheck" left="col2:10" y="71" label="Keep Snackr in front of other windows (right-click or control-click to hide temporarily)" selected="true" change="handleAlwaysInFrontChange(event)"/>
 				<mx:CheckBox left="col2:10" y="104" label="Don't show items older than" selected="true" id="ageLimitCheck" change="handleAgeLimitCheckChange(event)"/>
 				<mx:TextInput left="col2:187" y="104" width="46" id="ageLimitInput" valueCommit="handleAgeLimitInput(event)"/>
-				<mx:Label left="col2:237" y="106" text="days"/>
+				<mx:ComboBox id="ageLimitUnitsCombo" labelField="text" left="col2:237" y="104" change="handleAgeLimitUnitsChange(event)">
+					<mx:dataProvider>
+						<mx:Object text="hours" value="hours"/>
+						<mx:Object text="days" value="days"/>
+					</mx:dataProvider>
+				</mx:ComboBox>
 				<mx:CheckBox left="col2:10" y="137" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
 				<mx:Label left="col1:0" right="col1:0" y="170" textAlign="right" text="Dock to side:"/>
 				<!-- HACK: Order of strings in this combobox must be the same as the UIUtils enum for SIDE_* -->

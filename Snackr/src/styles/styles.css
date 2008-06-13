@@ -86,6 +86,9 @@ ComboBox
 }
 .comboBoxDropDown
 {
+	backgroundAlpha: 1;
+	borderStyle: solid;
+	borderColor: #111111;
 	backgroundColor: #222222;
 	rollOverColor: #444444;
 	selectionColor: #666666;

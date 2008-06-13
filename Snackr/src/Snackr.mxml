@@ -1143,9 +1143,11 @@
 			private function collapse(): void {
 				DetailPopupManager.instance.closePopups();
 
+				if (!_isCollapsed) {
+					ticker.pause();
+				}
 				_isCollapsed = true;
 				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "collapseButton" : "expandButton");
-				ticker.pause();
 				if (currentSide == UIUtils.SIDE_TOP) {
 					resizeToY(true, currentScreen.visibleBounds.y + TAB_HEIGHT + 4);
 				}

@@ -33,13 +33,18 @@ package model.feeds
 	import flash.data.SQLConnection;
 	import flash.data.SQLResult;
 	import flash.errors.SQLError;
+	import flash.events.ErrorEvent;
+	import flash.events.Event;
 	import flash.events.EventDispatcher;
+	import flash.events.IOErrorEvent;
+	import flash.events.SecurityErrorEvent;
+	import flash.net.URLLoader;
+	import flash.net.URLLoaderDataFormat;
+	import flash.net.URLRequest;
+	import flash.net.URLRequestHeader;
+	import flash.utils.ByteArray;
 	
 	import model.logger.Logger;
-	
-	import mx.rpc.events.FaultEvent;
-	import mx.rpc.events.ResultEvent;
-	import mx.rpc.http.HTTPService;
 	
 	/**
 	 * Represents a single feed. Feeds are stored in the local SQL database, and their information
@@ -272,14 +277,20 @@ package model.feeds
 			// TODO: this is just SEVERITY_NORMAL for testing, should eventually be SEVERITY_DEBUG
 			Logger.instance.log("Fetching: " + url + " (pri = " + priority + ")", Logger.SEVERITY_NORMAL);
 			_lastFetched = new Date();
-			var service: HTTPService = new HTTPService();
-			service.url = url;
-			service.resultFormat = "e4x";
-			service.requestTimeout = FETCH_TIMEOUT;
-			service.headers = { Referer: "-" };
-			service.addEventListener(ResultEvent.RESULT, handleFetchResult);
-			service.addEventListener(FaultEvent.FAULT, handleFetchFault);
-			service.send();
+			
+			// We can't use HTTPService here, because we need to retrieve the feed as binary in case it's
+			// a non-UTF-8 feed. Instead, we use URLLoader, capture it as a ByteArray, figure out the
+			// encoding, then translate it using readMultiByte().
+			// TODO: is there any way to set a timeout limit?
+			var request: URLRequest = new URLRequest();
+			request.url = url;
+			request.requestHeaders = [new URLRequestHeader("Referer", "-")];
+			var loader: URLLoader = new URLLoader();
+			loader.dataFormat = URLLoaderDataFormat.BINARY;
+			loader.addEventListener(Event.COMPLETE, handleFetchComplete);
+			loader.addEventListener(IOErrorEvent.IO_ERROR, handleFetchError);
+			loader.addEventListener(SecurityErrorEvent.SECURITY_ERROR, handleFetchError);
+			loader.load(request);
 		}
 		
 		/**
@@ -301,11 +312,58 @@ package model.feeds
 		}
 		
 		/**
+		 * Parses a raw byte array into XML, taking the byte-order-mark and character encoding into account.
+		 */
+		private function convertByteArrayToXML(bytes: ByteArray): XML {
+			var encoding: String = null;
+			
+			// First, see if we have a byte-order mark. If so, pick the appropriate encoding.
+			if (bytes.length >= 2) {
+				if (bytes[0] == 0xFE && bytes[1] == 0xFF) {
+					encoding = "utf-16";
+				}
+				else if (bytes[0] == 0xFF && bytes[1] == 0xFE) {
+					encoding = "unicodeFFFE";
+				}
+				else if (bytes.length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
+					encoding = "utf-8";
+				}
+			}
+			
+			// If we haven't seen a byte-order mark, then convert it to a string and see if we can find 
+			// an encoding. 
+			// TODO: should really scan the byte array rather than converting to string and using a regexp
+			if (encoding == null) {
+				var rawString: String = bytes.toString();
+				var pattern: RegExp = /<?xml[^>]*encoding\s*=\s*['"]([^"]*)['"][^>]*?>/;
+				var matchResult: Object = pattern.exec(rawString);
+				if (matchResult != null && matchResult.length > 1) {
+					encoding = matchResult[1];
+				}
+			}
+			
+			// If we still haven't found an encoding, it must be utf-8.
+			if (encoding == null) {
+				encoding = "utf-8";
+			}
+			
+			Logger.instance.log("Encoding for " + url + ": " + encoding, Logger.SEVERITY_DEBUG);
+			var result: XML = null;
+			try {
+				result = new XML(bytes.readMultiByte(bytes.length, encoding));
+			}
+			catch (e: Error) {
+				doFetchFailed(e.message);
+			}
+			return result;			
+		}
+		
+		/**
 		 * Parses the XML for a given feed, stores any new or updated items in the database,
 		 * and deletes any items that have expired from the feed.
 		 * @param event The result event for the fetch.
 		 */
-		private function handleFetchResult(event: ResultEvent): void {
+		private function handleFetchComplete(event: Event): void {
 			// TODO: should change this to use the AS syndication library:
 			// http://code.google.com/p/as3syndicationlib/
 			
@@ -323,176 +381,184 @@ package model.feeds
 				}
 			}
 			
-			// Batch up all the following updates.			
-			_sqlConnection.begin();	
-			
 			// Parse the XML.
-			var result: XML = XML(event.result);
-			var insertStatement: LoggingStatement = _statements.getStatement(FeedStatements.INSERT_ITEM);
-			if (result.localName() == "rss" || result.localName() == "RDF") {
-				// RSS 0.91, 1.0, or 2.0. RSS 1.0 (the RDF case) requires some special handling.
-				// We open the rdf and rss10 namespaces here even in the non-RSS 1.0 case (shouldn't hurt 
-				// the other cases, and makes the RSS 1.0 case easier).
-				use namespace rdf;
-				use namespace rss10;
-				var isRDF: Boolean = (result.localName() == "RDF");
+			var loader: URLLoader = URLLoader(event.target);
+			var resultBytes: ByteArray = ByteArray(loader.data);
+			var result: XML = convertByteArrayToXML(resultBytes);
+			if (result != null) {			
+				// Batch up all the following updates.			
+				_sqlConnection.begin();	
 				
-				name = result.channel.title;
-				homeURL = result.channel.link;
-				logoURL = (isRDF ? result.channel.image.@resource : result.channel.image.url);
-				
-				var guid: String;
-				for each (var item: XML in (isRDF ? result.item : result.channel.item)) {
-					if (isRDF) {
-						guid = item.@about.toString();
-					}
-					else {
-						guid = ((item.guid == undefined || item.guid == null || item.guid == '') ? item.link.toString() : item.guid.toString());
-					}
-					if (existingItems[guid] != undefined) {
-						// We don't update the existing item, to improve performance. This does mean we won't
-						// get changes to the item.
-						// TODO: should we?
-						existingItems[guid] = false;
-					}
-					else {
-						insertStatement.parameters[":guid"] = guid;
-						insertStatement.parameters[":feedId"] = feedId;
-						insertStatement.parameters[":title"] = item.title.toString();
-						insertStatement.parameters[":timestamp"] = null;
-						var pubDate: String = item.pubDate;
-						var useW3C: Boolean = false;
-						if (pubDate == "" || pubDate == null) {
-							pubDate = item.dc::date;
-							useW3C = true;
+				var insertStatement: LoggingStatement = _statements.getStatement(FeedStatements.INSERT_ITEM);
+				if (result.localName() == "rss" || result.localName() == "RDF") {
+					// RSS 0.91, 1.0, or 2.0. RSS 1.0 (the RDF case) requires some special handling.
+					// We open the rdf and rss10 namespaces here even in the non-RSS 1.0 case (shouldn't hurt 
+					// the other cases, and makes the RSS 1.0 case easier).
+					use namespace rdf;
+					use namespace rss10;
+					var isRDF: Boolean = (result.localName() == "RDF");
+					
+					name = result.channel.title;
+					homeURL = result.channel.link;
+					logoURL = (isRDF ? result.channel.image.@resource : result.channel.image.url);
+					
+					var guid: String;
+					for each (var item: XML in (isRDF ? result.item : result.channel.item)) {
+						if (isRDF) {
+							guid = item.@about.toString();
 						}
-						if (pubDate != "" && pubDate != null) {
-							try {
-								insertStatement.parameters[":timestamp"] = 
-									(useW3C ? DateUtil.parseW3CDTF(pubDate) : DateUtil.parseRFC822(pubDate));
+						else {
+							guid = ((item.guid == undefined || item.guid == null || item.guid == '') ? item.link.toString() : item.guid.toString());
+						}
+						if (existingItems[guid] != undefined) {
+							// We don't update the existing item, to improve performance. This does mean we won't
+							// get changes to the item.
+							// TODO: should we?
+							existingItems[guid] = false;
+						}
+						else {
+							insertStatement.parameters[":guid"] = guid;
+							insertStatement.parameters[":feedId"] = feedId;
+							insertStatement.parameters[":title"] = item.title.toString();
+							insertStatement.parameters[":timestamp"] = null;
+							var pubDate: String = item.pubDate;
+							var useW3C: Boolean = false;
+							if (pubDate == "" || pubDate == null) {
+								pubDate = item.dc::date;
+								useW3C = true;
 							}
-							catch (e: Error) {
-								Logger.instance.log("Couldn't parse date " + pubDate + ": " + e.message, Logger.SEVERITY_DEBUG);
+							if (pubDate != "" && pubDate != null) {
+								try {
+									insertStatement.parameters[":timestamp"] = 
+										(useW3C ? DateUtil.parseW3CDTF(pubDate) : DateUtil.parseRFC822(pubDate));
+								}
+								catch (e: Error) {
+									Logger.instance.log("Couldn't parse date " + pubDate + ": " + e.message, Logger.SEVERITY_DEBUG);
+									// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
+									// will get earlier timestamps this way...but it's better than nothing.
+									insertStatement.parameters[":timestamp"] = new Date();
+								}
+							}
+							else {
+								Logger.instance.log("Couldn't get date for guid: " + guid, Logger.SEVERITY_DEBUG);
 								// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
 								// will get earlier timestamps this way...but it's better than nothing.
 								insertStatement.parameters[":timestamp"] = new Date();
 							}
-						}
-						else {
-							Logger.instance.log("Couldn't get date for guid: " + guid, Logger.SEVERITY_DEBUG);
-							// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
-							// will get earlier timestamps this way...but it's better than nothing.
-							insertStatement.parameters[":timestamp"] = new Date();
-						}
-						insertStatement.parameters[":link"] = item.link.toString();
-						insertStatement.parameters[":imageURL"] = item.media::thumbnail.@url;
-						insertStatement.parameters[":description"] = item.description.toString();
-						insertStatement.parameters[":wasRead"] = false;
-						insertStatement.parameters[":wasShown"] = false;
-						insertStatement.parameters[":starred"] = false;
-						try {
-							insertStatement.execute();
-						}
-						catch (e: SQLError) {
-							// Ignore this for now. We seem to get duplicate guids for some reason.
+							insertStatement.parameters[":link"] = item.link.toString();
+							insertStatement.parameters[":imageURL"] = item.media::thumbnail.@url;
+							insertStatement.parameters[":description"] = item.description.toString();
+							insertStatement.parameters[":wasRead"] = false;
+							insertStatement.parameters[":wasShown"] = false;
+							insertStatement.parameters[":starred"] = false;
+							try {
+								insertStatement.execute();
+							}
+							catch (e: SQLError) {
+								// Ignore this for now. We seem to get duplicate guids for some reason.
+							}
 						}
 					}
 				}
-			}
-			else if (result.localName() == "feed") {
-				// Atom 0.3 or 1.0
-				use namespace atom03;
-				use namespace atom10;
-				name = result.title;
-				// TODO: what if more than one link?
-				homeURL = getAlternateLinkHref(result);
-				logoURL = result.logo;
-				for each (var entry: XML in result.entry) {
-					if (existingItems[entry.id.toString()] != undefined) {
-						// We don't update the existing item, to improve performance. This does mean we won't
-						// get changes to the item.
-						// TODO: should we?
-						existingItems[entry.id.toString()] = false;
-					}
-					else {
-						insertStatement.parameters[":guid"] = entry.id.toString();
-						insertStatement.parameters[":feedId"] = feedId;
-						insertStatement.parameters[":title"] = entry.title.toString();
-						// TODO: should use updated if it exists
-						insertStatement.parameters[":timestamp"] = null;
-						var entryDate: String = entry.updated;
-						if (entryDate == "" || entryDate == null) {
-							entryDate = entry.modified;
+				else if (result.localName() == "feed") {
+					// Atom 0.3 or 1.0
+					use namespace atom03;
+					use namespace atom10;
+					name = result.title;
+					// TODO: what if more than one link?
+					homeURL = getAlternateLinkHref(result);
+					logoURL = result.logo;
+					for each (var entry: XML in result.entry) {
+						if (existingItems[entry.id.toString()] != undefined) {
+							// We don't update the existing item, to improve performance. This does mean we won't
+							// get changes to the item.
+							// TODO: should we?
+							existingItems[entry.id.toString()] = false;
 						}
-						if (entryDate == "" || entryDate == null) {
-							entryDate = entry.published;
-						}
-						if (entryDate == "" || entryDate == null) {
-							entryDate = entry.issued;
-						}
-						if (entryDate != null && entryDate != "") {
-							try {
-								insertStatement.parameters[":timestamp"] = DateUtil.parseW3CDTF(entryDate);
+						else {
+							insertStatement.parameters[":guid"] = entry.id.toString();
+							insertStatement.parameters[":feedId"] = feedId;
+							insertStatement.parameters[":title"] = entry.title.toString();
+							// TODO: should use updated if it exists
+							insertStatement.parameters[":timestamp"] = null;
+							var entryDate: String = entry.updated;
+							if (entryDate == "" || entryDate == null) {
+								entryDate = entry.modified;
 							}
-							catch (e: Error) {
-								Logger.instance.log("Couldn't parse date " + entryDate + ": " + e.message, Logger.SEVERITY_DEBUG);
+							if (entryDate == "" || entryDate == null) {
+								entryDate = entry.published;
+							}
+							if (entryDate == "" || entryDate == null) {
+								entryDate = entry.issued;
+							}
+							if (entryDate != null && entryDate != "") {
+								try {
+									insertStatement.parameters[":timestamp"] = DateUtil.parseW3CDTF(entryDate);
+								}
+								catch (e: Error) {
+									Logger.instance.log("Couldn't parse date " + entryDate + ": " + e.message, Logger.SEVERITY_DEBUG);
+									// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
+									// will get earlier timestamps this way...but it's better than nothing.
+									insertStatement.parameters[":timestamp"] = new Date();
+								}
+							}
+							else {
+								Logger.instance.log("Couldn't get date for guid " + entry.id, Logger.SEVERITY_DEBUG);
 								// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
 								// will get earlier timestamps this way...but it's better than nothing.
 								insertStatement.parameters[":timestamp"] = new Date();
 							}
-						}
-						else {
-							Logger.instance.log("Couldn't get date for guid " + entry.id, Logger.SEVERITY_DEBUG);
-							// Use the current date/time. This is a little backwards...items higher up in the feed (which are newer)
-							// will get earlier timestamps this way...but it's better than nothing.
-							insertStatement.parameters[":timestamp"] = new Date();
-						}
-						insertStatement.parameters[":link"] = getAlternateLinkHref(entry);
-						// TODO: what about summary?
-						insertStatement.parameters[":description"] = entry.content.toString();
-						insertStatement.parameters[":wasRead"] = false;
-						insertStatement.parameters[":wasShown"] = false;
-						insertStatement.parameters[":starred"] = false;
-						// TODO: is there a standard way to have entry images in Atom?
-						insertStatement.parameters[":imageURL"] = null;
-						try {
-							insertStatement.execute();
-						}
-						catch (e: SQLError) {
-							// Ignore this for now. We seem to get duplicate guids for some reason.
+							insertStatement.parameters[":link"] = getAlternateLinkHref(entry);
+							// TODO: what about summary?
+							insertStatement.parameters[":description"] = entry.content.toString();
+							insertStatement.parameters[":wasRead"] = false;
+							insertStatement.parameters[":wasShown"] = false;
+							insertStatement.parameters[":starred"] = false;
+							// TODO: is there a standard way to have entry images in Atom?
+							insertStatement.parameters[":imageURL"] = null;
+							try {
+								insertStatement.execute();
+							}
+							catch (e: SQLError) {
+								// Ignore this for now. We seem to get duplicate guids for some reason.
+							}
 						}
 					}
 				}
-			}
-			
-			// Delete any existing items that are no longer in the feed. Since we're not a
-			// real feedreader--we're for "recent serendipity"--we don't want to keep old items
-			// around.
-			var deleteStatement: LoggingStatement = _statements.getStatement(FeedStatements.DELETE_ITEM);
-			for (var oldGuid: String in existingItems) {
-				if (existingItems[oldGuid] == true) {
-					deleteStatement.parameters[":guid"] = oldGuid;
-					deleteStatement.execute();
+				
+				// Delete any existing items that are no longer in the feed. Since we're not a
+				// real feedreader--we're for "recent serendipity"--we don't want to keep old items
+				// around.
+				var deleteStatement: LoggingStatement = _statements.getStatement(FeedStatements.DELETE_ITEM);
+				for (var oldGuid: String in existingItems) {
+					if (existingItems[oldGuid] == true) {
+						deleteStatement.parameters[":guid"] = oldGuid;
+						deleteStatement.execute();
+					}
 				}
-			}
-			
-			// Update the information for this feed in the database.
-			var updateStatement: LoggingStatement = _statements.getStatement(FeedStatements.UPDATE_FEED);
-			fillFeedParameters(updateStatement.parameters);
-			updateStatement.parameters[":feedId"] = feedId;
-			updateStatement.execute();
-			
-			// Commit all the batched changes into the database.
-			_sqlConnection.commit();
+				
+				// Update the information for this feed in the database.
+				var updateStatement: LoggingStatement = _statements.getStatement(FeedStatements.UPDATE_FEED);
+				fillFeedParameters(updateStatement.parameters);
+				updateStatement.parameters[":feedId"] = feedId;
+				updateStatement.execute();
+				
+				// Commit all the batched changes into the database.
+				_sqlConnection.commit();
 			dispatchEvent(new FeedEvent(FeedEvent.FETCHED, this));
+			}
 		}
 		
 		/**
 		 * Handles when a feed can't be fetched. Currently this just logs the error.
 		 * @param event The fault event for the failed fetch.
 		 */
-		private function handleFetchFault(event: FaultEvent): void {
-			Logger.instance.log("Couldn't fetch feed: " + url + ", error: " + event.fault.faultString);
+		private function handleFetchError(event: ErrorEvent): void {
+			doFetchFailed(event.text);
+		}
+		
+		private function doFetchFailed(message: String): void {
+			Logger.instance.log("Couldn't fetch feed: " + url + ", error: " + message);
 			if (name == null) {
 				name = "[Feed can't be read]";
 			}

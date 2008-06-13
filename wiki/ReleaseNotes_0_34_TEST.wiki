@@ -1,5 +1,4 @@
 #summary Release notes for v0.34 TEST build
-#labels Featured
 
 ==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.34-TEST.air v0.34 TEST build]==
 

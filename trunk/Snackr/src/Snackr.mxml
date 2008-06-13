@@ -160,7 +160,8 @@
 				[OptionsModel.OPTION_CHECK_FOR_UPDATES, "1"],
 				[OptionsModel.OPTION_SCREEN_SIDE, String(UIUtils.SIDE_BOTTOM)],
 				[OptionsModel.OPTION_FEED_CHECK_MIN_TIME, "45"],
-				[OptionsModel.OPTION_TICKER_OPACITY, "0.9"]
+				[OptionsModel.OPTION_TICKER_OPACITY, "0.9"],
+				[OptionsModel.OPTION_AGE_LIMIT_UNITS, OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS]
 			];
 			
 			/**
@@ -215,6 +216,11 @@
 			 * The maximum age of items we show in the ticker.
 			 */
 			private var _ageLimit: Number = -1;
+			
+			/**
+			 * Whether the age limit is in days or hours.
+			 */
+			private var _ageLimitUnits: String = OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS;
 
 			/**
 			 * Flag indicating whether we need to redraw the background.
@@ -474,11 +480,17 @@
 					}
 					case OptionsModel.OPTION_FEED_CHECK_MIN_TIME: {
 						_feedModel.feedCheckMinTime = Number(value);
+						break;
 					}
 					case OptionsModel.OPTION_TICKER_OPACITY: {
 						_backgroundOpacity = Number(value);
 						_bgInvalid = true;
 						invalidateDisplayList();
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT_UNITS: {
+						_ageLimitUnits = value;
+						break;
 					}
 					default:
 						break;
@@ -665,7 +677,14 @@
 			 * Adds a randomly picked batch of items to the ticker queue.
 			 */			
 			private function addItemsToQueue(): void {
-				var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, _ageLimit);
+				var ageLimitMS: Number;
+				if (_ageLimitUnits == OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS) {
+					ageLimitMS = _ageLimit * 1000 * 60 * 60 * 24;
+				}
+				else {
+					ageLimitMS = _ageLimit * 1000 * 60 * 60;
+				}
+				var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, ageLimitMS);
 				ticker.queueItems(UIUtils.convertFeedItemsToTickerItems(feedItems));
 			}
 			

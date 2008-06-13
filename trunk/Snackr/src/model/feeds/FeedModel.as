@@ -584,8 +584,8 @@ package model.feeds
 		 * feed priority, but right now it just picks a random feed, then a random item from that feed.
 		 * @param numItems The number of items to pick. We might return fewer if there aren't enough
 		 * unshown items left.
-		 * @param ageLimit Sets the maximum age (in days) for an item to pick (i.e., we won't pick an item further back
-		 * than this number of days ago).
+		 * @param ageLimit Sets the maximum age (in milliseconds) for an item to pick (i.e., we won't pick an item further back
+		 * than this number of milliseconds ago).
 		 */
 		public function pickItems(numItems: Number, ageLimit: Number): Array {
 			Logger.instance.log("Picking items...", Logger.SEVERITY_DEBUG);
@@ -607,7 +607,7 @@ package model.feeds
 			
 			var limitDate: Date;
 			if (ageLimit >= 1) {
-				limitDate = new Date(new Date().time - ageLimit * 1000 * 60 * 60 * 24);
+				limitDate = new Date(new Date().time - ageLimit);
 			}
 			else {
 				limitDate = new Date(0);

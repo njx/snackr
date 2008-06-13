@@ -205,10 +205,23 @@
 	<mx:Canvas id="imageHolder" left="1" top="1" width="48" height="48" horizontalScrollPolicy="off" verticalScrollPolicy="off">
 		<utils:SmoothImage id="image" visible="false" source="{data.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
 	</mx:Canvas>
-	<utils:CharSetDetectingText id="title" y="0" left="52" right="17" htmlText="{data.title}" fontSize="12" height="36" selectable="false"/>
+	<utils:CharSetDetectingText id="title" cacheAsBitmap="true" y="0" left="52" right="17" htmlText="{data.title}" fontSize="12" height="36" selectable="false">
+		<!-- HACK: null filter so we can fade out the text; apparently cacheAsBitmap isn't good enough by itself -->
+		<utils:filters>
+			<mx:DropShadowFilter alpha="0"/>
+		</utils:filters>
+	</utils:CharSetDetectingText>
 	<mx:HBox id="infoBox" y="35" left="52" right="17" horizontalGap="1">
-		<utils:CharSetDetectingLabel id="info" text="{data.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip=""/>
-		<utils:CharSetDetectingLabel id="info2" text="{data.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip=""/>		
+		<utils:CharSetDetectingLabel id="info" cacheAsBitmap="true" text="{data.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip="">
+			<utils:filters>
+				<mx:DropShadowFilter alpha="0"/>
+			</utils:filters>
+		</utils:CharSetDetectingLabel>
+		<utils:CharSetDetectingLabel id="info2" cacheAsBitmap="true" text="{data.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip="">		
+			<utils:filters>
+				<mx:DropShadowFilter alpha="0"/>
+			</utils:filters>
+		</utils:CharSetDetectingLabel>
 	</mx:HBox>
 	<mx:VRule id="vRule" right="7" top="0" bottom="0" strokeWidth="1" strokeColor="#FFFFFF" alpha="0.1"/>
 </mx:Canvas>

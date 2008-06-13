@@ -1,7 +1,7 @@
 #summary Release notes for v0.35 TEST build
 #labels Featured
 
-==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.34-TEST.air v0.34 TEST build]==
+==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.35-TEST.air v0.35 TEST build]==
 
 Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database]!
 

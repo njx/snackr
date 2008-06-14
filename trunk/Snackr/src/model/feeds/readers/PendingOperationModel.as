@@ -29,6 +29,7 @@
 package model.feeds.readers
 {
 	import flash.data.SQLConnection;
+	import flash.data.SQLResult;
 	
 	import model.feeds.FeedStatements;
 	import model.feeds.LoggingStatement;
@@ -44,13 +45,13 @@ package model.feeds.readers
 		private var _statements: FeedStatements;
 		private var _sqlConnection: SQLConnection;
 		private var _operations: ArrayCollection = new ArrayCollection();
-		private var _opsListInvalid: Boolean = false;
 		
 		public function PendingOperationModel(sqlConnection: SQLConnection)
 		{
 			_statements = new FeedStatements(sqlConnection);
 			_sqlConnection = sqlConnection;
 			initializeDB();
+			loadOperations();
 		}
 		
 		private function initializeDB(): void {
@@ -67,13 +68,46 @@ package model.feeds.readers
 		}
 		
 		public function get operations(): ArrayCollection {
-			if(_opsListInvalid)
-				loadOperations();
 			return _operations;
 		}
 		
 		private function loadOperations(): void {
+			var loadOps: LoggingStatement = new LoggingStatement();
+			loadOps.sqlConnection = _sqlConnection;
+			loadOps.text = "SELECT * FROM main.pendingops ORDER BY opId";
+			loadOps.execute();
 			
+			var opsResult: SQLResult = loadOps.getResult();
+			var opsList: Array = new Array(loadOps.data.length);
+			if(opsResult.data != null ) {
+				for(var i:int = 0; i < opsResult.data.length; i++) {
+					var result: Object = opsResult.data[i];
+					var pendingOp: PendingOperation = new PendingOperation(result.opId, result.opCode, result.url, result.guid);
+					opsList[i] = pendingOp;
+				}
+			}
+			_operations = new ArrayCollection(opsList);
+		}
+		
+		public function clearOperations(): void {
+			_operations = new ArrayCollection();
+			
+			var deleteOps: LoggingStatement = new LoggingStatement();
+			deleteOps.sqlConnection = _sqlConnection;
+			deleteOps.text = "DELETE FROM main.pendingops WHERE 1=1";
+			deleteOps.execute();
+		}
+		
+		public function addOperation(operation: PendingOperation): void {
+			_operations.addItem(operation);
+			
+			var addOp: LoggingStatement = new LoggingStatement();
+			addOp.sqlConnection = _sqlConnection;
+			addOp.text = "INSERT INTO main.pendingops (opCode, url, guid) VALUES (:opCode, :url, :guid)";
+			addOp.parameters[":opCode"] = operation.opCode;
+			addOp.parameters[":url"] = operation.url;
+			addOp.parameters[":guid"] = operation.guid;
+			addOp.execute();
 		}
 
 	}

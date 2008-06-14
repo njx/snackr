@@ -71,6 +71,8 @@ package model.feeds.readers
 		}
 		
 		public function authenticate(login: String, password: String, callback: Function = null): void {
+			//TODO: Figure out if/when the cookie will expire with the server and call authenticate()
+			//again automatically if that occurs
 			var authConnection:HTTPService = new HTTPService();
 			authConnection.url = AUTH_URL;
 			authConnection.method = "POST";
@@ -220,6 +222,7 @@ package model.feeds.readers
 		}
 		
 		override public function getReadItems(callback: Function): void {
+			//TODO: GR will only return the last 20 read items by default - figure out how many we should request
 			var getReadItemsRequest:URLRequest = new URLRequest();
 			getReadItemsRequest.url = GET_READ_ITEMS_URL + "?client=" + SNACKR_CLIENT_ID;
 			getReadItemsRequest.userAgent = SNACKR_CLIENT_ID;

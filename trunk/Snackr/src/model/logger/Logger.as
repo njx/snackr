@@ -96,9 +96,17 @@ package model.logger
 			
 			if (severity >= SEVERITY_NORMAL && _logFile != null) {
 				var stream: FileStream = new FileStream();
-				stream.open(_logFile, FileMode.APPEND);
-				stream.writeUTFBytes(new Date().toString() + ": " + message + "\n");
-				stream.close();
+				try {
+					stream.open(_logFile, FileMode.APPEND);
+					stream.writeUTFBytes(new Date().toString() + ": " + message + "\n");
+				}
+				catch (e: Error) {
+					// Probably can't log this to the log file...
+					trace("Can't write to log file: " + e.message);
+				}
+				finally {
+					stream.close();
+				}
 			}
 			
 			dispatchEvent(new LogEvent(message, severity));

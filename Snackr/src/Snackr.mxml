@@ -32,9 +32,10 @@
 	showTitleBar="false" showStatusBar="false" showGripper="false" showFlexChrome="false"
 	creationComplete="handleCreationComplete(event)" xmlns:ticker="ui.ticker.*"
 	resize="handleResize(event)" applicationComplete="handleApplicationComplete(event)"
-	horizontalScrollPolicy="off" verticalScrollPolicy="off" frameRate="60" closing="handleClosing(event)" 
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" frameRate="60" 
 	xmlns:overlays="ui.overlays.*"
-	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
+	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*"
+	autoExit="true">
 	<mx:Style source="styles/styles.css"/>
 	<mx:Script>
 		<![CDATA[
@@ -295,13 +296,30 @@
 			 * the window are created.
 			 */
 			private function handleCreationComplete(event: Event): void {
+				nativeApplication.addEventListener(Event.EXITING, handleExiting);
+				
 				// Create the Snackr data folder if it doesn't exist (inside the user's
 				// document's folder).
 				var docRoot: File = File.documentsDirectory.resolvePath(appName);
 				docRoot.createDirectory();
 				
 				// Initialize the logger. The logger writes to the file Log.txt in the
-				// Snackr data folder.
+				// Snackr data folder. We keep the previous 3 log files around.
+				var oldLogFile: File;
+				for (var i: int = 2; i >= 0; i--) {
+					oldLogFile = docRoot.resolvePath("Log" + (i == 0 ? "" : String(i)) + ".txt");
+					if (oldLogFile.exists) {
+						try {
+							oldLogFile.moveTo(docRoot.resolvePath("Log" + String(i+1) + ".txt"), true);
+						}
+						catch (e: Error) {
+							// Too early to log this. Oh well. It just means that we won't be preserving
+							// log files earlier than the current one.
+							trace("Can't back up log file " + oldLogFile.name);
+						}
+					}			
+				}
+				
 				Logger.instance.initialize(docRoot.resolvePath("Log.txt"));
 				Logger.instance.addEventListener(LogEvent.LOG_ITEM, handleLogItem);
 				
@@ -765,7 +783,8 @@
 			 * Handler for closing the window. We want to fully exit the application when this happens.
 			 */
 			private function handleCloseClick(): void {
-				exit();
+				// Since autoExit is true, this should exit the app.
+				close();
 			}
 			
 			/**
@@ -1116,7 +1135,7 @@
 			/**
 			 * Cleans up on application exit.
 			 */
-			private function handleClosing(event: Event): void {
+			private function handleExiting(event: Event): void {
 				if (_sqlConnection != null) {
 					_sqlConnection.close();
 					_sqlConnection = null;

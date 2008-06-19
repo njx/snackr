@@ -335,7 +335,7 @@ package model.feeds
 			// TODO: should really scan the byte array rather than converting to string and using a regexp
 			if (encoding == null) {
 				var rawString: String = bytes.toString();
-				var pattern: RegExp = /<?xml[^>]*encoding\s*=\s*['"]([^"]*)['"][^>]*?>/;
+				var pattern: RegExp = /<?xml[^>]*encoding\s*=\s*['"]([^'"]*)['"][^>]*?>/;
 				var matchResult: Object = pattern.exec(rawString);
 				if (matchResult != null && matchResult.length > 1) {
 					encoding = matchResult[1];

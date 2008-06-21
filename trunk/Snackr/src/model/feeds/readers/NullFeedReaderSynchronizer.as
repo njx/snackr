@@ -49,9 +49,9 @@ package model.feeds.readers
 			Logger.instance.log("NullFeedReaderSynchronizer: constructor", Logger.SEVERITY_DEBUG);
 		}
 
-		public function synchronizeAll(feeds:ArrayCollection): void
+		public function synchronizeAll(): void
 		{
-			Logger.instance.log("NullFeedReaderSynchronizer: synchronizeAll: " + feeds, Logger.SEVERITY_DEBUG);
+			Logger.instance.log("NullFeedReaderSynchronizer: synchronizeAll", Logger.SEVERITY_DEBUG);
 		}
 		
 		public function getFeeds(callback: Function): void

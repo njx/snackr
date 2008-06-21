@@ -38,6 +38,8 @@ package model.feeds.readers
 	
 	/**
 	 * Model class for managing the feed reader operations that are pending synchronization with the server.
+	 * Note that the PendingOperationModel assumes it is the only class that is screwing with the pendingops table,
+	 * and may function incorrectly if another class inserts, removes, or updates rows without going through it.
 	 * @author Rob Adams
 	 */
 	public class PendingOperationModel
@@ -61,8 +63,8 @@ package model.feeds.readers
 				"CREATE TABLE IF NOT EXISTS main.pendingops (" +
 				"	opId INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				"	opCode INTEGER, " +
-				"	url TEXT, " + 
-				"	guid TEXT " +
+				"	feedURL TEXT, " + 
+				"	itemURL TEXT " +
 				")";
 			createTable.execute();
 		}
@@ -78,11 +80,12 @@ package model.feeds.readers
 			loadOps.execute();
 			
 			var opsResult: SQLResult = loadOps.getResult();
-			var opsList: Array = new Array(loadOps.data.length);
+			var opsList: Array = null;
 			if(opsResult.data != null ) {
+				opsList = new Array(opsResult.data.length);
 				for(var i:int = 0; i < opsResult.data.length; i++) {
 					var result: Object = opsResult.data[i];
-					var pendingOp: PendingOperation = new PendingOperation(result.opId, result.opCode, result.url, result.guid);
+					var pendingOp: PendingOperation = new PendingOperation(result.opCode, result.feedURL, result.itemURL);
 					opsList[i] = pendingOp;
 				}
 			}
@@ -103,12 +106,40 @@ package model.feeds.readers
 			
 			var addOp: LoggingStatement = new LoggingStatement();
 			addOp.sqlConnection = _sqlConnection;
-			addOp.text = "INSERT INTO main.pendingops (opCode, url, guid) VALUES (:opCode, :url, :guid)";
+			addOp.text = "INSERT INTO main.pendingops (opCode, feedURL, itemURL) VALUES (:opCode, :feedURL, :itemURL)";
 			addOp.parameters[":opCode"] = operation.opCode;
-			addOp.parameters[":url"] = operation.url;
-			addOp.parameters[":guid"] = operation.guid;
+			addOp.parameters[":feedURL"] = operation.feedURL;
+			addOp.parameters[":itemURL"] = operation.itemURL;
 			addOp.execute();
 		}
+		
+		public function isMarkedForAdd(feedURL: String) : Boolean {
+			for each (var pendingOp: PendingOperation in _operations) {
+				if (pendingOp.opCode == PendingOperation.ADD_FEED_OPCODE && pendingOp.feedURL == feedURL) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		public function isMarkedForDelete(feedURL: String) : Boolean {
+			for each (var pendingOp: PendingOperation in _operations) {
+				if (pendingOp.opCode == PendingOperation.DELETE_FEED_OPCODE && pendingOp.feedURL == feedURL) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		public function isMarkedForReadStatusAssignment(itemURL: String) : Boolean {
+			for each (var pendingOp: PendingOperation in _operations) {
+				if (pendingOp.opCode == PendingOperation.MARK_READ_OPCODE && pendingOp.itemURL == itemURL) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 
 	}
 }

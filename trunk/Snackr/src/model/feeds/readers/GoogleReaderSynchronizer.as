@@ -28,6 +28,7 @@
 
 package model.feeds.readers
 {
+	import flash.data.SQLConnection;
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
 	import flash.net.URLLoader;
@@ -36,6 +37,7 @@ package model.feeds.readers
 	import flash.net.URLVariables;
 	
 	import model.feeds.FeedItem;
+	import model.feeds.FeedModel;
 	import model.logger.Logger;
 	import model.options.OptionsModel;
 	
@@ -64,9 +66,9 @@ package model.feeds.readers
 		namespace atom = "http://www.w3.org/2005/Atom";
 		namespace gr = "http://www.google.com/schemas/reader/atom/";
 		
-		public function GoogleReaderSynchronizer()
+		public function GoogleReaderSynchronizer(sqlConnection: SQLConnection, feedModel: FeedModel)
 		{
-			super();
+			super(sqlConnection, feedModel);
 			
 		}
 		
@@ -192,6 +194,7 @@ package model.feeds.readers
 				});
 				addConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleAddFail(event:IOErrorEvent): void {
 					Logger.instance.log("GoogleReaderSynchronizer: Add feed failed: " + feedURL, Logger.SEVERITY_NORMAL);
+					markFeedForAdd(feedURL);
 				});
 				addConnection.load(addRequest);
 			});
@@ -216,6 +219,7 @@ package model.feeds.readers
 				});
 				deleteConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleDeleteFail(event:IOErrorEvent): void {
 					Logger.instance.log("GoogleReaderSynchronizer: Delete feed failed: " + feedURL, Logger.SEVERITY_NORMAL);
+					markFeedForDelete(feedURL);
 				});
 				deleteConnection.load(deleteRequest);
 			});
@@ -244,7 +248,8 @@ package model.feeds.readers
 			
 			//Google Reader rewrites the ids and stores the original in the gr:original-id attribute, so we're using that instead
 			var readItemsIDsXML:XMLList = resultXML.entry.id.attribute(new QName(gr, "original-id"));
-			var readItemsFeedsXML:XMLList = resultXML.entry.link.@href;
+			var readItemsURLsXML:XMLList = resultXML.entry.link.@href;
+			var readItemsFeedURLsXML:XMLList = resultXML.entry.source.attribute(new QName(gr, "stream-id"));
 			var itemList:Array = new Array(readItemsIDsXML.length());
 			var i:int = 0;
 			for each (var guid:String in readItemsIDsXML) {
@@ -254,13 +259,22 @@ package model.feeds.readers
 				i++;
 			}
 			i = 0;
-			for each (var feedURL:String in readItemsFeedsXML) {
+			for each (var itemURL:String in readItemsURLsXML) {
+				itemList[i].itemURL = itemURL;
+				i++;
+			}
+			i = 0;
+			for each (var feedURL: String in readItemsFeedURLsXML) {
 				itemList[i].feedURL = feedURL;
 				i++;
 			}
 			return new ArrayCollection(itemList);
 		}
 		
+		/**
+		 * @param item Note that both the link property and the url property of the feed object
+		 * 			MUST be set for this method to work correctly.
+		 */
 		override public function setItemRead(item:FeedItem):void {
 			//because the Google API can only identify feeds by its own rewriting of the feed's guid,
 			//we need to retrieve that guid from Google Reader before we can set the read state
@@ -295,12 +309,14 @@ package model.feeds.readers
 					});
 					setItemReadConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleSetItemReadFail(event:IOErrorEvent): void {
 						Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + item, Logger.SEVERITY_NORMAL);
+						markItemForReadStatusAssignment(item.feed.url, item.link);
 					});
 					setItemReadConnection.load(setItemReadRequest);
 				});
 			});
 			getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + event.text, Logger.SEVERITY_NORMAL);
+				markItemForReadStatusAssignment(item.feed.url, item.link);
 			});
 			getFeedItemsConnection.load(getFeedItemsRequest);
 						

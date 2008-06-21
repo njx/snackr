@@ -46,12 +46,12 @@ package model.feeds.readers
 			Sync up all feeds and read/unread items between the local Snackr database and the external feed reader
 			@param feeds The list of Snackr feeds to sync with the external reader.
 		*/
-		function synchronizeAll(feeds: ArrayCollection): void;
+		function synchronizeAll(): void;
 		
 		/**
 		 *	Return the list of feeds present in the external feed reader.
 		 *	@param callback Called on completion - takes one parameter, an ArrayCollection containing the urls of
-		 *                  the RSS feeds
+		 *                  the RSS feeds as Strings
 		*/
 		function getFeeds(callback: Function): void;
 		
@@ -71,14 +71,15 @@ package model.feeds.readers
 		 *	Return the list of items marked as read on the external feed reader for the given feed.
 		 *	@param feed The feed containing the requested read items
 		 *	@param callback Called on completion - takes one parameter, an ArrayCollection containing hashmaps
-		 *                  with two values - "guid" contains the feed item's rss id and "feedURL" contains the
-		 *                  feed item's url (since I don't trust the guid to always be present / accurate)
+		 *                  with three values - "guid" contains the feed item's rss id, "itemURL" contains the
+		 *                  feed item's url (since I don't trust the guid to always be present / accurate),
+		 *                  and "feedURL" contains the url to the item's feed (so we can match it up when synchronizing) 
 		*/
 		function getReadItems(callback: Function): void;
 		
 		/**
-			Set an item as read on the external feed reader.
-			@param item The item to set as read
+		 *	Set an item as read on the external feed reader.
+		 *	@param item The item to set as read. 
 		*/
 		function setItemRead(item: FeedItem): void;
 	}

@@ -31,10 +31,30 @@
 <mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="runTests()">
 	<mx:Script>
 		<![CDATA[
+			import tests.FeedReaderSynchronizerBaseTester;
 			import tests.GoogleReaderTester;
 			import model.logger.Logger;
+			import tests.PendingOperationTester;
+			
 			public function runTests(): void {
-				testReadItemMethods();
+				//testReadItemMethods();
+				//testGoogleReaderAddRemove();
+				//testReadItemMethods();
+				//runPendingOpsTests();
+				runTestSync();
+			}
+			
+			public function runTestSync(): void {
+				var tester: FeedReaderSynchronizerBaseTester = new FeedReaderSynchronizerBaseTester();
+				tester.testSync();
+			}
+			
+			public function runPendingOpsTests() : void {
+				var tester: PendingOperationTester = new PendingOperationTester();
+				tester.testCleanLoad();
+				tester.testRetrieveOps();
+				tester.testAddOp();
+				tester.testClearOps();
 			}
 			
 			public function testFeedRetrieval() : void {
@@ -57,7 +77,7 @@
 			
 			public function testGoogleReaderAddRemove(): void {
 				var tester:GoogleReaderTester = new GoogleReaderTester;
-				//tester.testAdd();
+				tester.testAdd();
 				tester.testDelete();
 			}
 			

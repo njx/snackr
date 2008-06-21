@@ -125,19 +125,21 @@ package model.feeds
 		/**
 		 * The manager for the feed reader we're synchronized to, if any.
 		 */
-		private var _feedReader: IFeedReaderSynchronizer;
+		public var feedReader: IFeedReaderSynchronizer;
 		
 		/**
 		 * Constructor.
 		 * @param sqlConnection The connection we should use to access the local database.
 		 */
-		public function FeedModel(sqlConnection: SQLConnection) {
+		public function FeedModel(sqlConnection: SQLConnection, ifeedReader: IFeedReaderSynchronizer = null) {
 			_statements = new FeedStatements(sqlConnection);
 			_sqlConnection = sqlConnection;
 			initializeDB();
 			
-			_feedReader = new NullFeedReaderSynchronizer;
-			_feedReader.synchronizeAll(_feeds);
+			if(ifeedReader != null) 
+				feedReader = ifeedReader;
+			else
+				feedReader = new NullFeedReaderSynchronizer;
 			
 			fetchAllFeeds();
 			
@@ -491,7 +493,7 @@ package model.feeds
 				feed.addToDB();
 				fetchFeed(feed);
 				
-				_feedReader.addFeed(feed.url);
+				feedReader.addFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_ADDED, feed.url));
 			}
@@ -521,7 +523,7 @@ package model.feeds
 				deleteFeed.parameters[":feedId"] = feed.feedId;
 				deleteFeed.execute();
 				
-				_feedReader.deleteFeed(feed.url);
+				feedReader.deleteFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_DELETED, feed.url));
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_LIST_UPDATED));
@@ -565,7 +567,7 @@ package model.feeds
 		 * Handles when an item is marked as read.
 		 */
 		private function handleFeedItemRead(event: FeedEvent): void {
-			_feedReader.setItemRead(event.item);
+			feedReader.setItemRead(event.item);
 		}
 		
 		/**
@@ -670,6 +672,7 @@ package model.feeds
 				}
 			}
 			return resultArray;
-		}			
+		}
+		
 	}
 }

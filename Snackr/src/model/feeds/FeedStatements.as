@@ -67,7 +67,7 @@ package model.feeds
 				"AND EXISTS (SELECT guid from main.feedItems WHERE feed.feedId = feedItems.feedId AND wasRead != true AND timestamp > :limitDate)"],
 			[COUNT_ITEMS, "SELECT * FROM main.feedItems WHERE feedId = :feedId LIMIT 1"],
 			[SET_ITEM_SHOWN, "UPDATE main.feedItems SET wasShown = true WHERE guid = :guid"],
-			[SET_ITEM_READ, "UPDATE main.feedItems SET wasRead = :wasRead WHERE guid = :guid"],
+			[SET_ITEM_READ, "UPDATE main.feedItems SET wasRead = :wasRead WHERE guid = :guid OR link = :link"],
 			[SET_ITEM_STARRED, "UPDATE main.feedItems SET starred = :starred WHERE guid = :guid"],
 			[GET_UNSHOWN_ITEM, "SELECT * FROM main.feedItems " +
 				"WHERE feedId = :feedId AND wasShown != true AND wasRead != true " +

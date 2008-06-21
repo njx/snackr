@@ -28,10 +28,14 @@
 
 package tests
 {
+	import flash.data.SQLConnection;
+	import flash.errors.SQLError;
 	import flash.events.Event;
+	import flash.filesystem.File;
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
+	import model.feeds.FeedModel;
 	import model.feeds.readers.GoogleReaderSynchronizer;
 	import model.logger.Logger;
 	
@@ -41,10 +45,27 @@ package tests
 	
 	public class GoogleReaderTester
 	{
-		private var _reader: GoogleReaderSynchronizer = new GoogleReaderSynchronizer();
+		private var _reader: GoogleReaderSynchronizer;
 		
 		public function GoogleReaderTester()
 		{
+			var sqlConnection:SQLConnection;
+			var feedModel: FeedModel;
+			var docRoot: File = File.documentsDirectory.resolvePath("TestHarness");
+			docRoot.createDirectory();
+			var dbFile: File = docRoot.resolvePath("TestDatabase.sql");
+			try {
+				sqlConnection = new SQLConnection();
+				sqlConnection.open(dbFile);
+				sqlConnection.compact();
+				feedModel = new FeedModel(sqlConnection);
+			}
+			catch (error: SQLError) {
+				Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
+				throw error;
+			}
+			_reader = new GoogleReaderSynchronizer(sqlConnection, feedModel);
+			feedModel.feedReader = _reader;
 		}
 		
 		public function testAdd(): void {
@@ -103,7 +124,7 @@ package tests
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
 					for each (var item:Object in itemList) {
-						Logger.instance.log("GoogleReaderTester: testSetItemRead: " + item.guid + ", " + item.feedURL);
+						Logger.instance.log("GoogleReaderTester: testSetItemRead: guid: " + item.guid + ", itemURL: " + item.itemURL + ", feedURL: " + item.feedURL);
 					}
 					var itemObject:Object = new Object();
 					itemObject.link = urlToRead;

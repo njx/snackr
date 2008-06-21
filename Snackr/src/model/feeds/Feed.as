@@ -221,10 +221,24 @@ package model.feeds
 		public function setItemRead(item: FeedItem, value: Boolean = true): void {
 			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
 			statement.parameters[":guid"] = item.guid;
+			statement.parameters[":link"] = item.link;
 			statement.parameters[":wasRead"] = value;
 			statement.execute();
 			var event: FeedEvent = new FeedEvent(FeedEvent.ITEM_READ, this, item);
 			dispatchEvent(event);
+		}
+		
+		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true) : void {
+			var valueObject: Object = new Object();
+			valueObject.guid = guid; 
+			valueObject.title = "";
+			valueObject.timeStamp = null;
+			valueObject.link = itemURL;
+			valueObject.imageURL = "";
+			valueObject.description = "";
+			valueObject.starred = false;
+			var feedItem: FeedItem = new FeedItem(valueObject);
+			setItemRead(feedItem, value);
 		}
 		
 		/**

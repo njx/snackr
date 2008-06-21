@@ -28,10 +28,12 @@
 
 package model.feeds.readers
 {
+	import flash.data.SQLConnection;
 	import flash.events.EventDispatcher;
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
+	import model.feeds.FeedModel;
 	
 	import mx.collections.ArrayCollection;
 
@@ -45,28 +47,111 @@ package model.feeds.readers
 	{
 		public static const SNACKR_CLIENT_ID: String = "Snackr";
 		
-		public function synchronizeAll(feeds:ArrayCollection): void
-		{
+		private var _pendingOperationModel: PendingOperationModel;
+		private var _feedModel: FeedModel;
+		
+		public function FeedReaderSynchronizerBase(sqlConnection: SQLConnection, feedModel: FeedModel) {
+			_pendingOperationModel = new PendingOperationModel(sqlConnection);
+			_feedModel = feedModel;
+		}
+		
+		public function synchronizeAll(): void {
+			//get feed list from reader
+			getFeeds(function retrieveFeeds(feedsList: ArrayCollection) : void {
+				if(feedsList != null) {
+					//for each feed in reader, if feed doesnt already exist AND its not in the ops list for removal, add it
+					for each (var feedURL: String in feedsList) {
+						if(!_pendingOperationModel.isMarkedForDelete(feedURL))
+							_feedModel.addFeedURL(feedURL, true);
+					}
+					//for each feed in snackr, if feed isn't in the reader AND its not in the ops list for addition, remove it
+					for each (var feed: Feed in _feedModel.feeds) {
+						if(!(isInReaderFeedsList(feed.url, feedsList) || _pendingOperationModel.isMarkedForAdd(feed.url)))
+							_feedModel.deleteFeed(feed);
+					}
+					//get read items list from server
+					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
+						//mark all items read in snackr
+						for each (var item: Object in itemsList)
+							for each (var feed: Feed in _feedModel.feeds)
+								if(feed.url == item.feedURL) {
+									feed.setItemReadByIDs(item.itemURL, item.guid);
+									break;
+								}
+						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
+						//clear pending operations from model
+						_pendingOperationModel.clearOperations();
+						//retry all pending operations (if they fail they'll automatically wind up back
+						//in the pendingops table)
+						for each (var pendingOp:PendingOperation in pendingOps) {
+							switch(pendingOp.opCode) {
+								case PendingOperation.ADD_FEED_OPCODE:
+									addFeed(pendingOp.feedURL);
+									break;
+								case PendingOperation.DELETE_FEED_OPCODE:
+									deleteFeed(pendingOp.feedURL);
+									break;
+								case PendingOperation.MARK_READ_OPCODE:
+									var itemInfo: Object = new Object();
+									itemInfo.link = pendingOp.itemURL;
+									itemInfo.feed = new Feed(null, null);
+									itemInfo.feed.url = pendingOp.feedURL;
+									var feedItem: FeedItem = new FeedItem(itemInfo);
+									setItemRead(feedItem);
+									break;
+							}
+						}
+					});
+				}
+			});
+		}
+		
+		private function isInReaderFeedsList(feedURL: String, feedsList: ArrayCollection) : Boolean {
+			for each (var readerFeed: String in feedsList) {
+				if(readerFeed == feedURL)
+					return true;
+			}
+			return false;
+		}
+		
+		protected function markFeedForAdd(url: String) : void {
+			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.ADD_FEED_OPCODE, url);
+			_pendingOperationModel.addOperation(pendingOp);
+		}
+		
+		protected function markFeedForDelete(url: String) : void {
+			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.DELETE_FEED_OPCODE, url);
+			_pendingOperationModel.addOperation(pendingOp);
+		}
+		
+		protected function markItemForReadStatusAssignment(feedURL: String, itemURL: String) : void {
+			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.MARK_READ_OPCODE, feedURL, itemURL);
+			_pendingOperationModel.addOperation(pendingOp);
 		}
 		
 		public function getFeeds(callback: Function): void
 		{
+			//implemented by subclasses
 		}
 		
 		public function addFeed(feedURL:String): void
 		{
+			//implemented by subclasses
 		}
 		
 		public function deleteFeed(feedURL:String): void
 		{
+			//implemented by subclasses
 		}
 		
 		public function getReadItems(callback: Function): void
 		{
+			//implemented by subclasses
 		}
 		
 		public function setItemRead(item:FeedItem): void
 		{
+			//implemented by subclasses
 		}
 		
 	}

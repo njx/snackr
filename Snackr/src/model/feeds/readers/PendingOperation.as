@@ -34,16 +34,14 @@ package model.feeds.readers
 		public static const DELETE_FEED_OPCODE: Number = 1;
 		public static const MARK_READ_OPCODE: Number = 2;
 		
-		public var opId: Number;
 		public var opCode: Number;
-		public var url: String;
-		public var guid: String;
+		public var feedURL: String;
+		public var itemURL: String;
 		
-		public function PendingOperation(opId: Number, opCode: Number, url: String, guid: String = null) {
-			this.opId = opId;
+		public function PendingOperation(opCode: Number, feedURL: String, itemURL: String = null) {
 			this.opCode = opCode;
-			this.url = url;
-			this.guid = guid;
+			this.feedURL = feedURL;
+			this.itemURL = itemURL;
 		}
 	}
 }

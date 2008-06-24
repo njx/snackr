@@ -45,6 +45,46 @@ package tests
 		}
 		
 		private function loadTestData() : void {
+			var createTable1: LoggingStatement = new LoggingStatement();
+			createTable1.sqlConnection = _sqlConnection;
+			createTable1.text =
+			    "CREATE TABLE IF NOT EXISTS main.feeds (" + 
+			    "    feedId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+			    "    url TEXT UNIQUE, " + 
+			    "    name TEXT, " + 
+			    "    homeURL TEXT, " + 
+			    "	 logoURL TEXT, " +
+			    "    priority INTEGER, " +
+			    "    hasColor BOOLEAN, " +
+			    "    color NUMERIC, " +
+			    "    lastFetched DATE" +
+			    ")";
+			createTable1.execute();
+			var createTable2: LoggingStatement = new LoggingStatement();
+			createTable2.sqlConnection = _sqlConnection;
+			createTable2.text =
+			    "CREATE TABLE IF NOT EXISTS main.feedItems (" + 
+			    "    guid TEXT PRIMARY KEY, " + 
+			    "    feedId INTEGER, " + 
+			    "    title TEXT, " + 
+			    "    timestamp DATE, " + 
+			    "	 link TEXT, " +
+			    "    imageURL TEXT, " +
+			    "    description TEXT, " +
+			    "    wasRead BOOLEAN, " +
+			    "    wasShown BOOLEAN " +
+			    ")";
+			createTable2.execute();
+			var createTable: LoggingStatement = new LoggingStatement();
+			createTable.sqlConnection = _sqlConnection;
+			createTable.text = 
+				"CREATE TABLE IF NOT EXISTS main.pendingops (" +
+				"	opId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				"	opCode INTEGER, " +
+				"	feedURL TEXT, " + 
+				"	itemURL TEXT " +
+				")";
+			createTable.execute();
 			var loadOps: LoggingStatement = new LoggingStatement();
 			loadOps.sqlConnection = _sqlConnection;
 			loadOps.text = "DELETE FROM main.feeds WHERE 1=1";

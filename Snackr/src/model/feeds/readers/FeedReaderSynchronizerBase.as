@@ -59,6 +59,12 @@ package model.feeds.readers
 			//get feed list from reader
 			getFeeds(function retrieveFeeds(feedsList: ArrayCollection) : void {
 				if(feedsList != null) {
+					//TODO: calls to _feedModel will trigger a call back to the reader's addFeed, deleteFeed, and
+					//setItemRead methods - unnecessarily in this case since the sync method will always
+					//be operating on feeds and items that are properly set on the server. Ideally we'd avoid
+					//this unnecessary network call, but as all the solutions seem to add complexity I decided
+					//to wait and see if it becomes a problem first.
+					
 					//for each feed in reader, if feed doesnt already exist AND its not in the ops list for removal, add it
 					for each (var feedURL: String in feedsList) {
 						if(!_pendingOperationModel.isMarkedForDelete(feedURL))

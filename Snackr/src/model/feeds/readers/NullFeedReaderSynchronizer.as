@@ -42,7 +42,7 @@ package model.feeds.readers
 		(as well as for debugging purposes). All methods are stubs.
 		@author Rob Adams
 	*/
-	public class NullFeedReaderSynchronizer extends EventDispatcher implements IFeedReaderSynchronizer
+	public class NullFeedReaderSynchronizer implements IFeedReaderSynchronizer
 	{
 		public function NullFeedReaderSynchronizer()
 		{
@@ -78,6 +78,15 @@ package model.feeds.readers
 		{
 			Logger.instance.log("NullFeedReaderSynchronizer: setItemRead: " + item, Logger.SEVERITY_DEBUG);
 		}
+
+		public function mergeFeedLists(): void {
+			Logger.instance.log("NullFeedReaderSynchronizer: mergeFeedLists", Logger.SEVERITY_DEBUG);
+		}
+		
+		public function setFeedList(newFeedList: ArrayCollection): void {
+			Logger.instance.log("NullFeedReaderSynchronizer: setFeedList: " + newFeedList, Logger.SEVERITY_DEBUG);			
+		}
+		
 		
 	}
 }

@@ -30,7 +30,6 @@ package model.feeds.readers
 {
 	import flash.events.IEventDispatcher;
 	
-	import model.feeds.Feed;
 	import model.feeds.FeedItem;
 	
 	import mx.collections.ArrayCollection;
@@ -40,7 +39,7 @@ package model.feeds.readers
 		with an external blog reader such as Google Reader, Bloglines, etc.
 		@author Rob Adams
 	*/
-	public interface IFeedReaderSynchronizer extends IEventDispatcher
+	public interface IFeedReaderSynchronizer 
 	{
 		/**
 			Sync up all feeds and read/unread items between the local Snackr database and the external feed reader
@@ -57,19 +56,18 @@ package model.feeds.readers
 		
 		/**
 			Add a feed to the external feed reader.
-			@param feed The feed to add
+			@param feedURL The url of the feed to add
 		*/
 		function addFeed(feedURL: String): void;
 		
 		/**
 			Remove a feed from the external feed reader.
-			@param feed The feed to remove
+			@param feedURL The URL of the feed to remove
 		*/
 		function deleteFeed(feedURL: String): void;
 		
 		/**
 		 *	Return the list of items marked as read on the external feed reader for the given feed.
-		 *	@param feed The feed containing the requested read items
 		 *	@param callback Called on completion - takes one parameter, an ArrayCollection containing hashmaps
 		 *                  with three values - "guid" contains the feed item's rss id, "itemURL" contains the
 		 *                  feed item's url (since I don't trust the guid to always be present / accurate),
@@ -82,5 +80,17 @@ package model.feeds.readers
 		 *	@param item The item to set as read. 
 		*/
 		function setItemRead(item: FeedItem): void;
+		
+		/**
+		 * Creates a merged list that combines the feeds in Snackr and the feeds in the feed reader,
+		 * then sets both tools to this new list of feeds.
+		 */
+		function mergeFeedLists(): void;
+		
+		/**
+		 * Sets the list of feeds in the reader to the new list provided.
+		 * @param newFeedList an array of strings containing the URLs of the new feeds
+		 */
+		function setFeedList(newFeedList: ArrayCollection): void;
 	}
 }

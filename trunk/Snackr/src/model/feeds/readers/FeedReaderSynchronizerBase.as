@@ -29,7 +29,6 @@
 package model.feeds.readers
 {
 	import flash.data.SQLConnection;
-	import flash.events.EventDispatcher;
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
@@ -43,9 +42,12 @@ package model.feeds.readers
 	 *	itself - see its subclasses for implementations for specific reader programs.
 	 *	@author Rob Adams
 	*/
-	public class FeedReaderSynchronizerBase extends EventDispatcher implements IFeedReaderSynchronizer
+	public class FeedReaderSynchronizerBase implements IFeedReaderSynchronizer
 	{
 		public static const SNACKR_CLIENT_ID: String = "Snackr";
+		
+		private static const MERGE: int = 0;
+		private static const SET: int = 1;
 		
 		private var _pendingOperationModel: PendingOperationModel;
 		private var _feedModel: FeedModel;
@@ -133,6 +135,48 @@ package model.feeds.readers
 		protected function markItemForReadStatusAssignment(feedURL: String, itemURL: String) : void {
 			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.MARK_READ_OPCODE, feedURL, itemURL);
 			_pendingOperationModel.addOperation(pendingOp);
+		}
+		
+		public function mergeFeedLists(): void {
+			mergeOrSetFeeds(_feedModel.feeds, MERGE);
+		}
+		
+		private function mergeOrSetFeeds(feedList: ArrayCollection, opCode: int) : void {
+			//retrieve feed list from the reader
+			getFeeds(function retrieveFeeds(readerFeedsList: ArrayCollection) : void {
+				var snackrFeedsList: ArrayCollection = new ArrayCollection;
+				//copy the array so we don't mess up FeedModel's copy
+				for each(var feed: Feed in feedList) {
+					snackrFeedsList.addItem(feed);
+				}
+				for each(var feedURL: String in readerFeedsList) {
+					var inSnackr: Boolean = false;
+					//for each feed in the reader, if its not in snackr, add it to snackr if merging, 
+					//remove it from the reader if setting
+					for each (var snackrFeed: Feed in snackrFeedsList) {
+						if(snackrFeed.url == feedURL) {
+							inSnackr = true;
+							//if it is in snackr, remove it from the Snackr list
+							snackrFeedsList.removeItemAt(snackrFeedsList.getItemIndex(snackrFeed));
+							break;
+						}
+					}
+					if(!inSnackr) {
+						if(opCode == MERGE)
+							_feedModel.addFeedURL(feedURL, true);
+						else if(opCode == SET)
+							deleteFeed(feedURL);
+					}
+				}
+				//for all remaining feeds in the snackr list, add them to the reader
+				for each(var feedToAdd: Feed in snackrFeedsList) {
+					addFeed(feedToAdd.url);
+				}
+			});
+		}
+			
+		public function setFeedList(newFeedList: ArrayCollection): void {
+			mergeOrSetFeeds(newFeedList, SET);
 		}
 		
 		public function getFeeds(callback: Function): void

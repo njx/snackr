@@ -41,12 +41,24 @@
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
 				//runPendingOpsTests();
-				runTestSync();
+				//runTestSync();
+				//runTestMerge();
+				runTestSet();
 			}
 			
 			public function runTestSync(): void {
 				var tester: FeedReaderSynchronizerBaseTester = new FeedReaderSynchronizerBaseTester();
 				tester.testSync();
+			}
+			
+			public function runTestMerge(): void {
+				var tester: FeedReaderSynchronizerBaseTester = new FeedReaderSynchronizerBaseTester();
+				tester.testMerge();
+			}
+			
+			public function runTestSet(): void {
+				var tester: FeedReaderSynchronizerBaseTester = new FeedReaderSynchronizerBaseTester();
+				tester.testSet();
 			}
 			
 			public function runPendingOpsTests() : void {

@@ -50,6 +50,9 @@
 			private var _feedModel: FeedModel = null;
 			private var _optionsModel: OptionsModel = null;
 			
+			//used to determine whether to modify the reader when a close event occurs
+			private var readerCredentialsChanged: Boolean = false;
+			
 			[Bindable]
 			public var popupTitle: String = "";
 			
@@ -63,6 +66,16 @@
 			
 			public function set optionsModel(value: OptionsModel): void {
 				_optionsModel = value;
+			}
+			
+			public function setReaderChangeHandler(callback: Function): void {
+				connectButton.addEventListener(MouseEvent.CLICK, callback);
+				this.addEventListener(Event.CLOSE, function checkCredentialsChanged(event: Event) : void {
+					if(readerCredentialsChanged) {
+						callback(event);
+						readerCredentialsChanged = false;
+					}
+				});
 			}
 			
 			override protected function handleCreationComplete(event: Event): void {
@@ -151,6 +164,33 @@
 								break;
 							}
 						}
+						break;
+					}
+					case OptionsModel.OPTION_READER_ENABLED: {
+						if (value == "1") {
+							enableReaderSyncCheckbox.selected = true;
+							userNameLabel.enabled = true;
+							userNameInput.enabled = true;
+							passwordLabel.enabled = true;
+							passwordInput.enabled = true;
+							connectButton.enabled = true;
+						}
+						else {
+							enableReaderSyncCheckbox.selected = false;
+							userNameLabel.enabled = false;
+							userNameInput.enabled = false;
+							passwordLabel.enabled = false;
+							passwordInput.enabled = false;
+							connectButton.enabled = false;
+						}
+						break;
+					}
+					case OptionsModel.OPTION_READER_USER_NAME: {
+						userNameInput.text = value;
+						break;
+					}
+					case OptionsModel.OPTION_READER_PASSWORD: {
+						passwordInput.text = value;
 						break;
 					}
 					default:
@@ -350,6 +390,27 @@
 			private function handleCheckAllNowClick(event: Event): void {
 				_feedModel.fetchAllFeeds();
 			}
+			
+			private function handleEnableReaderSyncChange(event : Event) : void {
+				if(enableReaderSyncCheckbox.selected != (_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1")) {
+					readerCredentialsChanged = true;
+					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, (enableReaderSyncCheckbox.selected ? "1" : "0"));					
+				}
+			}
+			
+			private function handleUserNameCommit(event: Event): void {
+				if(userNameInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME)) {
+					readerCredentialsChanged = true;
+					_optionsModel.setValue(OptionsModel.OPTION_READER_USER_NAME, userNameInput.text);
+				}
+			}
+			
+			private function handlePasswordCommit(event: Event): void {
+				if(passwordInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD)) {
+					readerCredentialsChanged = true;
+					_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
+				}
+			}
 		]]>
 	</mx:Script>
 	<popupChildren>
@@ -378,6 +439,19 @@
 				<mx:Button label="Remove..." width="80" right="-1" bottom="-1" click="handleDeleteClick()" enabled="{feedGrid.selectedItem != null}"/>
 				<mx:Button label="Add..." width="80" right="78" bottom="-1" click="handleNewClick()"/>
 				<mx:HRule left="0" right="0" bottom="22" strokeWidth="1" strokeColor="#666666"/>
+			</mx:Canvas>
+			<mx:Canvas label="Google Reader" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+				<mx:constraintColumns>
+					<mx:ConstraintColumn id="padding2" width="10"/>
+					<mx:ConstraintColumn id="col3"/>
+					<mx:ConstraintColumn id="col4" width="100%"/>
+				</mx:constraintColumns>
+				<mx:CheckBox left="10" y="5" label="Enable Google Reader synchronization" id="enableReaderSyncCheckbox" selected="false" change="handleEnableReaderSyncChange(event)"/>
+				<mx:Label left="col3:0" right="col3:0" y="34" textAlign="right" text="User name:" id="userNameLabel"/>
+				<mx:TextInput id="userNameInput" left="col4:10" y="32" width="170" valueCommit="handleUserNameCommit(event)"/>
+				<mx:Label left="col3:0" right="col3:0" y="67" textAlign="right" text="Password:" id="passwordLabel" />
+				<mx:TextInput displayAsPassword="true" left="col4:10" y="65" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
+				<mx:Button left="col4:10" y="99" width="80" label="Connect" id="connectButton"/>
 			</mx:Canvas>
 			<mx:Canvas label="Preferences" width="100%" height="100%" backgroundAlpha="0">
 				<mx:constraintColumns>

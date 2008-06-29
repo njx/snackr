@@ -37,13 +37,13 @@
 			import tests.PendingOperationTester;
 			
 			public function runTests(): void {
-				//testReadItemMethods();
+				testReadItemMethods();
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
 				//runPendingOpsTests();
 				//runTestSync();
 				//runTestMerge();
-				runTestSet();
+				//runTestSet();
 			}
 			
 			public function runTestSync(): void {
@@ -76,8 +76,8 @@
 			
 			public function testReadItemMethods() : void {
 				var tester: GoogleReaderTester = new GoogleReaderTester();
-				//tester.testGetReadItems();
-				tester.testSetItemRead("http://www.adaptivepath.com/blog/2008/06/02/alexa-conquers-interactive-wireframes-on-boxes-arrows/");
+				tester.testGetReadItems();
+				//tester.testSetItemRead("http://www.adaptivepath.com/blog/2008/06/02/alexa-conquers-interactive-wireframes-on-boxes-arrows/");
 			}
 			
 			public function testGoogleReaderAuth(): void {

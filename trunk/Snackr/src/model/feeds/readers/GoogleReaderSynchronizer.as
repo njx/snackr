@@ -227,20 +227,41 @@ package model.feeds.readers
 		
 		override public function getReadItems(callback: Function): void {
 			//TODO: GR will only return the last 20 read items by default - figure out how many we should request
+			getReadItemsHelper(callback, new ArrayCollection, null);
+		}
+		
+		private function getReadItemsHelper(callback: Function, readItems: ArrayCollection, continuationToken: String) : void {
 			var getReadItemsRequest:URLRequest = new URLRequest();
-			getReadItemsRequest.url = GET_READ_ITEMS_URL + "?client=" + SNACKR_CLIENT_ID;
+			getReadItemsRequest.url = GET_READ_ITEMS_URL;
 			getReadItemsRequest.userAgent = SNACKR_CLIENT_ID;
 			getReadItemsRequest.manageCookies = false;
+			var urlVariables : URLVariables = new URLVariables;
+			urlVariables.client = SNACKR_CLIENT_ID;
+			if(continuationToken != null)
+				urlVariables.c = continuationToken;
+			getReadItemsRequest.data = urlVariables;
 			getReadItemsRequest.requestHeaders = getAuthenticationHeaders();
 			var getReadItemsConnection:URLLoader = new URLLoader();
 			getReadItemsConnection.addEventListener(Event.COMPLETE, function handleGetReadItemsResult(event:Event):void {
-				callback(processGetReadItemsResult(XML(event.target.data)));
+				use namespace atom;
+				
+				var resultXML : XML = XML(event.target.data);
+				var resultArray : ArrayCollection = processGetReadItemsResult(resultXML);
+				var reachedAgeLimit: Boolean = false;
+				for each (var obj: Object in resultArray) {
+					readItems.addItem(obj);
+				}
+				var newContinutationToken : String = resultXML.child(new QName(gr, "continuation"));
+				if(newContinutationToken == "")
+					callback(readItems);
+				else
+					getReadItemsHelper(callback, readItems, newContinutationToken);
 			});
 			getReadItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetReadItemsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: getReadItems() failed: " + event.text, Logger.SEVERITY_NORMAL);
 				callback(null);
 			});
-			getReadItemsConnection.load(getReadItemsRequest);			
+			getReadItemsConnection.load(getReadItemsRequest);
 		}
 		
 		private function processGetReadItemsResult(resultXML: XML): ArrayCollection {

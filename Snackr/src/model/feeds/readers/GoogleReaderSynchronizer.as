@@ -269,7 +269,7 @@ package model.feeds.readers
 			
 			//Google Reader rewrites the ids and stores the original in the gr:original-id attribute, so we're using that instead
 			var readItemsIDsXML:XMLList = resultXML.entry.id.attribute(new QName(gr, "original-id"));
-			var readItemsURLsXML:XMLList = resultXML.entry.link.@href;
+			var readItemsURLsXML:XMLList = resultXML.entry.link.(@rel == "alternate").@href;
 			var readItemsFeedURLsXML:XMLList = resultXML.entry.source.attribute(new QName(gr, "stream-id"));
 			var itemList:Array = new Array(readItemsIDsXML.length());
 			var i:int = 0;
@@ -326,10 +326,11 @@ package model.feeds.readers
 					setItemReadRequest.data = request;
 					var setItemReadConnection:URLLoader = new URLLoader();
 					setItemReadConnection.addEventListener(Event.COMPLETE, function handleSetItemReadSuccess(event:Event): void {
-						Logger.instance.log("GoogleReaderSynchronizer: setItemRead(): " + item, Logger.SEVERITY_NORMAL);
+						Logger.instance.log("GoogleReaderSynchronizer: setItemRead(): " + item, Logger.SEVERITY_DEBUG);
 					});
 					setItemReadConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleSetItemReadFail(event:IOErrorEvent): void {
 						Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + item, Logger.SEVERITY_NORMAL);
+						Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
 						markItemForReadStatusAssignment(item.feed.url, item.link);
 					});
 					setItemReadConnection.load(setItemReadRequest);
@@ -337,6 +338,7 @@ package model.feeds.readers
 			});
 			getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + event.text, Logger.SEVERITY_NORMAL);
+				Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
 				markItemForReadStatusAssignment(item.feed.url, item.link);
 			});
 			getFeedItemsConnection.load(getFeedItemsRequest);

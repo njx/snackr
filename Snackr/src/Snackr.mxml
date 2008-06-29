@@ -39,6 +39,9 @@
 	<mx:Style source="styles/styles.css"/>
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.GoogleReaderSynchronizer;
+			import model.feeds.readers.IFeedReaderSynchronizer;
+			import model.feeds.readers.NullFeedReaderSynchronizer;
 			import ui.popups.DetailPopupManager;
 		
 			// In addition to being the main window, this acts as the main controller for the
@@ -151,6 +154,11 @@
 			static private const DB_FILE: String = "FeedDatabase.sql";
 			
 			/**
+			 * How long to wait between syncs with the external feed reader program.
+			 */
+			static private const FEED_READER_SYNC_INTERVAL : Number = 600000;
+			
+			/**
 			 * Default values for all options. We set these on startup if they're not
 			 * already set (see readOptions()).
 			 */
@@ -162,7 +170,8 @@
 				[OptionsModel.OPTION_SCREEN_SIDE, String(UIUtils.SIDE_BOTTOM)],
 				[OptionsModel.OPTION_FEED_CHECK_MIN_TIME, "45"],
 				[OptionsModel.OPTION_TICKER_OPACITY, "0.9"],
-				[OptionsModel.OPTION_AGE_LIMIT_UNITS, OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS]
+				[OptionsModel.OPTION_AGE_LIMIT_UNITS, OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS],
+				[OptionsModel.OPTION_READER_ENABLED, "0"]
 			];
 			
 			/**
@@ -212,6 +221,12 @@
 			 * the user had this many screens available.
 			 */
 			private var _screenChangePollTimer: Timer = null;
+			
+			/**
+			 * Timer that causes the feed reader synchronizer to poll its reader for remote
+			 * changes.
+			 */
+			private var _feedReaderSynchronizeTimer: Timer = null;
 			
 			/**
 			 * The maximum age of items we show in the ticker.
@@ -292,6 +307,11 @@
 			private var _hints: XML = null;
 			
 			/**
+			 * The feed reader synchronizer.
+			 */
+			private var _reader: IFeedReaderSynchronizer = null;
+			
+			/**
 			 * The main startup sequence for Snackr; this happens after all the subcomponents of
 			 * the window are created.
 			 */
@@ -361,6 +381,27 @@
 				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
 				_feedModel.addEventListener(FeedModelEvent.FEEDS_UPDATED, handleFeedsUpdated);
 				_feedModel.addEventListener(FeedModelEvent.FEED_LIST_UPDATED, handleFeedListUpdated);
+				
+				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
+					var googleReader : GoogleReaderSynchronizer = new GoogleReaderSynchronizer(_sqlConnection, _feedModel);
+					googleReader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD),
+						function authenticationFinished(event : Event) : void {
+							if(event is ResultEvent) {
+								_reader = googleReader;
+								_reader.synchronizeAll();
+							}
+							else {
+								_reader = new NullFeedReaderSynchronizer;
+							}
+							_feedModel.feedReader = _reader;
+						});
+				}
+				else {
+					_reader = new NullFeedReaderSynchronizer;
+					_feedModel.feedReader = _reader;
+				}
+				
 				
 				// TODO: We used to show a transient message on the ticker itself when a feed is added.
 				// Now we handle this in the Add Feed popup from the + button on the ticker tab, so we don't
@@ -569,7 +610,11 @@
 					
 					_screenChangePollTimer = new Timer(2000);
 					_screenChangePollTimer.addEventListener(TimerEvent.TIMER, handleScreenChangePollTimer);
-					_screenChangePollTimer.start();					
+					_screenChangePollTimer.start();	
+					
+					_feedReaderSynchronizeTimer = new Timer(FEED_READER_SYNC_INTERVAL);
+					_feedReaderSynchronizeTimer.addEventListener(TimerEvent.TIMER, handleFeedReaderSynchronizeTimer);
+					_feedReaderSynchronizeTimer.start();				
 				}
 			}
 			
@@ -624,6 +669,10 @@
 				use namespace airAppNS;
 				var iconFile: File = File.applicationDirectory.resolvePath(nativeApplication.applicationDescriptor.icon.image48x48);
 				return iconFile.url;
+			}
+			
+			private function handleFeedReaderSynchronizeTimer(event: TimerEvent) : void {
+				_reader.synchronizeAll();
 			}
 			
 			/**
@@ -794,6 +843,33 @@
 				doShowOptions();
 			}
 			
+			private function reinitializeReaderSync(event: Event) : void {
+				//reset the timer so it doesn't interfere with the merge operation
+				_feedReaderSynchronizeTimer.reset();
+				
+				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
+					var googleReader : GoogleReaderSynchronizer = new GoogleReaderSynchronizer(_sqlConnection, _feedModel);
+					googleReader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD),
+						function authenticationFinished(event : Event) : void {
+							if(event is ResultEvent) {
+								_reader = googleReader;
+								_reader.mergeFeedLists();
+							}
+							else {
+								_reader = new NullFeedReaderSynchronizer;
+							}
+							_feedModel.feedReader = _reader;
+						});
+				}
+				else {
+					_reader = new NullFeedReaderSynchronizer;
+					_feedModel.feedReader = _reader;
+				}
+				
+				_feedReaderSynchronizeTimer.start();			
+			}
+			
 			/**
 			 * Opens the Options popup.
 			 */
@@ -824,6 +900,7 @@
 					}
 					options.pointerSide = currentSide;
 					options.addEventListener(Event.CLOSE, handleOptionsClose);
+					options.setReaderChangeHandler(reinitializeReaderSync);
 					options.open();
 					_optionsPopup = options;				
 				}

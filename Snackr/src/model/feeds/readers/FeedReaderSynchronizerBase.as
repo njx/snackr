@@ -102,9 +102,10 @@ package model.feeds.readers
 								case PendingOperation.MARK_READ_OPCODE:
 									var itemInfo: Object = new Object();
 									itemInfo.link = pendingOp.itemURL;
-									itemInfo.feed = new Feed(null, null);
-									itemInfo.feed.url = pendingOp.feedURL;
 									var feedItem: FeedItem = new FeedItem(itemInfo);
+									var newFeed : Feed = new Feed(null, null);
+									newFeed.url = pendingOp.feedURL;
+									feedItem.feed = newFeed;
 									setItemRead(feedItem);
 									break;
 							}

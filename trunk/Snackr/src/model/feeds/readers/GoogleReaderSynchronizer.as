@@ -247,7 +247,6 @@ package model.feeds.readers
 				
 				var resultXML : XML = XML(event.target.data);
 				var resultArray : ArrayCollection = processGetReadItemsResult(resultXML);
-				var reachedAgeLimit: Boolean = false;
 				for each (var obj: Object in resultArray) {
 					readItems.addItem(obj);
 				}
@@ -286,7 +285,8 @@ package model.feeds.readers
 			}
 			i = 0;
 			for each (var feedURL: String in readItemsFeedURLsXML) {
-				itemList[i].feedURL = feedURL;
+				//kill the feed/ in front of the feed url that google reader adds to make its stream-id
+				itemList[i].feedURL = feedURL.replace("feed/", "");
 				i++;
 			}
 			return new ArrayCollection(itemList);

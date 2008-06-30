@@ -238,6 +238,7 @@ package model.feeds
 			valueObject.description = "";
 			valueObject.starred = false;
 			var feedItem: FeedItem = new FeedItem(valueObject);
+			feedItem.feed = this;
 			setItemRead(feedItem, value);
 		}
 		

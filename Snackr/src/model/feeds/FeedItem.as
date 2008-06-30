@@ -85,5 +85,9 @@ package model.feeds
 			description = itemInfo.description;
 			starred = itemInfo.starred;
 		}
+		
+		public function toString(): String {
+			return "[guid: " + guid + ", link: " + link + ", feed: " + (feed == null ? "null" : feed.url) + "]";
+		}
 	}
 }

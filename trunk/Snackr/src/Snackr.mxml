@@ -845,7 +845,9 @@
 			
 			private function reinitializeReaderSync(event: Event) : void {
 				//reset the timer so it doesn't interfere with the merge operation
-				_feedReaderSynchronizeTimer.reset();
+				if (_feedReaderSynchronizeTimer != null) {
+					_feedReaderSynchronizeTimer.reset();
+				}
 				
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
 					var googleReader : GoogleReaderSynchronizer = new GoogleReaderSynchronizer(_sqlConnection, _feedModel);
@@ -867,7 +869,9 @@
 					_feedModel.feedReader = _reader;
 				}
 				
-				_feedReaderSynchronizeTimer.start();			
+				if (_feedReaderSynchronizeTimer != null) {
+					_feedReaderSynchronizeTimer.start();
+				}			
 			}
 			
 			/**

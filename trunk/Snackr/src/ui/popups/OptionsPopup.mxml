@@ -88,6 +88,7 @@
 				}
 				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
 				screenPicker.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, handleScreenPickerChange);
+				connectButton.addEventListener(MouseEvent.CLICK, handleConnectButtonPressed);
 		
 				// Hack. If I don't do this, the Feeds tab shows up as "Fee..." when the popup opens.
 				// Setting the selected index seems to cause it to relayout properly.
@@ -196,6 +197,10 @@
 					default:
 						break;
 				}
+			}
+			
+			private function handleConnectButtonPressed(event: Event) : void {
+				readerCredentialsChanged = false;
 			}
 			
 			private function handleDeactivate(event: Event): void {

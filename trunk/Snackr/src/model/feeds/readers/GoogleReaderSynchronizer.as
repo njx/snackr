@@ -300,7 +300,8 @@ package model.feeds.readers
 			//because the Google API can only identify feeds by its own rewriting of the feed's guid,
 			//we need to retrieve that guid from Google Reader before we can set the read state
 			var getFeedItemsRequest:URLRequest = new URLRequest();
-			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + item.feed.url + "?client=" + SNACKR_CLIENT_ID;
+			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + escape(item.feed.url) + "?client=" + SNACKR_CLIENT_ID;
+			
 			getFeedItemsRequest.userAgent = SNACKR_CLIENT_ID;
 			getFeedItemsRequest.manageCookies = false;
 			getFeedItemsRequest.requestHeaders = getAuthenticationHeaders();

@@ -80,12 +80,9 @@ package model.feeds.readers
 					//get read items list from server
 					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
 						//mark all items read in snackr
-						for each (var item: Object in itemsList)
-							for each (var feed: Feed in _feedModel.feeds)
-								if(feed.url == item.feedURL) {
-									feed.setItemReadByIDs(item.itemURL, item.guid);
-									break;
-								}
+						for each (var item: Object in itemsList) {
+							_feedModel.setItemReadByIDs(item.itemURL, item.guid);
+						}
 						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
 						//clear pending operations from model
 						_pendingOperationModel.clearOperations();

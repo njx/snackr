@@ -213,36 +213,6 @@ package model.feeds
 		}
 		
 		/**
-		 * Sets a flag indicating whether this item has been read (i.e. whether the user has clicked on it to view the
-		 * item popup). Items that have been read never show up again in the ticker.
-		 * @param item The item that should be marked as read/unread.
-		 * @param value Whether to mark it as read (true) or unread (false). Default true.
-		 */ 
-		public function setItemRead(item: FeedItem, value: Boolean = true): void {
-			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
-			statement.parameters[":guid"] = item.guid;
-			statement.parameters[":link"] = item.link;
-			statement.parameters[":wasRead"] = value;
-			statement.execute();
-			var event: FeedEvent = new FeedEvent(FeedEvent.ITEM_READ, this, item);
-			dispatchEvent(event);
-		}
-		
-		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true) : void {
-			var valueObject: Object = new Object();
-			valueObject.guid = guid; 
-			valueObject.title = "";
-			valueObject.timeStamp = null;
-			valueObject.link = itemURL;
-			valueObject.imageURL = "";
-			valueObject.description = "";
-			valueObject.starred = false;
-			var feedItem: FeedItem = new FeedItem(valueObject);
-			feedItem.feed = this;
-			setItemRead(feedItem, value);
-		}
-		
-		/**
 		 * Sets a flag indicating whether this item has been starred to read later. Starred items show up
 		 * in the "starred items" list that can be accessed from the main ticker tab.
 		 * @param item The item that should be marked as starred/unstarred.

@@ -43,10 +43,6 @@ package model.feeds
 		 * Event type for when a feed fetch fails.
 		 */
 		static public const FETCH_FAILED: String = "fetchFailed";
-		/**
-		 * Event type for when an item is read by the user.
-		 */
-		static public const ITEM_READ: String = "itemRead";
 		
 		/**
 		 * The feed to which this event refers.

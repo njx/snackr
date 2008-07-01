@@ -487,7 +487,6 @@ package model.feeds
 			_feeds.addItem(feed);
 			feed.addEventListener(FeedEvent.FETCHED, handleFeedFetched);
 			feed.addEventListener(FeedEvent.FETCH_FAILED, handleFeedFetchFailed);
-			feed.addEventListener(FeedEvent.ITEM_READ, handleFeedItemRead);
 			
 			if (initialAdd) {
 				feed.addToDB();
@@ -567,7 +566,6 @@ package model.feeds
 		 * Handles when an item is marked as read.
 		 */
 		private function handleFeedItemRead(event: FeedEvent): void {
-			feedReader.setItemRead(event.item);
 		}
 		
 		/**
@@ -674,5 +672,40 @@ package model.feeds
 			return resultArray;
 		}
 		
+		/**
+		 * Sets a flag indicating whether this item has been read (i.e. whether the user has clicked on it to view the
+		 * item popup). Items that have been read never show up again in the ticker.
+		 * @param item The item that should be marked as read/unread.
+		 * @param value Whether to mark it as read (true) or unread (false). Default true.
+		 */ 
+		public function setItemRead(item: FeedItem, value: Boolean = true): void {
+			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
+			statement.parameters[":guid"] = item.guid;
+			statement.parameters[":link"] = item.link;
+			statement.parameters[":wasRead"] = value;
+			statement.execute();
+			feedReader.setItemRead(item);
+		}
+		
+		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true): void {
+			var item: FeedItem = getItemByIDs(itemURL, guid);
+			if (item != null) {
+				setItemRead(item, value);
+			}
+		}
+		
+		public function getItemByIDs(itemURL: String, guid: String): FeedItem {
+			var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_ITEM_BY_IDS);
+			statement.parameters[":guid"] = guid;
+			statement.parameters[":link"] = itemURL;
+			statement.execute();
+			var result: SQLResult = statement.getResult();
+			if (result.data != null && result.data.length > 0) {
+				var item: FeedItem = new FeedItem(result.data[0]);
+				item.feed = getFeedByID(result.data[0].feedId);
+				return item;
+			}
+			return null;			
+		}
 	}
 }

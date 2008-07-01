@@ -37,7 +37,6 @@
 		<![CDATA[
 			import mx.events.FlexEvent;
 			import mx.events.ItemClickEvent;
-			import model.feeds.FeedItem;
 			
 			static public const IMAGE_SIDE_LEFT: Number = 0;
 			static public const IMAGE_SIDE_RIGHT: Number = 1;
@@ -48,8 +47,6 @@
 			private var _imageSide: Number = IMAGE_SIDE_LEFT;
 			
 			// TODO: We should have a well-defined ITickerItemData interface that we access.
-			// This class also shouldn't know about FeedItems directly--there should be an
-			// adapter that implements ITickerItemData for a feeditem.
 			[Bindable]
 			override public function get data(): Object {
 				return _data;

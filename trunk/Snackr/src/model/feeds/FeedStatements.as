@@ -55,6 +55,7 @@ package model.feeds
 		static public const DELETE_ITEM: String = "deleteItem";
 		static public const UPDATE_FEED: String = "updateFeed";
 		static public const UPDATE_FAILED_FEED: String = "updateFailedFeed";
+		static public const GET_ITEM_BY_IDS: String = "getItemByIds";
 		
 		/**
 		 * Array of SQL queries to cache. Add an entry to this array to add a new cached statement.
@@ -67,6 +68,7 @@ package model.feeds
 				"AND EXISTS (SELECT guid from main.feedItems WHERE feed.feedId = feedItems.feedId AND wasRead != true AND timestamp > :limitDate)"],
 			[COUNT_ITEMS, "SELECT * FROM main.feedItems WHERE feedId = :feedId LIMIT 1"],
 			[SET_ITEM_SHOWN, "UPDATE main.feedItems SET wasShown = true WHERE guid = :guid"],
+			[GET_ITEM_BY_IDS, "SELECT * FROM main.feedItems WHERE guid = :guid OR link = :link LIMIT 1"],
 			[SET_ITEM_READ, "UPDATE main.feedItems SET wasRead = :wasRead WHERE guid = :guid OR link = :link"],
 			[SET_ITEM_STARRED, "UPDATE main.feedItems SET starred = :starred WHERE guid = :guid"],
 			[GET_UNSHOWN_ITEM, "SELECT * FROM main.feedItems " +

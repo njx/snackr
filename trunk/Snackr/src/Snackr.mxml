@@ -373,6 +373,8 @@
 					throw error;
 				}
 				
+				ticker.feedModel = _feedModel;
+				
 				// Load the existing options values (or set them to their defaults if they don't exist).
 				readOptions();
 				_optionsModel.setValue(OptionsModel.OPTION_VERSION, appVersion);

@@ -33,6 +33,7 @@ package ui.ticker
 	import flash.events.Event;
 	
 	import model.feeds.FeedItem;
+	import model.feeds.FeedModel;
 	import model.logger.Logger;
 	
 	import mx.core.UIComponent;
@@ -70,10 +71,18 @@ package ui.ticker
 		
 		public var currentScreen: Screen;
 		public var currentSide: Number;
+
+		// TODO: This class shouldn't really know about FeedItem/FeedModel--only TickerItems. Should refactor to get
+		// rid of that dependency.
+		private var _feedModel: FeedModel;
 		
 		public function Ticker()
 		{
 			super();
+		}
+		
+		public function set feedModel(value: FeedModel): void {
+			_feedModel = value;
 		}
 		
 		public function get itemQueue(): Array {
@@ -390,7 +399,7 @@ package ui.ticker
 			// Mark the item as read.
 			var feedItem: FeedItem = FeedItem(item.data.feedItem);
 			if (feedItem != null) {
-				feedItem.feed.setItemRead(feedItem);
+				_feedModel.setItemRead(feedItem);
 				item.setRead();
 			}
 		}

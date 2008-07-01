@@ -35,7 +35,7 @@
   </head>
   <body>
     <outline text="nj - much ado about something" xmlUrl="http://www.rictus.com/muchado/feed/" htmlUrl="http://www.rictus.com/muchado"/>
-    <outline text="Flex Team Blog" xmlUrl="http://weblogs.macromedia.com/flexteam/atom.xml" htmlUrl="http://weblogs.macromedia.com/flexteam"/>
+    <outline text="Flex Team Blog" xmlUrl="http://blogs.adobe.com/flex/atom.xml" htmlUrl="http://blogs.adobe.com/flex"/>
     <outline text="Matt Chotin's Blog" xmlUrl="http://weblogs.macromedia.com/mchotin/atom.xml" htmlUrl="http://weblogs.macromedia.com/mchotin"/>
     <outline text="A List Apart" xmlUrl="http://www.alistapart.com/rss.xml" htmlUrl="http://www.alistapart.com/"/>
     <outline text="Adobe Blogs" xmlUrl="http://blogs.adobe.com/index.xml" htmlUrl="http://blogs.adobe.com/"/>

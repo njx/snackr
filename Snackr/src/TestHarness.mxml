@@ -37,12 +37,12 @@
 			import tests.PendingOperationTester;
 			
 			public function runTests(): void {
-				testReadItemMethods();
+				//testReadItemMethods();
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
 				//runPendingOpsTests();
 				//runTestSync();
-				//runTestMerge();
+				runTestMerge();
 				//runTestSet();
 			}
 			

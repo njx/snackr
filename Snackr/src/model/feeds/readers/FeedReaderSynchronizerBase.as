@@ -70,18 +70,18 @@ package model.feeds.readers
 					//for each feed in reader, if feed doesnt already exist AND its not in the ops list for removal, add it
 					for each (var feedURL: String in feedsList) {
 						if(!_pendingOperationModel.isMarkedForDelete(feedURL))
-							_feedModel.addFeedURL(feedURL, true);
+							_feedModel.addFeedURL(feedURL, true, false);
 					}
 					//for each feed in snackr, if feed isn't in the reader AND its not in the ops list for addition, remove it
 					for each (var feed: Feed in _feedModel.feeds) {
 						if(!(isInReaderFeedsList(feed.url, feedsList) || _pendingOperationModel.isMarkedForAdd(feed.url)))
-							_feedModel.deleteFeed(feed);
+							_feedModel.deleteFeed(feed, false);
 					}
 					//get read items list from server
 					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
 						//mark all items read in snackr
 						for each (var item: Object in itemsList) {
-							_feedModel.setItemReadByIDs(item.itemURL, item.guid);
+							_feedModel.setItemReadByIDs(item.itemURL, item.guid, true, false);
 						}
 						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
 						//clear pending operations from model
@@ -161,7 +161,7 @@ package model.feeds.readers
 					}
 					if(!inSnackr) {
 						if(opCode == MERGE)
-							_feedModel.addFeedURL(feedURL, true);
+							_feedModel.addFeedURL(feedURL, true, false);
 						else if(opCode == SET)
 							deleteFeed(feedURL);
 					}

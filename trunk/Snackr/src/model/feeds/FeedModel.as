@@ -381,10 +381,10 @@ package model.feeds
 		 * @param initialAdd Whether this is the first time this feed is being added. If true, the feed
 		 * will be added to the database.
 		 */
-		public function addFeedFromInfo(feedInfo: Object, initialAdd: Boolean): void {
+		public function addFeedFromInfo(feedInfo: Object, initialAdd: Boolean, triggerReaderSync: Boolean = true): void {
 			var feed: Feed = new Feed(_sqlConnection, _statements);
 			feed.setInfo(feedInfo);
-			addFeed(feed, initialAdd);
+			addFeed(feed, initialAdd, triggerReaderSync);
 		}
 		
 		/**
@@ -394,10 +394,10 @@ package model.feeds
 		 * @param initialAdd Whether this is the first time this feed is being added. If true, the feed
 		 * will be added to the database.
 		 */
-		public function addFeedURL(url: String, initialAdd: Boolean): void {
+		public function addFeedURL(url: String, initialAdd: Boolean, triggerReaderSync: Boolean = true): void {
 			var feed: Feed = new Feed(_sqlConnection, _statements);
 			feed.url = url;
-			addFeed(feed, initialAdd);
+			addFeed(feed, initialAdd, triggerReaderSync);
 		}
 		
 		
@@ -474,7 +474,7 @@ package model.feeds
 		 * @param initialAdd Whether this is the first time this feed is being added. If true, the feed
 		 * will be added to the database.
 		 */
- 		private function addFeed(feed: Feed, initialAdd: Boolean): Boolean {
+ 		private function addFeed(feed: Feed, initialAdd: Boolean, triggerReaderSync: Boolean = true): Boolean {
 			// If we already have a feed for this URL, do nothing.
 			// TODO: should return error so we can show UI if the user adds a dupe
 			for each (var existingFeed: Feed in _feeds.source) {
@@ -492,7 +492,8 @@ package model.feeds
 				feed.addToDB();
 				fetchFeed(feed);
 				
-				feedReader.addFeed(feed.url);
+				if(triggerReaderSync)
+					feedReader.addFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_ADDED, feed.url));
 			}
@@ -506,7 +507,7 @@ package model.feeds
 		 * Deletes the given feed and all its items from the database. This cannot be undone.
 		 * @param feed The feed object we want to delete.
 		 */
-		public function deleteFeed(feed: Feed): void {
+		public function deleteFeed(feed: Feed, triggerReaderSync: Boolean = true): void {
 			var index: Number = _feeds.getItemIndex(feed);
 			if (index != -1) {
 				_feeds.removeItemAt(index);
@@ -522,7 +523,8 @@ package model.feeds
 				deleteFeed.parameters[":feedId"] = feed.feedId;
 				deleteFeed.execute();
 				
-				feedReader.deleteFeed(feed.url);
+				if(triggerReaderSync)
+					feedReader.deleteFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_DELETED, feed.url));
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_LIST_UPDATED));
@@ -672,19 +674,20 @@ package model.feeds
 		 * @param item The item that should be marked as read/unread.
 		 * @param value Whether to mark it as read (true) or unread (false). Default true.
 		 */ 
-		public function setItemRead(item: FeedItem, value: Boolean = true): void {
+		public function setItemRead(item: FeedItem, value: Boolean = true, triggerReaderSync: Boolean = true): void {
 			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
 			statement.parameters[":guid"] = item.guid;
 			statement.parameters[":link"] = item.link;
 			statement.parameters[":wasRead"] = value;
 			statement.execute();
-			feedReader.setItemRead(item);
+			if(triggerReaderSync)
+				feedReader.setItemRead(item);
 		}
 		
-		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true): void {
+		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true, triggerReaderSync: Boolean = true): void {
 			var item: FeedItem = getItemByIDs(itemURL, guid);
 			if (item != null) {
-				setItemRead(item, value);
+				setItemRead(item, value, triggerReaderSync);
 			}
 		}
 		

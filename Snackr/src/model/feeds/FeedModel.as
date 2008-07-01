@@ -563,12 +563,6 @@ package model.feeds
 		}
 		
 		/**
-		 * Handles when an item is marked as read.
-		 */
-		private function handleFeedItemRead(event: FeedEvent): void {
-		}
-		
-		/**
 		 * Checks the queue of feeds to fetch, and initiates as many fetches as we have
 		 * available connections.
 		 */

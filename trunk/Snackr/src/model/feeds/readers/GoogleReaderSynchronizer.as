@@ -169,7 +169,7 @@ package model.feeds.readers
 			var i:int = 0;
 			for each (var item:String in feedListXML) {
 				//Google Reader puts a feed/ in front of each URL to create its feed ids so we need to strip that off
-				feedList[i] = item.replace("feed/", "");
+				feedList[i] = item.replace(/^feed\//, "");
 				i++;
 			}
 			return new ArrayCollection(feedList);
@@ -286,7 +286,7 @@ package model.feeds.readers
 			i = 0;
 			for each (var feedURL: String in readItemsFeedURLsXML) {
 				//kill the feed/ in front of the feed url that google reader adds to make its stream-id
-				itemList[i].feedURL = feedURL.replace("feed/", "");
+				itemList[i].feedURL = feedURL.replace(/^feed\//, "");
 				i++;
 			}
 			return new ArrayCollection(itemList);
@@ -297,11 +297,20 @@ package model.feeds.readers
 		 * 			MUST be set for this method to work correctly.
 		 */
 		override public function setItemRead(item:FeedItem):void {
+			setItemReadHelper(item, null);
+		}
+		
+		private function setItemReadHelper(item:FeedItem, continuationToken: String) : void {
 			//because the Google API can only identify feeds by its own rewriting of the feed's guid,
 			//we need to retrieve that guid from Google Reader before we can set the read state
 			var getFeedItemsRequest:URLRequest = new URLRequest();
-			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + escape(item.feed.url) + "?client=" + SNACKR_CLIENT_ID;
+			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + escape(item.feed.url);
 			
+			var urlVariables: URLVariables = new URLVariables();
+			urlVariables.client = SNACKR_CLIENT_ID;
+			if(continuationToken != null) 
+				urlVariables.c = continuationToken;	
+			getFeedItemsRequest.data = urlVariables;		
 			getFeedItemsRequest.userAgent = SNACKR_CLIENT_ID;
 			getFeedItemsRequest.manageCookies = false;
 			getFeedItemsRequest.requestHeaders = getAuthenticationHeaders();
@@ -312,6 +321,7 @@ package model.feeds.readers
 				//extract Google Reader's guid using the feed item's url
 				var resultXML:XML = XML(event.target.data);
 				var entriesXMLList: XMLList = resultXML.entry;
+				var newContinuationToken : String = resultXML.child(new QName(gr, "continuation"));
 				var grGuid:String = "";
 				//had to iterate through these manually since sometimes the link field doesn't appear in an entry
 				//and I can't figure out how to make that work in e4x
@@ -321,30 +331,42 @@ package model.feeds.readers
 						break;
 					}
 				}
-				getToken(function retrieveToken(token:String): void {
-					var setItemReadRequest:URLRequest = new URLRequest();
-					setItemReadRequest.url = TAG_EDIT_URL;
-					setItemReadRequest.userAgent = SNACKR_CLIENT_ID;
-					setItemReadRequest.manageCookies = false;
-					setItemReadRequest.requestHeaders = getAuthenticationHeaders();
-					setItemReadRequest.method = "POST";
-					var request:URLVariables = new URLVariables();
-					request.i = grGuid;
-					request.a = "user/-/state/com.google/read";
-					request.ac = "edit";
-					request.T = token;
-					setItemReadRequest.data = request;
-					var setItemReadConnection:URLLoader = new URLLoader();
-					setItemReadConnection.addEventListener(Event.COMPLETE, function handleSetItemReadSuccess(event:Event): void {
-						Logger.instance.log("GoogleReaderSynchronizer: setItemRead(): " + item, Logger.SEVERITY_DEBUG);
+				//if we found the guid, try setting the read status of the item
+				if(grGuid != "") {
+					getToken(function retrieveToken(token:String): void {
+						var setItemReadRequest:URLRequest = new URLRequest();
+						setItemReadRequest.url = TAG_EDIT_URL;
+						setItemReadRequest.userAgent = SNACKR_CLIENT_ID;
+						setItemReadRequest.manageCookies = false;
+						setItemReadRequest.requestHeaders = getAuthenticationHeaders();
+						setItemReadRequest.method = "POST";
+						var request:URLVariables = new URLVariables();
+						request.i = grGuid;
+						request.a = "user/-/state/com.google/read";
+						request.ac = "edit";
+						request.T = token;
+						setItemReadRequest.data = request;
+						var setItemReadConnection:URLLoader = new URLLoader();
+						setItemReadConnection.addEventListener(Event.COMPLETE, function handleSetItemReadSuccess(event:Event): void {
+							Logger.instance.log("GoogleReaderSynchronizer: setItemRead(): " + item, Logger.SEVERITY_DEBUG);
+						});
+						setItemReadConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleSetItemReadFail(event:IOErrorEvent): void {
+							Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + item, Logger.SEVERITY_NORMAL);
+							Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
+							markItemForReadStatusAssignment(item.feed.url, item.link);
+						});
+						setItemReadConnection.load(setItemReadRequest);
 					});
-					setItemReadConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleSetItemReadFail(event:IOErrorEvent): void {
-						Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + item, Logger.SEVERITY_NORMAL);
-						Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
-						markItemForReadStatusAssignment(item.feed.url, item.link);
-					});
-					setItemReadConnection.load(setItemReadRequest);
-				});
+				}
+				//if not and there's a continuation token, try the next set
+				else if(newContinuationToken != null && newContinuationToken != "") {
+					setItemReadHelper(item, newContinuationToken);
+				}
+				//we couldn't find the guid for some reason, so try again later
+				else {
+					Logger.instance.log("GoogleReaderSynchronizer: setItemRead couldn't find the guid for the item: " + item, Logger.SEVERITY_NORMAL);
+					markItemForReadStatusAssignment(item.feed.url, item.link);
+				}
 			});
 			getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + event.text, Logger.SEVERITY_NORMAL);
@@ -352,7 +374,6 @@ package model.feeds.readers
 				markItemForReadStatusAssignment(item.feed.url, item.link);
 			});
 			getFeedItemsConnection.load(getFeedItemsRequest);
-						
 		}
 	}
 }

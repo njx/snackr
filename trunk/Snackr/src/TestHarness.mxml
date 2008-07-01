@@ -76,8 +76,8 @@
 			
 			public function testReadItemMethods() : void {
 				var tester: GoogleReaderTester = new GoogleReaderTester();
-				tester.testGetReadItems();
-				//tester.testSetItemRead("http://www.adaptivepath.com/blog/2008/06/02/alexa-conquers-interactive-wireframes-on-boxes-arrows/");
+				//tester.testGetReadItems();
+				tester.testSetItemRead("http://alistapart.com/articles/writingainterfacestyleguide","http://www.alistapart.com/rss.xml");
 			}
 			
 			public function testGoogleReaderAuth(): void {

@@ -311,7 +311,16 @@ package model.feeds.readers
 				
 				//extract Google Reader's guid using the feed item's url
 				var resultXML:XML = XML(event.target.data);
-				var grGuid:String = resultXML.entry.(link.@href == item.link).id;
+				var entriesXMLList: XMLList = resultXML.entry;
+				var grGuid:String = "";
+				//had to iterate through these manually since sometimes the link field doesn't appear in an entry
+				//and I can't figure out how to make that work in e4x
+				for each (var entry:XML in entriesXMLList) {
+					if((entry.link != null) && (entry.link.@href == item.link)) {
+						grGuid = entry.id;
+						break;
+					}
+				}
 				getToken(function retrieveToken(token:String): void {
 					var setItemReadRequest:URLRequest = new URLRequest();
 					setItemReadRequest.url = TAG_EDIT_URL;

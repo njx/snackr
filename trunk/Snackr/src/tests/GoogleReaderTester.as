@@ -119,7 +119,7 @@ package tests
 			});
 		}		
 		
-		public function testSetItemRead(urlToRead:String): void {	
+		public function testSetItemRead(urlToRead:String, feedURLtoRead: String): void {	
 			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
@@ -130,7 +130,7 @@ package tests
 					itemObject.link = urlToRead;
 					var feedItem:FeedItem = new FeedItem(itemObject);
 					var feed:Feed = new Feed(null, null);
-					feed.url = "http://feeds.feedburner.com/adaptivepath";
+					feed.url = feedURLtoRead;
 					feedItem.feed = feed;
 					_reader.setItemRead(feedItem);
 				});

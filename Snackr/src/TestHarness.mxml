@@ -77,7 +77,7 @@
 			public function testReadItemMethods() : void {
 				var tester: GoogleReaderTester = new GoogleReaderTester();
 				//tester.testGetReadItems();
-				tester.testSetItemRead("http://alistapart.com/articles/writingainterfacestyleguide","http://www.alistapart.com/rss.xml");
+				tester.testSetItemRead("http://feeds.gothamistllc.com/click.phdo?i=9a2d51d0e4567ac710143d4f2b9c6c10","http://feeds.gothamistllc.com/Sfist");
 			}
 			
 			public function testGoogleReaderAuth(): void {

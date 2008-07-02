@@ -171,6 +171,24 @@ package model.feeds.readers
 					addFeed(feedToAdd.url);
 				}
 			});
+			//TODO: synchronize the read items as well at this point
+			getReadItems(function retrieveReadItemsForAssignment(itemsList: ArrayCollection) : void {
+				var itemsInSnackrByLink : Object = new Object();
+				var itemsInSnackrByGuid : Object = new Object();
+				//mark all items read in snackr
+				for each (var item: Object in itemsList) {
+					if(_feedModel.getItemByIDs(item.itemURL, item.guid) != null) {
+						_feedModel.setItemReadByIDs(item.itemURL, item.guid, true, false);
+						itemsInSnackrByLink[item.itemURL] = item;
+						itemsInSnackrByGuid[item.guid] = item;
+					}
+				}
+				for each (var feedItem: FeedItem in _feedModel.getReadItems()) {
+					if((itemsInSnackrByLink[feedItem.link] == null) && (itemsInSnackrByGuid[feedItem.guid] == null)) {
+						setItemRead(feedItem);
+					}
+				}
+			});
 		}
 			
 		public function setFeedList(newFeedList: ArrayCollection): void {

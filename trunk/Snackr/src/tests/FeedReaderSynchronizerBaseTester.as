@@ -192,6 +192,11 @@ package tests
 			loadOps.parameters[":link"] = "http://www.shared.net/alternateURL.html";
 			loadOps.parameters[":wasRead"] = false;
 			loadOps.execute();			
+			loadOps.parameters[":guid"] = "GUID4";
+			loadOps.parameters[":feedId"] = result.data[0].feedId;
+			loadOps.parameters[":link"] = "http://www.shared.net/setInSnackrNotInReader.html";
+			loadOps.parameters[":wasRead"] = true;
+			loadOps.execute();			
 		}
 		
 		override public function getFeeds(callback: Function) : void {
@@ -210,7 +215,7 @@ package tests
 			item.feedURL = "http://www.shared.net/";
 			itemList.addItem(item);
 			item = new Object();
-			item.guid = "GUID2";
+			item.guid = "";
 			item.itemURL = "http://www.doesntExist.net/entry1.html";
 			item.feedURL = "http://www.doesntExist.net/";
 			itemList.addItem(item);

@@ -80,16 +80,16 @@ package model.feeds.readers
 					}
 					//get read items list from server
 					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
-						var snackrReadItemsByLink: Object = new Object();
-						var snackrReadItemsByGuid: Object = new Object();
-						for each (var item: FeedItem in _feedModel.getReadItems()) {
-							snackrReadItemsByLink[item.link] = item;
-							snackrReadItemsByGuid[item.guid] = item;
+						var snackrUnreadItemsByLink: Object = new Object();
+						var snackrUnreadItemsByGuid: Object = new Object();
+						for each (var item: FeedItemDescriptor in _feedModel.getUnreadItemDescriptors()) {
+							snackrUnreadItemsByLink[item.link] = item;
+							snackrUnreadItemsByGuid[item.guid] = item;
 						}
 						//mark all items read in snackr
 						var descriptors: Array = new Array();
 						for each (var readerItem: Object in itemsList) {
-							if(snackrReadItemsByGuid[readerItem.guid] == null && snackrReadItemsByLink[readerItem.itemURL] == null) {
+							if(snackrUnreadItemsByGuid[readerItem.guid] != null || snackrUnreadItemsByLink[readerItem.itemURL] != null) {
 								descriptors.push(new FeedItemDescriptor(readerItem.guid, readerItem.itemURL));
 							}
 						}

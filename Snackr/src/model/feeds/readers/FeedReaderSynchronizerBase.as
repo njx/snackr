@@ -32,6 +32,7 @@ package model.feeds.readers
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
 	
 	import mx.collections.ArrayCollection;
@@ -86,11 +87,13 @@ package model.feeds.readers
 							snackrReadItemsByGuid[item.guid] = item;
 						}
 						//mark all items read in snackr
+						var descriptors: Array = new Array();
 						for each (var readerItem: Object in itemsList) {
 							if(snackrReadItemsByGuid[readerItem.guid] == null && snackrReadItemsByLink[readerItem.itemURL] == null) {
-								_feedModel.setItemReadByIDs(readerItem.itemURL, readerItem.guid, true, false);
+								descriptors.push(new FeedItemDescriptor(readerItem.guid, readerItem.itemURL));
 							}
 						}
+						_feedModel.setItemsReadByDescriptors(descriptors, true, false);
 						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
 						//clear pending operations from model
 						_pendingOperationModel.clearOperations();
@@ -185,7 +188,8 @@ package model.feeds.readers
 				var itemsInSnackrByGuid : Object = new Object();
 				//mark all items read in snackr
 				for each (var item: Object in itemsList) {
-					var snackrItem: FeedItem = _feedModel.getItemByIDs(item.itemURL, item.guid);
+					var descriptor: FeedItemDescriptor = new FeedItemDescriptor(item.guid, item.itemURL);
+					var snackrItem: FeedItem = _feedModel.getItemByDescriptor(descriptor);
 					if(snackrItem != null) {
 						_feedModel.setItemRead(snackrItem, true, false);
 						itemsInSnackrByLink[item.itemURL] = item;

@@ -79,9 +79,17 @@ package model.feeds.readers
 					}
 					//get read items list from server
 					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
+						var snackrReadItemsByLink: Object = new Object();
+						var snackrReadItemsByGuid: Object = new Object();
+						for each (var item: FeedItem in _feedModel.getReadItems()) {
+							snackrReadItemsByLink[item.link] = item;
+							snackrReadItemsByGuid[item.guid] = item;
+						}
 						//mark all items read in snackr
-						for each (var item: Object in itemsList) {
-							_feedModel.setItemReadByIDs(item.itemURL, item.guid, true, false);
+						for each (var readerItem: Object in itemsList) {
+							if(snackrReadItemsByGuid[readerItem.guid] == null && snackrReadItemsByLink[readerItem.url] == null) {
+								_feedModel.setItemReadByIDs(readerItem.itemURL, readerItem.guid, true, false);
+							}
 						}
 						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
 						//clear pending operations from model

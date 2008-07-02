@@ -41,8 +41,8 @@
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
 				//runPendingOpsTests();
-				//runTestSync();
-				runTestMerge();
+				runTestSync();
+				//runTestMerge();
 				//runTestSet();
 			}
 			

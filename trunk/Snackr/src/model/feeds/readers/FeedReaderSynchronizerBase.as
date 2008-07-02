@@ -87,7 +87,7 @@ package model.feeds.readers
 						}
 						//mark all items read in snackr
 						for each (var readerItem: Object in itemsList) {
-							if(snackrReadItemsByGuid[readerItem.guid] == null && snackrReadItemsByLink[readerItem.url] == null) {
+							if(snackrReadItemsByGuid[readerItem.guid] == null && snackrReadItemsByLink[readerItem.itemURL] == null) {
 								_feedModel.setItemReadByIDs(readerItem.itemURL, readerItem.guid, true, false);
 							}
 						}

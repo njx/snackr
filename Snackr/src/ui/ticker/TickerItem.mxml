@@ -115,7 +115,7 @@
 						var gradientMatrix: Matrix = new Matrix();
 						gradientMatrix.createGradientBox(unscaledWidth, unscaledHeight, Math.PI / 2, 0, 0);
 						graphics.beginGradientFill(GradientType.LINEAR, [0xCCCCCC, 0x999999], [0.2, 0.2], [0, 255], gradientMatrix);
-						graphics.drawRect(0, 0, 200, 50);
+						graphics.drawRect(0, 0, unscaledWidth - 15, unscaledHeight - 15);
 						graphics.endFill();
 					}
 					

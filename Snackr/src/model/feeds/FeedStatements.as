@@ -56,6 +56,7 @@ package model.feeds
 		static public const UPDATE_FEED: String = "updateFeed";
 		static public const UPDATE_FAILED_FEED: String = "updateFailedFeed";
 		static public const GET_ITEM_BY_IDS: String = "getItemByIds";
+		static public const GET_READ_ITEMS: String = "getReadItems";
 		
 		/**
 		 * Array of SQL queries to cache. Add an entry to this array to add a new cached statement.
@@ -80,6 +81,7 @@ package model.feeds
 			[GET_STARRED_ITEMS, "SELECT * FROM main.feedItems WHERE starred = true ORDER BY timestamp DESC"],
 			[GET_STATE, "SELECT guid, wasShown, wasRead FROM main.feedItems " +
 				"WHERE feedId = :feedId"],
+			[GET_READ_ITEMS, "SELECT * FROM main.feedItems WHERE wasRead = true ORDER BY timestamp DESC"],
 			[INSERT_ITEM, "REPLACE INTO main.feedItems (guid, feedId, title, timestamp, link, imageURL, description, wasRead, wasShown, starred) " +
 				"VALUES (:guid, :feedId, :title, :timestamp, :link, :imageURL, :description, :wasRead, :wasShown, :starred)"],
 			[DELETE_ITEM, "DELETE FROM main.feedItems WHERE guid = :guid"],

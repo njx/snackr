@@ -704,5 +704,20 @@ package model.feeds
 			}
 			return null;			
 		}
+		
+		public function getReadItems() : ArrayCollection {
+			var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_READ_ITEMS);
+			statement.execute();
+			var result: SQLResult = statement.getResult();
+			var readItems : ArrayCollection = new ArrayCollection;
+			if(result.data != null) {
+				for (var i:int = 0; i < result.data.length; i++) {
+					var item: FeedItem = new FeedItem(result.data[i]);
+					item.feed = getFeedByID(result.data[i].feedId);
+					readItems.addItem(item);
+				}
+			}
+			return readItems;
+		}
 	}
 }

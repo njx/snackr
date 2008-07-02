@@ -740,5 +740,19 @@ package model.feeds
 			}
 			return readItems;
 		}
+		
+		public function getUnreadItemDescriptors() : ArrayCollection {
+			var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_UNREAD_ITEM_DESC);
+			statement.execute();
+			var result: SQLResult = statement.getResult();
+			var unreadItems : ArrayCollection = new ArrayCollection(new Array());
+			if(result.data != null) {
+				for (var i:int = 0; i < result.data.length; i++) {
+					var item: FeedItemDescriptor = new FeedItemDescriptor(result.data[i].guid, result.data[i].link);
+					unreadItems.addItem(item);
+				}
+			}
+			return unreadItems;
+		}
 	}
 }

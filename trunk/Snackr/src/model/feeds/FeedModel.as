@@ -675,26 +675,47 @@ package model.feeds
 		 * @param value Whether to mark it as read (true) or unread (false). Default true.
 		 */ 
 		public function setItemRead(item: FeedItem, value: Boolean = true, triggerReaderSync: Boolean = true): void {
-			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
-			statement.parameters[":guid"] = item.guid;
-			statement.parameters[":link"] = item.link;
-			statement.parameters[":wasRead"] = value;
-			statement.execute();
+			setReadFlag(((item.guid == "" || item.guid == null) ? FeedItemDescriptor.UNSPECIFIED_VALUE : item.guid),
+				((item.link == "" || item.link == null) ? FeedItemDescriptor.UNSPECIFIED_VALUE : item.link),
+				value);
 			if(triggerReaderSync)
 				feedReader.setItemRead(item);
 		}
 		
-		public function setItemReadByIDs(itemURL: String, guid: String, value: Boolean = true, triggerReaderSync: Boolean = true): void {
-			var item: FeedItem = getItemByIDs(itemURL, guid);
+		private function setReadFlag(guid: String, link: String, value: Boolean): void {
+			var statement: LoggingStatement = _statements.getStatement(FeedStatements.SET_ITEM_READ);
+			statement.parameters[":guid"] = guid;
+			statement.parameters[":link"] = link;
+			statement.parameters[":wasRead"] = value;
+			statement.execute();		
+		}
+		
+		public function setItemReadByDescriptor(descriptor: FeedItemDescriptor, value: Boolean = true, triggerReaderSync: Boolean = true): void {
+			var item: FeedItem = getItemByDescriptor(descriptor);
 			if (item != null) {
 				setItemRead(item, value, triggerReaderSync);
 			}
 		}
 		
-		public function getItemByIDs(itemURL: String, guid: String): FeedItem {
+		public function setItemsReadByDescriptors(descriptors: Array, value: Boolean = true, triggerReaderSync: Boolean = true): void {
+			_sqlConnection.begin();
+			for each (var descriptor: FeedItemDescriptor in descriptors) {
+				if (triggerReaderSync) {
+					// We can't short-circuit the DB read in this case, because we want to send bona-fide items to the reader.
+					setItemReadByDescriptor(descriptor, value, triggerReaderSync);
+				}
+				else {
+					// Bypass looking up the item in the DB. Just set the read flag.
+					setReadFlag(descriptor.guid, descriptor.link, value);
+				}
+			}
+			_sqlConnection.commit();
+		}
+		
+		public function getItemByDescriptor(descriptor: FeedItemDescriptor): FeedItem {
 			var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_ITEM_BY_IDS);
-			statement.parameters[":guid"] = guid;
-			statement.parameters[":link"] = itemURL;
+			statement.parameters[":guid"] = descriptor.guid;
+			statement.parameters[":link"] = descriptor.link;
 			statement.execute();
 			var result: SQLResult = statement.getResult();
 			if (result.data != null && result.data.length > 0) {
@@ -709,7 +730,7 @@ package model.feeds
 			var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_READ_ITEMS);
 			statement.execute();
 			var result: SQLResult = statement.getResult();
-			var readItems : ArrayCollection = new ArrayCollection;
+			var readItems : ArrayCollection = new ArrayCollection(new Array());
 			if(result.data != null) {
 				for (var i:int = 0; i < result.data.length; i++) {
 					var item: FeedItem = new FeedItem(result.data[i]);

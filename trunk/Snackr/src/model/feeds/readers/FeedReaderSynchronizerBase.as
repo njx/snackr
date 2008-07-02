@@ -177,8 +177,9 @@ package model.feeds.readers
 				var itemsInSnackrByGuid : Object = new Object();
 				//mark all items read in snackr
 				for each (var item: Object in itemsList) {
-					if(_feedModel.getItemByIDs(item.itemURL, item.guid) != null) {
-						_feedModel.setItemReadByIDs(item.itemURL, item.guid, true, false);
+					var snackrItem: FeedItem = _feedModel.getItemByIDs(item.itemURL, item.guid);
+					if(snackrItem != null) {
+						_feedModel.setItemRead(snackrItem, true, false);
 						itemsInSnackrByLink[item.itemURL] = item;
 						itemsInSnackrByGuid[item.guid] = item;
 					}

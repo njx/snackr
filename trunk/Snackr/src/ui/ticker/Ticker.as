@@ -165,16 +165,6 @@ package ui.ticker
 					}
 				}
 
-				// Update the child container size.				
-				if (newIsVertical) {
-					_childContainer.width = width;
-					_childContainer.height = height + (ITEM_HEIGHT + ITEM_PADDING) * (ITEM_BUFFER + 1);
-				}
-				else {
-					_childContainer.width = width + (ITEM_WIDTH + ITEM_PADDING) * (ITEM_BUFFER + 1);
-					_childContainer.height = height;
-				}
-
 				// Swap the x and y, so that the amount the child container was offset in the original direction
 				// is the same in the new direction. But make sure it stays on the screen.
 				var temp: Number = _childContainer.x;
@@ -192,8 +182,8 @@ package ui.ticker
 				var truncateTo: Number = _items.length;
 				for (i = _items.length - 1; i >= 0; i--) {
 					var tickerItem: TickerItem = TickerItem(_items[i]);
-					if ((newIsVertical && tickerItem.y > _childContainer.height) ||
-						(!newIsVertical && tickerItem.x > _childContainer.width)) {
+					if ((newIsVertical && tickerItem.y > height) ||
+						(!newIsVertical && tickerItem.x > width)) {
 						truncateTo = i;
 						_childContainer.removeChild(tickerItem);
 						_itemDataQueue.unshift(tickerItem.data);
@@ -206,6 +196,7 @@ package ui.ticker
 			}
 			_isVertical = newIsVertical;
 			recalcSpeed();
+			doResize();
 		}
 		
 		private function recalcSpeed(): void {
@@ -250,18 +241,34 @@ package ui.ticker
 			_maskInvalid = true;
 			invalidateDisplayList();
 			
-			var i: Number;
 			if (_isVertical) {
-				_childContainer.width = width - 2 * EDGE_PADDING;
+				_childContainer.width = width;
 				_childContainer.height = height + (ITEM_HEIGHT + ITEM_PADDING) * (ITEM_BUFFER + 1);
 			}
 			else {
 				_childContainer.width = width + (ITEM_WIDTH + ITEM_PADDING) * (ITEM_BUFFER + 1);
-				_childContainer.height = height - 2 * EDGE_PADDING;
+				_childContainer.height = height;
 			}
+
+			for each (var tickerItem: TickerItem in _items) {
+				this.setItemWidth(tickerItem);
+			}
+
 			fillItemsFromQueue();
 		}
 		
+		private function calcItemWidth(): Number {
+		    if (_isVertical) {
+		    	return _childContainer.width - 2 * EDGE_PADDING;
+		    } else {
+		    	return ITEM_WIDTH;
+		    }
+		}
+
+		private function setItemWidth(tickerItem: TickerItem): void {
+			tickerItem.setActualSize(this.calcItemWidth(), tickerItem.height);
+		}
+
 		public function animate(): void {
 			// Start on right-hand/top side.
 			if (_isVertical) {
@@ -372,6 +379,7 @@ package ui.ticker
 						nextItem.y = 0;						
 					}
 					_items.push(nextItem);
+					this.setItemWidth(nextItem);
 					_childContainer.addChild(nextItem);
 					if (_isVertical) {
 						nextItemPos += ITEM_HEIGHT + ITEM_PADDING;

@@ -326,7 +326,7 @@ package model.feeds.readers
 				//had to iterate through these manually since sometimes the link field doesn't appear in an entry
 				//and I can't figure out how to make that work in e4x
 				for each (var entry:XML in entriesXMLList) {
-					if((entry.link != null) && (entry.link.@href == item.link)) {
+					if((entry.link != null) && (entry.link.(@rel == "alternate").@href == item.link)) {
 						grGuid = entry.id;
 						break;
 					}

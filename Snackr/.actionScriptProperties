@@ -11,6 +11,7 @@
 <applications>
 <application path="Snackr.mxml"/>
 <application path="TestHarness.mxml"/>
+<application path="QueryGoogleReader.mxml"/>
 </applications>
 <modules/>
 <buildCSSFiles/>

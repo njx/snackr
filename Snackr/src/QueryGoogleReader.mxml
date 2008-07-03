@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="500" height="500" creationComplete="handleCreationComplete()">
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.http.HTTPService;
+			import model.logger.Logger;
+			import model.feeds.readers.GoogleReaderSynchronizer;
+			
+			namespace atom = "http://www.w3.org/2005/Atom";
+			namespace gr = "http://www.google.com/schemas/reader/atom/";
+
+			private var SID: String;
+			
+			public function handleCreationComplete() : void {
+				var docRoot: File = File.documentsDirectory.resolvePath("QueryGoogleReader");
+				docRoot.createDirectory();
+				
+				// Initialize the logger. The logger writes to the file Log.txt in the
+				// Snackr data folder. We keep the previous 3 log files around.
+				var oldLogFile: File;
+				for (var i: int = 2; i >= 0; i--) {
+					oldLogFile = docRoot.resolvePath("Log" + (i == 0 ? "" : String(i)) + ".txt");
+					if (oldLogFile.exists) {
+						try {
+							oldLogFile.moveTo(docRoot.resolvePath("Log" + String(i+1) + ".txt"), true);
+						}
+						catch (e: Error) {
+							// Too early to log this. Oh well. It just means that we won't be preserving
+							// log files earlier than the current one.
+							trace("Can't back up log file " + oldLogFile.name);
+						}
+					}			
+				}
+				
+				Logger.instance.initialize(docRoot.resolvePath("Log.txt"));
+				Logger.instance.log("QueryGoogleReader starting...");
+			}
+			
+			public function doQuery() : void {
+				authenticate(usernameInput.text, passwordInput.text, function handleAuthenticated(event: Event) : void {
+					if(event is FaultEvent) {
+						Logger.instance.log("Authentication failed.");
+						return;
+					}
+					else {
+						getItemsHelper(feedURLInput.text, null, 1);
+					}
+				});
+			}
+			
+			public function authenticate(login: String, password: String, callback: Function = null): void {
+				//TODO: Figure out if/when the cookie will expire with the server and call authenticate()
+				//again automatically if that occurs
+				var authConnection:HTTPService = new HTTPService();
+				authConnection.url = "https://www.google.com/accounts/ClientLogin";
+				authConnection.method = "POST";
+				authConnection.useProxy = false;
+				authConnection.resultFormat = "text";
+				var request:Object = new Object;
+				request.service = "reader";
+				request.source = "Snackr";
+				request.Email = login;
+				request.Passwd = password;
+				authConnection.request = request;
+				authConnection.addEventListener(ResultEvent.RESULT, function handleAuthResultEvent(event: ResultEvent): void {
+					var result:String = String(event.result);
+					//manually parsing out the SID name/value pair
+					var tokens:Array = result.split(/[\n=]/);
+					for(var i:int = 0; i < tokens.length; i++) {
+						if((tokens[i] == "SID") && (i+1 != tokens.length)) {
+							SID = tokens[i+1];
+							break;
+						}
+					}
+					Logger.instance.log("Authentication successful, result: " + result, Logger.SEVERITY_DEBUG);
+				});
+				authConnection.addEventListener(FaultEvent.FAULT, function handleAuthFaultEvent(event: FaultEvent): void {
+					Logger.instance.log("GoogleReaderSynchronizer: Authentication failed.", Logger.SEVERITY_NORMAL);
+				});
+				if(callback != null) {
+					authConnection.addEventListener(ResultEvent.RESULT, callback);
+					authConnection.addEventListener(FaultEvent.FAULT, callback);
+				}
+				authConnection.send();
+			}
+			
+			public function getItemsHelper(feedURL: String, continuationToken: String, iteration: int) : void {
+				var getFeedItemsRequest:URLRequest = new URLRequest();
+				getFeedItemsRequest.url = "http://www.google.com/reader/atom/feed/" + escape(feedURL);
+				
+				var urlVariables: URLVariables = new URLVariables();
+				urlVariables.client = "Snackr";
+				if(continuationToken != null) 
+					urlVariables.c = continuationToken;	
+				getFeedItemsRequest.data = urlVariables;		
+				getFeedItemsRequest.userAgent = "Snackr";
+				getFeedItemsRequest.manageCookies = false;
+				getFeedItemsRequest.requestHeaders = getAuthenticationHeaders();
+				var getFeedItemsConnection:URLLoader = new URLLoader();
+				getFeedItemsConnection.addEventListener(Event.COMPLETE, function handleGetFeedsResult(event:Event):void {
+					var resultXML:XML = XML(event.target.data);
+					Logger.instance.log("Iteration " + iteration);
+					Logger.instance.log(resultXML);
+					var newContinuationToken : String = resultXML.child(new QName(gr, "continuation"));
+					if(newContinuationToken != null) {
+						getItemsHelper(feedURL, newContinuationToken, iteration + 1);
+					}
+				});
+				getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
+					Logger.instance.log("Fetch failed: " + event);
+				});
+				getFeedItemsConnection.load(getFeedItemsRequest);
+			}
+			
+			private function getAuthenticationHeaders(): Array {
+				var headers:Array = new Array(new URLRequestHeader("Cookie", "SID=" + SID));
+				return headers;
+			}			
+		]]>
+	</mx:Script>
+	<mx:Label x="67" y="31" text="Username:"/>
+	<mx:Label x="73" y="61" text="Password:"/>
+	<mx:Label x="25" y="115" text="Feed URL to fetch:"/>
+	<mx:TextInput x="142" y="29" id="usernameInput"/>
+	<mx:TextInput x="142" y="59" id="passwordInput" displayAsPassword="true"/>
+	<mx:HRule x="13" y="89" width="475" height="16"/>
+	<mx:TextInput x="142" y="113" width="328" id="feedURLInput"/>
+	<mx:Button x="409" y="171" label="Query" click="doQuery()"/>
+	
+</mx:WindowedApplication>

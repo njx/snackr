@@ -202,7 +202,7 @@
 	<mx:Canvas id="imageHolder" left="1" top="1" width="48" height="48" horizontalScrollPolicy="off" verticalScrollPolicy="off">
 		<utils:SmoothImage id="image" visible="false" source="{data.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
 	</mx:Canvas>
-	<utils:CharSetDetectingText id="title" cacheAsBitmap="true" y="0" left="52" right="17" htmlText="{data.title}" fontSize="12" height="36" selectable="false">
+	<utils:CharSetDetectingText id="title" cacheAsBitmap="true" y="0" left="52" right="17" text="{data.title}" fontSize="12" height="36" selectable="false">
 		<!-- HACK: null filter so we can fade out the text; apparently cacheAsBitmap isn't good enough by itself -->
 		<utils:filters>
 			<mx:DropShadowFilter alpha="0"/>

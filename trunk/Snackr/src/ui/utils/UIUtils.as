@@ -35,11 +35,11 @@ package ui.utils
 	import flash.geom.Rectangle;
 	import flash.text.Font;
 	
-	import model.feeds.FeedItem;
-	
 	import mx.core.UIComponent;
 	import mx.effects.easing.Cubic;
 	import mx.events.EffectEvent;
+	
+	import model.feeds.FeedItem;
 	
 	public class UIUtils
 	{
@@ -134,11 +134,12 @@ package ui.utils
 			for each (var feedItem: FeedItem in feedItems) {
 				var tickerItem: Object = new Object();
 				tickerItem.feedItem = feedItem;
-				if (feedItem.title == null || feedItem.title == "") {
-					tickerItem.title = feedItem.description;
+				var title: String = stripHTML(feedItem.title);
+				if (title == null || title == "") {
+					tickerItem.title = stripHTML(feedItem.description);
 				}
 				else {
-					tickerItem.title = feedItem.title;
+					tickerItem.title = title;
 				}
 				tickerItem.link = feedItem.link;
 				var imageURL: String = null;
@@ -226,6 +227,15 @@ package ui.utils
 				}
 			}
 			return null;
+		}
+		
+		static public function stripHTML(str: String): String {
+			str = str.replace(/<[^>]*>/g, "");
+			str = str.replace(/&[#A-Za-z0-9]*;/g, "");
+			str = str.replace("&lt;", "<");
+			str = str.replace("&gt;", ">");
+			str = str.replace("&amp;", "&");
+			return str;
 		}
 	}
 }

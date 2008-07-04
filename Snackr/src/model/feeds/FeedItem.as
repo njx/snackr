@@ -87,7 +87,7 @@ package model.feeds
 		}
 		
 		public function toString(): String {
-			return "[guid: " + guid + ", link: " + link + ", feed: " + (feed == null ? "null" : feed.url) + "]";
+			return "FeedItem [guid: " + guid + ", link: " + link + ", feed: " + (feed == null ? "null" : feed.url) + "]";
 		}
 	}
 }

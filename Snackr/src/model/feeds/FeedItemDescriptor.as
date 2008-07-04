@@ -19,5 +19,9 @@ package model.feeds
 			this.guid = (guid == null || guid == "") ? UNSPECIFIED_VALUE : guid;
 			this.link = (link == null || link == "") ? UNSPECIFIED_VALUE : link;
 		}
+		
+		public function toString() : String {
+			return "FeedItemDescriptor [guid: " + guid + ", link: " + link + "]";
+		}
 	}
 }

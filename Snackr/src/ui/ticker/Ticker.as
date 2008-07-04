@@ -36,6 +36,7 @@ package ui.ticker
 	import model.feeds.FeedModel;
 	import model.logger.Logger;
 	
+	import mx.core.Application;
 	import mx.core.UIComponent;
 	import mx.events.MoveEvent;
 	import mx.events.ResizeEvent;
@@ -48,6 +49,9 @@ package ui.ticker
 		static public const QUEUE_RUNNING_LOW: String = "queueRunningLow";
 		
 		static private const EDGE_PADDING: Number = 5;
+		
+		// Should be able to get this from the app, but it doesn't report it properly on startup for some reason.
+		static private const FRAME_RATE: Number = 60;
 		
 		// TODO: should make this changeable
 		static private const ITEM_WIDTH: Number = 215;
@@ -203,13 +207,12 @@ package ui.ticker
 			// Slow down the effective speed when we're vertical, since it's harder to
 			// target the items when they're flying by vertically.
 			var effectiveSpeed: Number = (isVertical ? _speed / 2 : _speed);
-			var frameRate: Number = systemManager.stage.frameRate;
-			if (effectiveSpeed > frameRate) {
+			if (effectiveSpeed > FRAME_RATE) {
 				_framesPerMove = 1;
-				_pixelsToMove = Math.floor(effectiveSpeed / frameRate);
+				_pixelsToMove = Math.floor(effectiveSpeed / FRAME_RATE);
 			}
 			else {
-				_framesPerMove = Math.floor(frameRate / effectiveSpeed);
+				_framesPerMove = Math.floor(FRAME_RATE / effectiveSpeed);
 				_pixelsToMove = 1;
 			}
 		}

@@ -332,7 +332,7 @@ package model.feeds
 				encoding = "utf-8";
 			}
 			
-			Logger.instance.log("Encoding for " + url + ": " + encoding, Logger.SEVERITY_DEBUG);
+//			Logger.instance.log("Encoding for " + url + ": " + encoding, Logger.SEVERITY_DEBUG);
 			var result: XML = null;
 			try {
 				result = new XML(bytes.readMultiByte(bytes.length, encoding));

@@ -28,6 +28,8 @@
 
 package model.feeds.readers
 {
+	import model.feeds.FeedItemDescriptor;
+	
 	public class PendingOperation
 	{
 		public static const ADD_FEED_OPCODE: Number = 0;
@@ -36,12 +38,12 @@ package model.feeds.readers
 		
 		public var opCode: Number;
 		public var feedURL: String;
-		public var itemURL: String;
+		public var feedItemDescriptor: FeedItemDescriptor;
 		
-		public function PendingOperation(opCode: Number, feedURL: String, itemURL: String = null) {
+		public function PendingOperation(opCode: Number, feedURL: String, feedItemDescriptor: FeedItemDescriptor = null) {
 			this.opCode = opCode;
 			this.feedURL = feedURL;
-			this.itemURL = itemURL;
+			this.feedItemDescriptor = feedItemDescriptor;
 		}
 	}
 }

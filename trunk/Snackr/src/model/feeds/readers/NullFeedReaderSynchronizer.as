@@ -28,10 +28,7 @@
 
 package model.feeds.readers
 {
-	import flash.events.EventDispatcher;
-	
-	import model.feeds.Feed;
-	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	import model.logger.Logger;
 	
 	import mx.collections.ArrayCollection;
@@ -74,9 +71,9 @@ package model.feeds.readers
 			Logger.instance.log("NullFeedReaderSynchronizer: getReadItems", Logger.SEVERITY_DEBUG);
 		}
 		
-		public function setItemRead(item:FeedItem): void
+		public function setItemRead(item:FeedItemDescriptor, feedURL: String): void
 		{
-			Logger.instance.log("NullFeedReaderSynchronizer: setItemRead: " + item, Logger.SEVERITY_DEBUG);
+			Logger.instance.log("NullFeedReaderSynchronizer: setItemRead: " + item + ", " + feedURL, Logger.SEVERITY_DEBUG);
 		}
 
 		public function mergeFeedLists(): void {

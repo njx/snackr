@@ -108,13 +108,7 @@ package model.feeds.readers
 									deleteFeed(pendingOp.feedURL);
 									break;
 								case PendingOperation.MARK_READ_OPCODE:
-									var itemInfo: Object = new Object();
-									itemInfo.link = pendingOp.itemURL;
-									var feedItem: FeedItem = new FeedItem(itemInfo);
-									var newFeed : Feed = new Feed(null, null);
-									newFeed.url = pendingOp.feedURL;
-									feedItem.feed = newFeed;
-									setItemRead(feedItem);
+									setItemRead(pendingOp.feedItemDescriptor, pendingOp.feedURL);
 									break;
 							}
 						}
@@ -141,8 +135,8 @@ package model.feeds.readers
 			_pendingOperationModel.addOperation(pendingOp);
 		}
 		
-		protected function markItemForReadStatusAssignment(feedURL: String, itemURL: String) : void {
-			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.MARK_READ_OPCODE, feedURL, itemURL);
+		protected function markItemForReadStatusAssignment(feedURL: String, feeditemDescriptor: FeedItemDescriptor) : void {
+			var pendingOp: PendingOperation = new PendingOperation(PendingOperation.MARK_READ_OPCODE, feedURL, feeditemDescriptor);
 			_pendingOperationModel.addOperation(pendingOp);
 		}
 		
@@ -198,7 +192,7 @@ package model.feeds.readers
 				}
 				for each (var feedItem: FeedItem in _feedModel.getReadItems()) {
 					if((itemsInSnackrByLink[feedItem.link] == null) && (itemsInSnackrByGuid[feedItem.guid] == null)) {
-						setItemRead(feedItem);
+						setItemRead(new FeedItemDescriptor(feedItem.guid, feedItem.link), feedItem.feed.url);
 					}
 				}
 			});
@@ -228,7 +222,7 @@ package model.feeds.readers
 			//implemented by subclasses
 		}
 		
-		public function setItemRead(item:FeedItem): void
+		public function setItemRead(item:FeedItemDescriptor, feedURL: String): void
 		{
 			//implemented by subclasses
 		}

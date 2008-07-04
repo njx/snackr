@@ -96,28 +96,28 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		<title>Snackr</title>
 
 		<!-- The type of system chrome to use (either "standard" or "none"). Optional. Default standard. -->
-		<systemChrome>none</systemChrome>
+		<!--<systemChrome></systemChrome>-->
 
 		<!-- Whether the window is transparent. Only applicable when systemChrome is false. Optional. Default false. -->
-		<transparent>true</transparent>
+		<!--<transparent></transparent>-->
 
 		<!-- Whether the window is initially visible. Optional. Default false. -->
-		<visible>false</visible>
+		<!--<visible></visible>-->
 
 		<!-- Whether the user can minimize the window. Optional. Default true. -->
-		<minimizable>false</minimizable>
+		<!--<minimizable></minimizable>-->
 
 		<!-- Whether the user can maximize the window. Optional. Default true. -->
-		<maximizable>false</maximizable>
+		<!--<maximizable></maximizable>-->
 
 		<!-- Whether the user can resize the window. Optional. Default true. -->
-		<resizable>false</resizable>
+		<!--<resizable></resizable>-->
 
 		<!-- The window's initial width. Optional. -->
-		<width>500</width>
+		<!--<width></width>-->
 
 		<!-- The window's initial height. Optional. -->
-		<height>80</height>
+		<!--<height></height>-->
 
 		<!-- The window's initial x position. Optional. -->
 		<!-- <x></x> -->
@@ -126,7 +126,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		<!-- <y></y> -->
 
 		<!-- The window's minimum size, specified as a width/height pair, such as "400 200". Optional. -->
-		<minSize>50 4</minSize>
+		<!--<minSize></minSize>-->
 
 		<!-- The window's initial maximum size, specified as a width/height pair, such as "1600 1200". Optional. -->
 		<!-- <maxSize></maxSize> -->

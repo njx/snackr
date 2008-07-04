@@ -28,7 +28,8 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-<!-- Generic class for animated popup windows, shaped kind of like a speech balloon. 
+<!-- 
+	 Generic class for animated popup windows, shaped kind of like a speech balloon. 
 	 To use this class as a base for a custom popup, you need to do the following:
 	 
 	 * Set initialWidth and initialHeight to the size you want the popup to appear at before the expand animation.
@@ -38,7 +39,7 @@
 	 * When you want to call the popup, call doClose() (not close()), to make the "close" animation happen.
 	 
 	 When you want to open the popup, you'll need to set pointerSide, anchorPoint, and currentScreen appropriately.
-	 -->
+-->
 
 <mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
 	type="lightweight" systemChrome="none" showTitleBar="false" showStatusBar="false" showGripper="false" showFlexChrome="false"

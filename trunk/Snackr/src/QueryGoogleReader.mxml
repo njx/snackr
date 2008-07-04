@@ -104,7 +104,7 @@
 					Logger.instance.log("Iteration " + iteration);
 					Logger.instance.log(resultXML);
 					var newContinuationToken : String = resultXML.child(new QName(gr, "continuation"));
-					if(newContinuationToken != null) {
+					if(newContinuationToken != null && newContinuationToken != "") {
 						getItemsHelper(feedURL, newContinuationToken, iteration + 1);
 					}
 				});

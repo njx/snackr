@@ -12,6 +12,7 @@
 <application path="Snackr.mxml"/>
 <application path="TestHarness.mxml"/>
 <application path="QueryGoogleReader.mxml"/>
+<application path="FixPendingOpsTable.mxml"/>
 </applications>
 <modules/>
 <buildCSSFiles/>

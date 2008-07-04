@@ -31,6 +31,7 @@ package model.feeds.readers
 	import flash.data.SQLConnection;
 	import flash.data.SQLResult;
 	
+	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedStatements;
 	import model.feeds.LoggingStatement;
 	
@@ -64,7 +65,7 @@ package model.feeds.readers
 				"	opId INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				"	opCode INTEGER, " +
 				"	feedURL TEXT, " + 
-				"	itemURL TEXT " +
+				"	feedItemGuid TEXT " +
 				")";
 			createTable.execute();
 		}
@@ -76,7 +77,7 @@ package model.feeds.readers
 		private function loadOperations(): void {
 			var loadOps: LoggingStatement = new LoggingStatement();
 			loadOps.sqlConnection = _sqlConnection;
-			loadOps.text = "SELECT * FROM main.pendingops ORDER BY opId";
+			loadOps.text = "SELECT * FROM main.pendingops LEFT JOIN main.feeditems ON feedItemGuid ORDER BY opId";
 			loadOps.execute();
 			
 			var opsResult: SQLResult = loadOps.getResult();
@@ -85,7 +86,8 @@ package model.feeds.readers
 				opsList = new Array(opsResult.data.length);
 				for(var i:int = 0; i < opsResult.data.length; i++) {
 					var result: Object = opsResult.data[i];
-					var pendingOp: PendingOperation = new PendingOperation(result.opCode, result.feedURL, result.itemURL);
+					var feedItemDescriptor : FeedItemDescriptor = new FeedItemDescriptor(result.guid, result.link);
+					var pendingOp: PendingOperation = new PendingOperation(result.opCode, result.feedURL, feedItemDescriptor);
 					opsList[i] = pendingOp;
 				}
 			}
@@ -103,13 +105,13 @@ package model.feeds.readers
 		
 		public function addOperation(operation: PendingOperation): void {
 			_operations.addItem(operation);
-			
+						
 			var addOp: LoggingStatement = new LoggingStatement();
 			addOp.sqlConnection = _sqlConnection;
-			addOp.text = "INSERT INTO main.pendingops (opCode, feedURL, itemURL) VALUES (:opCode, :feedURL, :itemURL)";
+			addOp.text = "INSERT INTO main.pendingops (opCode, feedURL, feedItemGuid) VALUES (:opCode, :feedURL, :feedItemGuid)";
 			addOp.parameters[":opCode"] = operation.opCode;
 			addOp.parameters[":feedURL"] = operation.feedURL;
-			addOp.parameters[":itemURL"] = operation.itemURL;
+			addOp.parameters[":feedItemGuid"] = operation.feedItemDescriptor != null ? operation.feedItemDescriptor.guid : null;				
 			addOp.execute();
 		}
 		
@@ -131,9 +133,9 @@ package model.feeds.readers
 			return false;
 		}
 		
-		public function isMarkedForReadStatusAssignment(itemURL: String) : Boolean {
+		public function isMarkedForReadStatusAssignment(itemURL: String, guid: String) : Boolean {
 			for each (var pendingOp: PendingOperation in _operations) {
-				if (pendingOp.opCode == PendingOperation.MARK_READ_OPCODE && pendingOp.itemURL == itemURL) {
+				if (pendingOp.opCode == PendingOperation.MARK_READ_OPCODE && (pendingOp.feedItemDescriptor.link == itemURL || pendingOp.feedItemDescriptor.guid == guid)) {
 					return true;
 				}
 			}

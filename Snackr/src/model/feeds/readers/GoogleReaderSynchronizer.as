@@ -36,7 +36,7 @@ package model.feeds.readers
 	import flash.net.URLRequestHeader;
 	import flash.net.URLVariables;
 	
-	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
 	import model.logger.Logger;
 	import model.options.OptionsModel;
@@ -296,15 +296,15 @@ package model.feeds.readers
 		 * @param item Note that both the link property and the url property of the feed object
 		 * 			MUST be set for this method to work correctly.
 		 */
-		override public function setItemRead(item:FeedItem):void {
-			setItemReadHelper(item, null);
+		override public function setItemRead(item:FeedItemDescriptor, feedURL: String):void {
+			setItemReadHelper(item, feedURL, null);
 		}
 		
-		private function setItemReadHelper(item:FeedItem, continuationToken: String) : void {
+		private function setItemReadHelper(item:FeedItemDescriptor, feedURL: String, continuationToken: String) : void {
 			//because the Google API can only identify feeds by its own rewriting of the feed's guid,
 			//we need to retrieve that guid from Google Reader before we can set the read state
 			var getFeedItemsRequest:URLRequest = new URLRequest();
-			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + escape(item.feed.url);
+			getFeedItemsRequest.url = GET_FEED_ITEMS_URL + escape(feedURL);
 			
 			var urlVariables: URLVariables = new URLVariables();
 			urlVariables.client = SNACKR_CLIENT_ID;
@@ -353,25 +353,25 @@ package model.feeds.readers
 						setItemReadConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleSetItemReadFail(event:IOErrorEvent): void {
 							Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + item, Logger.SEVERITY_NORMAL);
 							Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
-							markItemForReadStatusAssignment(item.feed.url, item.link);
+							markItemForReadStatusAssignment(feedURL, item);
 						});
 						setItemReadConnection.load(setItemReadRequest);
 					});
 				}
 				//if not and there's a continuation token, try the next set
 				else if(newContinuationToken != null && newContinuationToken != "") {
-					setItemReadHelper(item, newContinuationToken);
+					setItemReadHelper(item, feedURL, newContinuationToken);
 				}
 				//we couldn't find the guid for some reason, so try again later
 				else {
 					Logger.instance.log("GoogleReaderSynchronizer: setItemRead couldn't find the guid for the item: " + item, Logger.SEVERITY_NORMAL);
-					markItemForReadStatusAssignment(item.feed.url, item.link);
+					markItemForReadStatusAssignment(feedURL, item);
 				}
 			});
 			getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: setItemRead() failed: " + event.text, Logger.SEVERITY_NORMAL);
 				Logger.instance.log("setItemRead error: " + event.toString(), Logger.SEVERITY_DEBUG);
-				markItemForReadStatusAssignment(item.feed.url, item.link);
+				markItemForReadStatusAssignment(feedURL, item);
 			});
 			getFeedItemsConnection.load(getFeedItemsRequest);
 		}

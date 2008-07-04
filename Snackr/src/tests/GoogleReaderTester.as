@@ -35,6 +35,7 @@ package tests
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
 	import model.feeds.readers.GoogleReaderSynchronizer;
 	import model.logger.Logger;
@@ -126,13 +127,7 @@ package tests
 					for each (var item:Object in itemList) {
 						Logger.instance.log("GoogleReaderTester: testSetItemRead: guid: " + item.guid + ", itemURL: " + item.itemURL + ", feedURL: " + item.feedURL);
 					}
-					var itemObject:Object = new Object();
-					itemObject.link = urlToRead;
-					var feedItem:FeedItem = new FeedItem(itemObject);
-					var feed:Feed = new Feed(null, null);
-					feed.url = feedURLtoRead;
-					feedItem.feed = feed;
-					_reader.setItemRead(feedItem);
+					_reader.setItemRead(new FeedItemDescriptor(null, urlToRead), feedURLtoRead);
 				});
 			});
 		}

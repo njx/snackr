@@ -679,7 +679,7 @@ package model.feeds
 				((item.link == "" || item.link == null) ? FeedItemDescriptor.UNSPECIFIED_VALUE : item.link),
 				value);
 			if(triggerReaderSync)
-				feedReader.setItemRead(item);
+				feedReader.setItemRead(new FeedItemDescriptor(item.guid, item.link), item.feed.url);
 		}
 		
 		private function setReadFlag(guid: String, link: String, value: Boolean): void {

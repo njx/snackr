@@ -28,9 +28,7 @@
 
 package model.feeds.readers
 {
-	import flash.events.IEventDispatcher;
-	
-	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	
 	import mx.collections.ArrayCollection;
 	
@@ -77,9 +75,10 @@ package model.feeds.readers
 		
 		/**
 		 *	Set an item as read on the external feed reader.
-		 *	@param item The item to set as read. 
+		 *	@param item The descriptor of the item to set as read. 
+		 * 	@param feedURL The url of the feed the item came from
 		*/
-		function setItemRead(item: FeedItem): void;
+		function setItemRead(item: FeedItemDescriptor, feedURL: String): void;
 		
 		/**
 		 * Creates a merged list that combines the feeds in Snackr and the feeds in the feed reader,

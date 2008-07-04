@@ -33,7 +33,7 @@ package tests
 	import flash.errors.SQLError;
 	import flash.filesystem.File;
 	
-	import model.feeds.FeedItem;
+	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
 	import model.feeds.LoggingStatement;
 	import model.feeds.readers.FeedReaderSynchronizerBase;
@@ -235,10 +235,10 @@ package tests
 			Logger.instance.log("FeedReaderSynchronizerTester: deleteFeed: " + feedURL);
 		}
 		
-		override public function setItemRead(item:FeedItem) : void {
+		override public function setItemRead(item:FeedItemDescriptor, feedURL: String) : void {
 			Logger.instance.log("FeedReaderSynchronizerTester: setItemRead: [guid: " + 
 				item.guid + ", link: " + 
-				item.link + 
+				item.link + ", feedURL: " + feedURL +
 				"]");
 		}
 	}

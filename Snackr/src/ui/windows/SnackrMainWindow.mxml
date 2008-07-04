@@ -41,7 +41,7 @@
 	showStatusBar="false" showGripper="false" showFlexChrome="false"
 	creationComplete="handleCreationComplete(event)" xmlns:ticker="ui.ticker.*"
 	resize="handleResize(event)" 
-	horizontalScrollPolicy="off" verticalScrollPolicy="off" frameRate="60" 
+	horizontalScrollPolicy="off" verticalScrollPolicy="off"
 	xmlns:overlays="ui.overlays.*"
 	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
@@ -178,7 +178,9 @@
 				[OptionsModel.OPTION_FEED_CHECK_MIN_TIME, "45"],
 				[OptionsModel.OPTION_TICKER_OPACITY, "0.9"],
 				[OptionsModel.OPTION_AGE_LIMIT_UNITS, OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS],
-				[OptionsModel.OPTION_READER_ENABLED, "0"]
+				[OptionsModel.OPTION_READER_ENABLED, "0"],
+				[OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY, "1"],
+				[OptionsModel.OPTION_SHOWED_MINIMIZE_HINT, "0"]
 			];
 			
 			/**
@@ -454,7 +456,7 @@
 				_updateCheckTimer.start();
 				
 				// Listen for invoke events. This lets us catch feeds added from Firefox.
-				addEventListener(InvokeEvent.INVOKE, handleInvoke);
+				NativeApplication.nativeApplication.addEventListener(InvokeEvent.INVOKE, handleInvoke);
 				
 				// Listen for Ctrl-V/paste events.
 			    stage.addEventListener(KeyboardEvent.KEY_DOWN, keyListener);
@@ -462,6 +464,65 @@
 			    if (NativeApplication.nativeApplication.menu != null) {
 					NativeApplication.nativeApplication.menu.addEventListener(Event.SELECT, handleMenuSelect);
 			    }
+			    
+			    // Create the system tray icon (Windows).
+			    if (NativeApplication.supportsSystemTrayIcon) {
+			    	// Load the icon image. When it's complete, we'll assign it to the system tray icon.
+			    	var iconLoader: Loader = new Loader();
+			    	iconLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, handleSysTrayIconComplete);
+			    	iconLoader.load(new URLRequest(appSmallIconURL));
+			    	
+			    	var sysTrayIcon: SystemTrayIcon = NativeApplication.nativeApplication.icon as SystemTrayIcon;
+			    	sysTrayIcon.tooltip = "Snackr";
+			    	sysTrayIcon.addEventListener(MouseEvent.CLICK, handleSysTrayRestore);
+			    	
+			    	var sysTrayMenu: NativeMenu = new NativeMenu();
+			    	var restoreItem: NativeMenuItem = sysTrayMenu.addItem(new NativeMenuItem("Show"));
+			    	restoreItem.addEventListener(Event.SELECT, handleSysTrayRestore);
+			    	var exitItem: NativeMenuItem = sysTrayMenu.addItem(new NativeMenuItem("Exit"));
+			    	exitItem.addEventListener(Event.SELECT, handleSysTrayExit);
+			    	sysTrayIcon.menu = sysTrayMenu;
+			    }
+			    
+			    nativeWindow.addEventListener(NativeWindowDisplayStateEvent.DISPLAY_STATE_CHANGE, handleDisplayStateChange);
+			}
+			
+			/**
+			 * Handler for display state change. We use this to tell when the app is being restored from the dock.
+			 */
+			private function handleDisplayStateChange(event: NativeWindowDisplayStateEvent): void {
+				if (event.afterDisplayState == NativeWindowDisplayState.NORMAL || event.afterDisplayState == NativeWindowDisplayState.MAXIMIZED) {
+					ticker.resume();
+				}
+			}
+			
+			/**
+			 * Handler called when we're ready to set the system tray icon after loading it.
+			 */
+			private function handleSysTrayIconComplete(event: Event): void {
+				NativeApplication.nativeApplication.icon.bitmaps = [event.target.content.bitmapData];
+			}
+			
+			/**
+			 * Handler for restoring the application from the system tray.
+			 */
+			private function handleSysTrayRestore(event: Event): void {
+				doSysTrayRestore();
+			}
+			
+			private function doSysTrayRestore(): void {
+				if (!nativeWindow.visible) {
+					nativeWindow.visible = true;
+					nativeWindow.activate();
+					ticker.resume();
+				}
+			}
+			
+			/**
+			 * Handler for exiting from the system tray.
+			 */
+			private function handleSysTrayExit(event: Event): void {
+				doExit();
 			}
 			
 			/**
@@ -700,6 +761,15 @@
 				return iconFile.url;
 			}
 			
+			/**
+			 * URL to the small version of the Snackr icon.
+			 */
+			private function get appSmallIconURL(): String {
+				use namespace airAppNS;
+				var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image16x16);
+				return iconFile.url;
+			}
+			
 			private function handleFeedReaderSynchronizeTimer(event: TimerEvent) : void {
 				_reader.synchronizeAll();
 			}
@@ -863,6 +933,15 @@
 			 * Handler for closing the window. We want to fully exit the application when this happens.
 			 */
 			private function handleCloseClick(): void {
+				doExit();
+			}
+			
+			/**
+			 * Function that should be called to cause the app to exit. You must call this instead of
+			 * directly calling NativeApplication.nativeApplication.exit(), because the latter won't
+			 * notify us that it's exiting!
+			 */
+			private function doExit(): void {
 				// Calling the application exit function doesn't actually dispatch an exiting event!
 				handleExiting(null);
 				NativeApplication.nativeApplication.exit();
@@ -1118,6 +1197,14 @@
 				if (event.arguments.length > 0 && event.arguments[0] != "") {
 					addFeed(event.arguments[0]);
 				}
+				
+				// If we're minimized, restore us.
+				if (nativeWindow.displayState == NativeWindowDisplayState.MINIMIZED) {
+					restore();
+				}
+				else {
+					doSysTrayRestore();
+				}
 			}			
 
 			/**
@@ -1256,18 +1343,41 @@
 			 * Handles a right click on the ticker. Currently this collapses it.
 			 */
 			private function handleRightClick(event: Event): void {
-				collapse();
+				handleCollapseClick(null);
 			}
 			
 			/**
 			 * Handles a click on the Collapse button. This toggles between collapsed and expanded.
 			 */
 			private function handleCollapseClick(event: Event): void {
-				if (_isCollapsed) {
-					expand();
+				if (_optionsModel.getValue(OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY) == "1") {
+					if (NativeApplication.supportsSystemTrayIcon) {
+						// Just hide the app. The user can restore us from the system tray.
+						nativeWindow.visible = false;
+						ticker.pause();
+						
+						// The first time the user minimizes, tell them we're going in the system tray.
+						if (_optionsModel.getValue(OptionsModel.OPTION_SHOWED_MINIMIZE_HINT) == "0") {
+							var notifier: NotifierWindow = new NotifierWindow();
+							notifier.iconURL = appIconURL;
+							notifier.message = "Click the Snackr icon in the system tray to bring Snackr back.";
+							notifier.open();
+							_optionsModel.setValue(OptionsModel.OPTION_SHOWED_MINIMIZE_HINT, "1");
+						}
+					}
+					else {
+						// Minimize to the dock.
+						minimize();
+						ticker.pause();
+					}
 				}
 				else {
-					collapse();
+					if (_isCollapsed) {
+						expand();
+					}
+					else {
+						collapse();
+					}
 				}
 			}
 			
@@ -1565,7 +1675,7 @@
 	<mx:Button id="addFeedButton" styleName="addFeedButton" y="2" width="16" height="16" x="2" click="addFeed()" toolTip="Add Feed"/>
 	<mx:Button id="optionsButton" y="2" width="16" height="16" x="22" styleName="optionsButton" click="handleOptionsClick()" toolTip="Options"/>
 	<mx:Button id="starButton" y="2" width="16" height="16" x="42" styleName="readStarredButton" click="handleReadStarredClick()" toolTip="Read Starred Items"/>
-	<mx:Button id="collapseButton" y="2" width="16" height="16" x="62" styleName="collapseButton" click="handleCollapseClick(event)" toolTip="Collapse"/>
+	<mx:Button id="collapseButton" y="2" width="16" height="16" x="62" styleName="collapseButton" click="handleCollapseClick(event)" toolTip="Minimize"/>
 	<mx:Button id="closeButton" y="2" width="16" height="16" x="82" styleName="closeButton" click="handleCloseClick()" toolTip="Quit Snackr"/>
 	<overlays:MessageOverlay id="errorMessage" backgroundColor="#FF0000" horizontalCenter="0" verticalCenter="10" visible="false" click="showLogFile()" showEffect="Fade" hideEffect="Fade"/>
 	<overlays:MessageOverlay id="overlayMessage" backgroundColor="#E3702D" horizontalCenter="0" verticalCenter="10" visible="false" showEffect="Fade" hideEffect="Fade"/>

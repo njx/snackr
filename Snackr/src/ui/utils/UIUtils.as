@@ -35,11 +35,11 @@ package ui.utils
 	import flash.geom.Rectangle;
 	import flash.text.Font;
 	
+	import model.feeds.FeedItem;
+	
 	import mx.core.UIComponent;
 	import mx.effects.easing.Cubic;
 	import mx.events.EffectEvent;
-	
-	import model.feeds.FeedItem;
 	
 	public class UIUtils
 	{
@@ -103,6 +103,10 @@ package ui.utils
 			else if (Clipboard.generalClipboard.hasFormat(ClipboardFormats.URL_FORMAT)) {
 				url = String(Clipboard.generalClipboard.getData(ClipboardFormats.URL_FORMAT));
 			}
+			return fixupFeedURL(url, true);
+		}
+		
+		static public function fixupFeedURL(url: String, returnBlankIfInvalid: Boolean = false): String {
 			if (url.indexOf("http://") == 0) {
 				return url;
 			}
@@ -110,7 +114,12 @@ package ui.utils
 				return url.replace("feed://", "http://");
 			}
 			else {
-				return "";
+				// If it looks like it starts with a site name, assume it's a URL that the user
+				// just forgot to put http:// in front of.
+				if (url.match(/^[a-zA-Z0-9][a-zA-Z0-9.\-]*(\/|$)/) != null) {
+					return "http://" + url;
+				}
+				return (returnBlankIfInvalid ? "" : url);
 			}
 		}
 		

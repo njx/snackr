@@ -34,6 +34,7 @@
 	defaultButton="{_okButton}" xmlns:utils="ui.utils.*" close="handleClose(event)">
 	<mx:Script>
 		<![CDATA[
+			import ui.utils.UIUtils;
 			import mx.events.EffectEvent;
 			import mx.events.CloseEvent;
 			import model.feeds.FeedModelEvent;
@@ -75,7 +76,8 @@
 			// that gets instantiated per request, rather than just using the feed model directly.			
 			private function handleOK(): void {
 				_statusLabel.clearStyle("color");
-				_statusLabel.text = "Checking...";
+				_statusLabel.text = "Checking...";			
+				_feedURLInput.text = UIUtils.fixupFeedURL(_feedURLInput.text);
 				_feedModel.addOrDiscoverNewFeed(_feedURLInput.text);
 				currentState = "checkFeed";
 				_spinner.start();

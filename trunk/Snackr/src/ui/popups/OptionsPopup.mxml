@@ -252,7 +252,7 @@
 			private function handleAddFeedClose(event: CloseEvent): void {
 				var panel: AddFeedPanel = AddFeedPanel(event.target);
 				if (event.detail == Alert.OK) {
-					_feedModel.addOrDiscoverNewFeed(panel.feedURL);
+					_feedModel.addOrDiscoverNewFeed(UIUtils.fixupFeedURL(panel.feedURL));
 				}
 				panel.removeEventListener(CloseEvent.CLOSE, handleAddFeedClose);
 				PopUpManager.removePopUp(panel);

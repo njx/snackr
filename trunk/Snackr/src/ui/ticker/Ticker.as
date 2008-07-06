@@ -295,7 +295,8 @@ package ui.ticker
 		
 		public function resume(): void {
 			_pauseRequesters--;
-			if (_pauseRequesters == 0) {
+			if (_pauseRequesters <= 0) {
+				_pauseRequesters = 0;
 				_frameCount = 0;
 				addEventListener(Event.ENTER_FRAME, handleEnterFrame);
 			}

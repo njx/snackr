@@ -289,9 +289,9 @@
 			 */
 			private var _firstRedock: Boolean = true;
 			/**
-			 * Whether the ticker is collapsed.
+			 * Whether the ticker is minimized.
 			 */
-			private var _isCollapsed: Boolean = false;
+			private var _isMinimized: Boolean = false;
 
 			/**
 			 * Whether we're in the middle of a ticker drag ("toss") operation.
@@ -492,6 +492,7 @@
 			 */
 			private function handleDisplayStateChange(event: NativeWindowDisplayStateEvent): void {
 				if (event.afterDisplayState == NativeWindowDisplayState.NORMAL || event.afterDisplayState == NativeWindowDisplayState.MAXIMIZED) {
+					_isMinimized = false;
 					ticker.resume();
 				}
 			}
@@ -511,7 +512,8 @@
 			}
 			
 			private function doSysTrayRestore(): void {
-				if (!nativeWindow.visible) {
+				if (_isMinimized) {
+					_isMinimized = false;
 					nativeWindow.visible = true;
 					nativeWindow.activate();
 					ticker.resume();
@@ -539,7 +541,7 @@
 			 * Handler for the roll out event. We unpause the ticker.
 			 */
 			private function handleRollOut(event: MouseEvent): void {
-				if (event.target == ticker && !_isCollapsed) {
+				if (event.target == ticker && !_isMinimized) {
 					ticker.resume();
 				}
 			}
@@ -903,7 +905,7 @@
 					ticker.isVertical = isVertical;
 				
 					// If we were collapsed before, we're not now...
-					if (_isCollapsed) {
+					if (_isMinimized) {
 						collapse();
 					}
 				}
@@ -924,7 +926,7 @@
 				quickFadeIn.play([ticker]);
 				
 				// If we were collapsed before, we're not now...
-				if (_isCollapsed) {
+				if (_isMinimized) {
 					collapse();
 				}
 			}
@@ -1354,7 +1356,6 @@
 					if (NativeApplication.supportsSystemTrayIcon) {
 						// Just hide the app. The user can restore us from the system tray.
 						nativeWindow.visible = false;
-						ticker.pause();
 						
 						// The first time the user minimizes, tell them we're going in the system tray.
 						if (_optionsModel.getValue(OptionsModel.OPTION_SHOWED_MINIMIZE_HINT) == "0") {
@@ -1368,11 +1369,12 @@
 					else {
 						// Minimize to the dock.
 						minimize();
-						ticker.pause();
 					}
+					_isMinimized = true;
+					ticker.pause();
 				}
 				else {
-					if (_isCollapsed) {
+					if (_isMinimized) {
 						expand();
 					}
 					else {
@@ -1387,10 +1389,10 @@
 			private function collapse(): void {
 				DetailPopupManager.instance.closePopups();
 
-				if (!_isCollapsed) {
+				if (!_isMinimized) {
 					ticker.pause();
 				}
-				_isCollapsed = true;
+				_isMinimized = true;
 				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "collapseButton" : "expandButton");
 				if (currentSide == UIUtils.SIDE_TOP) {
 					resizeToY(true, currentScreen.visibleBounds.y + TAB_HEIGHT + 4);
@@ -1423,7 +1425,7 @@
 				
 				// We can't just turn off _isCollapsed here--we want it to happen after the resize is done.
 				// So we add an effect-end handler to do it.
-				resizeToY(resizeFromBottom, newY, function (event: EffectEvent): void { _isCollapsed = false });
+				resizeToY(resizeFromBottom, newY, function (event: EffectEvent): void { _isMinimized = false });
 			}
 			
 			/**
@@ -1628,7 +1630,7 @@
 			 * we're collapsed, we uncollapse.
 			 */
 			private function handleClick(event: MouseEvent): void {
-				if ((event.target == this || event.target is TickerItem) && _isCollapsed) {
+				if ((event.target == this || event.target is TickerItem) && _isMinimized) {
 					expand();
 				}
 			}		

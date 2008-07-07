@@ -46,6 +46,7 @@
 			import ui.utils.UIUtils;
 			import model.feeds.Feed;
 			import model.feeds.FeedModel;
+			import model.utils.FeedUtils;
 			
 			private var _feedModel: FeedModel = null;
 			private var _optionsModel: OptionsModel = null;
@@ -252,7 +253,7 @@
 			private function handleAddFeedClose(event: CloseEvent): void {
 				var panel: AddFeedPanel = AddFeedPanel(event.target);
 				if (event.detail == Alert.OK) {
-					_feedModel.addOrDiscoverNewFeed(UIUtils.fixupFeedURL(panel.feedURL));
+					_feedModel.addOrDiscoverNewFeed(FeedUtils.fixupFeedURL(panel.feedURL));
 				}
 				panel.removeEventListener(CloseEvent.CLOSE, handleAddFeedClose);
 				PopUpManager.removePopUp(panel);

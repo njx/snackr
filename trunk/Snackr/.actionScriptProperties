@@ -13,6 +13,7 @@
 <application path="TestHarness.mxml"/>
 <application path="QueryGoogleReader.mxml"/>
 <application path="FixPendingOpsTable.mxml"/>
+<application path="UnitTests.mxml"/>
 </applications>
 <modules/>
 <buildCSSFiles/>

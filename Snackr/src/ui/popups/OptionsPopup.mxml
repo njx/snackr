@@ -176,6 +176,7 @@
 							passwordLabel.enabled = true;
 							passwordInput.enabled = true;
 							connectButton.enabled = true;
+							accountHelpText.enabled = true;
 						}
 						else {
 							enableReaderSyncCheckbox.selected = false;
@@ -184,6 +185,7 @@
 							passwordLabel.enabled = false;
 							passwordInput.enabled = false;
 							connectButton.enabled = false;
+							accountHelpText.enabled = false;
 						}
 						break;
 					}
@@ -461,11 +463,19 @@
 					<mx:ConstraintColumn id="col4" width="100%"/>
 				</mx:constraintColumns>
 				<mx:CheckBox left="10" y="5" label="Enable Google Reader synchronization" id="enableReaderSyncCheckbox" selected="false" change="handleEnableReaderSyncChange(event)"/>
-				<mx:Label left="col3:0" right="col3:0" y="34" textAlign="right" text="User name:" id="userNameLabel"/>
-				<mx:TextInput id="userNameInput" left="col4:10" y="32" width="170" valueCommit="handleUserNameCommit(event)"/>
-				<mx:Label left="col3:0" right="col3:0" y="67" textAlign="right" text="Password:" id="passwordLabel" />
-				<mx:TextInput displayAsPassword="true" left="col4:10" y="65" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
-				<mx:Button left="col4:10" y="99" width="80" label="Connect" id="connectButton"/>
+				<mx:Text left="10" y="25" id="accountHelpText">
+					<mx:htmlText>
+						<![CDATA[
+Enter the user name and password for your Google Account.
+If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.
+						]]>
+					</mx:htmlText>
+				</mx:Text> 
+				<mx:Label left="col3:0" right="col3:0" y="94" textAlign="right" text="User name:" id="userNameLabel"/>
+				<mx:TextInput id="userNameInput" left="col4:10" y="92" width="170" valueCommit="handleUserNameCommit(event)"/>
+				<mx:Label left="col3:0" right="col3:0" y="127" textAlign="right" text="Password:" id="passwordLabel" />
+				<mx:TextInput displayAsPassword="true" left="col4:10" y="125" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
+				<mx:Button left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
 			</mx:Canvas>
 			<mx:Canvas label="Preferences" width="100%" height="100%" backgroundAlpha="0">
 				<mx:constraintColumns>

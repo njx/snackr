@@ -40,6 +40,7 @@ package model.feeds
 	import flash.filesystem.FileStream;
 	import flash.utils.Timer;
 	
+	import model.utils.FeedUtils;
 	import model.feeds.readers.IFeedReaderSynchronizer;
 	import model.feeds.readers.NullFeedReaderSynchronizer;
 	import model.logger.Logger;
@@ -442,8 +443,10 @@ package model.feeds
 					if (link.match(/rel=['"]alternate["']/i) != null && link.match(/type=['"]application\/(rss|atom)\+xml["']/i) != null) {
 						var feedURLMatches: Array = hrefRegExp.exec(link);
 						if (feedURLMatches.length > 1) {
-							// Looks like we've found a feed autodiscovery tag. Go and fetch it and make sure it looks like a feed.
-							addOrDiscoverNewFeed(feedURLMatches[1]);
+							// Looks like we've found a feed autodiscovery tag. Grab the URL and try to resolve it.
+							var feedURL: String = FeedUtils.resolveURL(feedURLMatches[1], url);
+							// Go and fetch it and make sure it looks like a feed.
+							addOrDiscoverNewFeed(feedURL);
 							autodiscovered = true;
 							break;
 						}

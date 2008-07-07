@@ -30,12 +30,12 @@
 
 <opml version="1.0">
   <head>
-    <title>Feeds exported by Snackr</title>
-    <dateCreated>Wed Mar 12 06:35:44 2008 UTC</dateCreated>
+    <title>Sample feeds for Snackr</title>
   </head>
   <body>
     <outline text="nj - much ado about something" xmlUrl="http://www.rictus.com/muchado/feed/" htmlUrl="http://www.rictus.com/muchado"/>
     <outline text="Flex Team Blog" xmlUrl="http://blogs.adobe.com/flex/atom.xml" htmlUrl="http://blogs.adobe.com/flex"/>
+    <outline text="Latest Adobe News" xmlUrl="http://feeds.adobe.com/xml/rss.cfm?query=byMostRecent&languages=1" htmlUrl="http://feeds.adobe.com"/>
     <outline text="Matt Chotin's Blog" xmlUrl="http://weblogs.macromedia.com/mchotin/atom.xml" htmlUrl="http://weblogs.macromedia.com/mchotin"/>
     <outline text="A List Apart" xmlUrl="http://www.alistapart.com/rss.xml" htmlUrl="http://www.alistapart.com/"/>
     <outline text="Adobe Blogs" xmlUrl="http://blogs.adobe.com/index.xml" htmlUrl="http://blogs.adobe.com/"/>

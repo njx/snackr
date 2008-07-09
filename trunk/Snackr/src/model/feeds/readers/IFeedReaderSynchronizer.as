@@ -28,6 +28,8 @@
 
 package model.feeds.readers
 {
+	import flash.events.IEventDispatcher;
+	
 	import model.feeds.FeedItemDescriptor;
 	
 	import mx.collections.ArrayCollection;
@@ -37,19 +39,26 @@ package model.feeds.readers
 		with an external blog reader such as Google Reader, Bloglines, etc.
 		@author Rob Adams
 	*/
-	public interface IFeedReaderSynchronizer 
+	public interface IFeedReaderSynchronizer extends IEventDispatcher
 	{
 		/**
-			Sync up all feeds and read/unread items between the local Snackr database and the external feed reader
-			@param feeds The list of Snackr feeds to sync with the external reader.
-		*/
+		 * Authenticates Snackr with the external feed reader. Must be called before other operations can be performed.
+		 * @param login User name to log in as.
+		 * @param password The user's password
+		 */
+		function authenticate(login: String, password: String): void;
+			
+		/**
+		 *	Sync up all feeds and read/unread items between the local Snackr database and the external feed reader
+		 *	@param feeds The list of Snackr feeds to sync with the external reader.
+		 */
 		function synchronizeAll(): void;
 		
 		/**
 		 *	Return the list of feeds present in the external feed reader.
 		 *	@param callback Called on completion - takes one parameter, an ArrayCollection containing the urls of
 		 *                  the RSS feeds as Strings
-		*/
+		 */
 		function getFeeds(callback: Function): void;
 		
 		/**

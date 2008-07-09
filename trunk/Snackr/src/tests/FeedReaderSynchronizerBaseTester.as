@@ -57,7 +57,7 @@ package tests
 				_sqlConnection.open(dbFile);
 				_sqlConnection.compact();
 				loadTestData();
-				_feedModel = new FeedModel(_sqlConnection, this);
+				_feedModel = new FeedModel(_sqlConnection);
 				super(_sqlConnection, _feedModel);
 			}
 			catch (error: SQLError) {

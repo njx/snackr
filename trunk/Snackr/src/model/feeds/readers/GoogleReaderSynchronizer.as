@@ -30,6 +30,7 @@ package model.feeds.readers
 {
 	import flash.data.SQLConnection;
 	import flash.events.Event;
+	import flash.events.HTTPStatusEvent;
 	import flash.events.IOErrorEvent;
 	import flash.net.URLLoader;
 	import flash.net.URLRequest;
@@ -42,9 +43,6 @@ package model.feeds.readers
 	import model.options.OptionsModel;
 	
 	import mx.collections.ArrayCollection;
-	import mx.rpc.events.FaultEvent;
-	import mx.rpc.events.ResultEvent;
-	import mx.rpc.http.HTTPService;
 	
 	/**
 	 * IFeedReaderSynchronizer implementation that works with Google Reader.
@@ -60,6 +58,8 @@ package model.feeds.readers
 		private static const TAG_EDIT_URL:String = "http://www.google.com/reader/api/0/edit-tag";
 		private static const GET_FEED_ITEMS_URL:String = "http://www.google.com/reader/atom/feed/";
 		
+		private static const AUTH_BAD_CREDENTIALS_STATUS_CODE: Number = 403;
+		
 		private var _SID: String;
 		private var optionsModel:OptionsModel;
 		
@@ -72,22 +72,21 @@ package model.feeds.readers
 			
 		}
 		
-		public function authenticate(login: String, password: String, callback: Function = null): void {
+		override public function authenticate(login: String, password: String): void {
 			//TODO: Figure out if/when the cookie will expire with the server and call authenticate()
 			//again automatically if that occurs
-			var authConnection:HTTPService = new HTTPService();
-			authConnection.url = AUTH_URL;
-			authConnection.method = "POST";
-			authConnection.useProxy = false;
-			authConnection.resultFormat = "text";
-			var request:Object = new Object;
-			request.service = "reader";
-			request.source = SNACKR_CLIENT_ID;
-			request.Email = login;
-			request.Passwd = password;
-			authConnection.request = request;
-			authConnection.addEventListener(ResultEvent.RESULT, function handleAuthResultEvent(event: ResultEvent): void {
-				var result:String = String(event.result);
+			var authRequest:URLRequest = new URLRequest();
+			authRequest.url = AUTH_URL;
+			authRequest.method = "POST";
+			var variables: URLVariables = new URLVariables();
+			variables.service = "reader";
+			variables.source = SNACKR_CLIENT_ID;
+			variables.Email = login;
+			variables.Passwd = password;
+			authRequest.data = variables;
+			var authConnection: URLLoader = new URLLoader();
+			authConnection.addEventListener(Event.COMPLETE, function handleAuthResultEvent(event: Event): void {
+				var result:String = String(event.target.data);
 				//manually parsing out the SID name/value pair
 				var tokens:Array = result.split(/[\n=]/);
 				for(var i:int = 0; i < tokens.length; i++) {
@@ -97,15 +96,18 @@ package model.feeds.readers
 					}
 				}
 				Logger.instance.log("Authentication successful, result: " + result, Logger.SEVERITY_DEBUG);
+				dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_SUCCESS));
 			});
-			authConnection.addEventListener(FaultEvent.FAULT, function handleAuthFaultEvent(event: FaultEvent): void {
-				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed.", Logger.SEVERITY_NORMAL);
+			authConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleAuthFaultEvent(event: IOErrorEvent): void {
+				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event:" + event, Logger.SEVERITY_NORMAL);
+				dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_FAILURE));
 			});
-			if(callback != null) {
-				authConnection.addEventListener(ResultEvent.RESULT, callback);
-				authConnection.addEventListener(FaultEvent.FAULT, callback);
-			}
-			authConnection.send();
+			authConnection.addEventListener(HTTPStatusEvent.HTTP_STATUS, function handleAuthStatusEvent(event: HTTPStatusEvent) : void {
+				Logger.instance.log("GoogleReaderSynchronizer: response status: " + event, Logger.SEVERITY_DEBUG);
+				if(event.status == AUTH_BAD_CREDENTIALS_STATUS_CODE)
+					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_BAD_CREDENTIALS));
+			});
+			authConnection.load(authRequest);
 		}
 		
 		/**
@@ -151,7 +153,6 @@ package model.feeds.readers
 			getFeedsRequest.requestHeaders = getAuthenticationHeaders();
 			var getFeedsConnection:URLLoader = new URLLoader();
 			getFeedsConnection.addEventListener(Event.COMPLETE, function handleGetFeedsResult(event:Event):void {
-				Logger.instance.log("Retrieved feeds: " + event.target.data, Logger.SEVERITY_DEBUG);
 				callback(processGetFeedsResult(XML(event.target.data)));
 			});
 			getFeedsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {

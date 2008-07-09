@@ -46,6 +46,8 @@
 	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.SynchronizerEvent;
+			import model.feeds.readers.ReaderSynchronizerManager;
 			import model.feeds.readers.GoogleReaderSynchronizer;
 			import model.feeds.readers.IFeedReaderSynchronizer;
 			import model.feeds.readers.NullFeedReaderSynchronizer;
@@ -316,11 +318,6 @@
 			private var _hints: XML = null;
 			
 			/**
-			 * The feed reader synchronizer.
-			 */
-			private var _reader: IFeedReaderSynchronizer = null;
-			
-			/**
 			 * Whether or not we're currently in the middle of updateDisplayList(). We use this to guard
 			 * against validateNow() getting called during our initial layout.
 			 */
@@ -400,23 +397,18 @@
 				_feedModel.addEventListener(FeedModelEvent.FEED_LIST_UPDATED, handleFeedListUpdated);
 				
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
-					var googleReader : GoogleReaderSynchronizer = new GoogleReaderSynchronizer(_sqlConnection, _feedModel);
-					googleReader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
-						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD),
-						function authenticationFinished(event : Event) : void {
-							if(event is ResultEvent) {
-								_reader = googleReader;
-								_reader.synchronizeAll();
-							}
-							else {
-								_reader = new NullFeedReaderSynchronizer;
-							}
-							_feedModel.feedReader = _reader;
-						});
+					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_sqlConnection, _feedModel);
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
+						ReaderSynchronizerManager.reader.synchronizeAll();
+					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, function authenticationFailure(event: SynchronizerEvent) : void {
+						ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+					});
+					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
 				}
 				else {
-					_reader = new NullFeedReaderSynchronizer;
-					_feedModel.feedReader = _reader;
+					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
 				}
 				
 				
@@ -773,7 +765,7 @@
 			}
 			
 			private function handleFeedReaderSynchronizeTimer(event: TimerEvent) : void {
-				_reader.synchronizeAll();
+				ReaderSynchronizerManager.reader.synchronizeAll();
 			}
 			
 			/**
@@ -963,23 +955,15 @@
 				}
 				
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
-					var googleReader : GoogleReaderSynchronizer = new GoogleReaderSynchronizer(_sqlConnection, _feedModel);
-					googleReader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
-						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD),
-						function authenticationFinished(event : Event) : void {
-							if(event is ResultEvent) {
-								_reader = googleReader;
-								_reader.mergeFeedLists();
-							}
-							else {
-								_reader = new NullFeedReaderSynchronizer;
-							}
-							_feedModel.feedReader = _reader;
-						});
+					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_sqlConnection, _feedModel);
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
+						ReaderSynchronizerManager.reader.synchronizeAll();
+					});
+					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
 				}
 				else {
-					_reader = new NullFeedReaderSynchronizer;
-					_feedModel.feedReader = _reader;
+					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
 				}
 				
 				if (_feedReaderSynchronizeTimer != null) {

@@ -33,16 +33,14 @@ package tests
 	import flash.events.Event;
 	import flash.filesystem.File;
 	
-	import model.feeds.Feed;
-	import model.feeds.FeedItem;
 	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
 	import model.feeds.readers.GoogleReaderSynchronizer;
+	import model.feeds.readers.ReaderSynchronizerManager;
+	import model.feeds.readers.SynchronizerEvent;
 	import model.logger.Logger;
 	
 	import mx.collections.ArrayCollection;
-	import mx.rpc.events.FaultEvent;
-	import mx.rpc.events.ResultEvent;
 	
 	public class GoogleReaderTester
 	{
@@ -65,52 +63,66 @@ package tests
 				Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
 				throw error;
 			}
-			_reader = new GoogleReaderSynchronizer(sqlConnection, feedModel);
-			feedModel.feedReader = _reader;
+			ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(sqlConnection, feedModel);
+			_reader = GoogleReaderSynchronizer(ReaderSynchronizerManager.reader);
 		}
 		
 		public function testAdd(): void {
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.addFeed("http://rss.slashdot.org/Slashdot/slashdot");
 			});
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
 		}
 		
 		public function testDelete(): void {
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.deleteFeed("http://rss.slashdot.org/Slashdot/slashdot");
 			});
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
 		}
 		
 		public function testAuthenticationSuccess(): void {
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n", function (event: Event): void {
-				Logger.instance.log("GoogleReaderTester.testAuthenticationSuccess: " + (event is ResultEvent), Logger.SEVERITY_NORMAL);
-				Logger.instance.log("GoogleReaderTester: SID: " + _reader.SID);
-				if(event is FaultEvent) {
-					var faultEvent: FaultEvent = FaultEvent(event);
-					Logger.instance.log(faultEvent.fault.faultCode + " : " + faultEvent.fault.faultDetail + " : " + faultEvent.fault.faultString, Logger.SEVERITY_DEBUG);
-				}
-			});
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthSuccessTest);
+			_reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthSuccessTest);
+			_reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthSuccessTest);			
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
+		}
+		
+		private function handleAuthSuccessTest(event: SynchronizerEvent): void {
+			Logger.instance.log("GoogleReaderTester.testAuthenticationSuccess: " + (event.type == SynchronizerEvent.AUTH_SUCCESS), Logger.SEVERITY_NORMAL);
+			Logger.instance.log("GoogleReaderTester: SID: " + _reader.SID);
+			if(event.type != SynchronizerEvent.AUTH_SUCCESS) {
+				Logger.instance.log("GoogleReaderTester: testAuthenticationSuccess failed: " + event, Logger.SEVERITY_DEBUG);
+			}
 		}
 		
 		public function testAuthenticationFailure(): void {
-			_reader.authenticate("robadams@gmail.com","badpassword", function (event: Event): void {
-				Logger.instance.log("GoogleReaderTester.testAuthenticationFailure: " + (event is FaultEvent), Logger.SEVERITY_NORMAL);		
-			});
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthFailureTest);
+			_reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthFailureTest);
+			_reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthFailureTest);			
+			_reader.authenticate("robadams@gmail.com","badpassword");
+		}
+		
+		private function handleAuthFailureTest(event: SynchronizerEvent) : void {
+			if(event.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS) {
+				Logger.instance.log("GoogleReaderTester: testAuthenticationFailure succeeded: " + event, Logger.SEVERITY_DEBUG);
+			}
 		}
 
 		public function testGetFeeds(): void {
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.getFeeds(function (feedlist: ArrayCollection): void {
 					Logger.instance.log("GoogleReaderTester: " + feedlist);
 				});
 			});
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
 		}
 		
 		public function testGetReadItems(): void {
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS,function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
 					for each (var item:Object in itemList) {
@@ -118,10 +130,11 @@ package tests
 					}
 				});
 			});
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
 		}		
 		
 		public function testSetItemRead(urlToRead:String, feedURLtoRead: String): void {	
-			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n",function callback(event: Event): void {
+			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
 				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
 					for each (var item:Object in itemList) {
@@ -130,6 +143,7 @@ package tests
 					_reader.setItemRead(new FeedItemDescriptor(null, urlToRead), feedURLtoRead);
 				});
 			});
+			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
 		}
 
 	}

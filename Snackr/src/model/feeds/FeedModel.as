@@ -40,10 +40,9 @@ package model.feeds
 	import flash.filesystem.FileStream;
 	import flash.utils.Timer;
 	
-	import model.utils.FeedUtils;
-	import model.feeds.readers.IFeedReaderSynchronizer;
-	import model.feeds.readers.NullFeedReaderSynchronizer;
+	import model.feeds.readers.ReaderSynchronizerManager;
 	import model.logger.Logger;
+	import model.utils.FeedUtils;
 	
 	import mx.collections.ArrayCollection;
 	import mx.rpc.events.FaultEvent;
@@ -123,24 +122,15 @@ package model.feeds
 		 * List of cached SQL statements we use for accessing the database.
 		 */
 		private var _statements: FeedStatements;
-		/**
-		 * The manager for the feed reader we're synchronized to, if any.
-		 */
-		public var feedReader: IFeedReaderSynchronizer;
 		
 		/**
 		 * Constructor.
 		 * @param sqlConnection The connection we should use to access the local database.
 		 */
-		public function FeedModel(sqlConnection: SQLConnection, ifeedReader: IFeedReaderSynchronizer = null) {
+		public function FeedModel(sqlConnection: SQLConnection) {
 			_statements = new FeedStatements(sqlConnection);
 			_sqlConnection = sqlConnection;
 			initializeDB();
-			
-			if(ifeedReader != null) 
-				feedReader = ifeedReader;
-			else
-				feedReader = new NullFeedReaderSynchronizer;
 			
 			fetchAllFeeds();
 			
@@ -496,7 +486,7 @@ package model.feeds
 				fetchFeed(feed);
 				
 				if(triggerReaderSync)
-					feedReader.addFeed(feed.url);
+					ReaderSynchronizerManager.reader.addFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_ADDED, feed.url));
 			}
@@ -527,7 +517,7 @@ package model.feeds
 				deleteFeed.execute();
 				
 				if(triggerReaderSync)
-					feedReader.deleteFeed(feed.url);
+					ReaderSynchronizerManager.reader.deleteFeed(feed.url);
 				
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_DELETED, feed.url));
 				dispatchEvent(new FeedModelEvent(FeedModelEvent.FEED_LIST_UPDATED));
@@ -682,7 +672,7 @@ package model.feeds
 				((item.link == "" || item.link == null) ? FeedItemDescriptor.UNSPECIFIED_VALUE : item.link),
 				value);
 			if(triggerReaderSync)
-				feedReader.setItemRead(new FeedItemDescriptor(item.guid, item.link), item.feed.url);
+				ReaderSynchronizerManager.reader.setItemRead(new FeedItemDescriptor(item.guid, item.link), item.feed.url);
 		}
 		
 		private function setReadFlag(guid: String, link: String, value: Boolean): void {

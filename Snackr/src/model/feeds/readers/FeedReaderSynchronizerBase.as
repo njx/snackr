@@ -29,6 +29,7 @@
 package model.feeds.readers
 {
 	import flash.data.SQLConnection;
+	import flash.events.EventDispatcher;
 	
 	import model.feeds.Feed;
 	import model.feeds.FeedItem;
@@ -43,7 +44,7 @@ package model.feeds.readers
 	 *	itself - see its subclasses for implementations for specific reader programs.
 	 *	@author Rob Adams
 	*/
-	public class FeedReaderSynchronizerBase implements IFeedReaderSynchronizer
+	public class FeedReaderSynchronizerBase extends EventDispatcher implements IFeedReaderSynchronizer
 	{
 		public static const SNACKR_CLIENT_ID: String = "Snackr";
 		
@@ -200,6 +201,10 @@ package model.feeds.readers
 			
 		public function setFeedList(newFeedList: ArrayCollection): void {
 			mergeOrSetFeeds(newFeedList, SET);
+		}
+		
+		public function authenticate(login: String, password: String) : void {
+			//implemented by subclasses
 		}
 		
 		public function getFeeds(callback: Function): void

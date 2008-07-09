@@ -28,6 +28,8 @@
 
 package model.feeds.readers
 {
+	import flash.events.EventDispatcher;
+	
 	import model.feeds.FeedItemDescriptor;
 	import model.logger.Logger;
 	
@@ -39,11 +41,15 @@ package model.feeds.readers
 		(as well as for debugging purposes). All methods are stubs.
 		@author Rob Adams
 	*/
-	public class NullFeedReaderSynchronizer implements IFeedReaderSynchronizer
+	public class NullFeedReaderSynchronizer extends EventDispatcher implements IFeedReaderSynchronizer
 	{
 		public function NullFeedReaderSynchronizer()
 		{
 			Logger.instance.log("NullFeedReaderSynchronizer: constructor", Logger.SEVERITY_DEBUG);
+		}
+		
+		public function authenticate(login: String, password: String) : void {
+			Logger.instance.log("NullFeedReaderSynchronizer: authenticate: " + login + ", " + password, Logger.SEVERITY_DEBUG);
 		}
 
 		public function synchronizeAll(): void

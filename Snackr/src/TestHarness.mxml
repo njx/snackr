@@ -31,16 +31,18 @@
 <mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="runTests()">
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.GoogleReaderSynchronizer;
 			import tests.FeedReaderSynchronizerBaseTester;
 			import tests.GoogleReaderTester;
 			import model.logger.Logger;
 			import tests.PendingOperationTester;
 			
 			public function runTests(): void {
+				testGoogleReaderAuth();
 				//testReadItemMethods();
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
-				runPendingOpsTests();
+				//runPendingOpsTests();
 				//runTestSync();
 				//runTestMerge();
 				//runTestSet();
@@ -83,7 +85,8 @@
 			public function testGoogleReaderAuth(): void {
 				var tester: GoogleReaderTester = new GoogleReaderTester();
 				tester.testAuthenticationSuccess();
-				tester.testAuthenticationFailure();
+				var tester2: GoogleReaderTester = new GoogleReaderTester();
+				tester2.testAuthenticationFailure();
 				
 			}
 			

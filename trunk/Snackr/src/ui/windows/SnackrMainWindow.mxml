@@ -161,12 +161,7 @@
 			 * is within the user's documents folder in the Snackr subfolder.
 			 */		
 			static private const DB_FILE: String = "FeedDatabase.sql";
-			
-			/**
-			 * How long to wait between syncs with the external feed reader program.
-			 */
-			static private const FEED_READER_SYNC_INTERVAL : Number = 600000;
-			
+						
 			/**
 			 * Default values for all options. We set these on startup if they're not
 			 * already set (see readOptions()).
@@ -232,12 +227,6 @@
 			 * the user had this many screens available.
 			 */
 			private var _screenChangePollTimer: Timer = null;
-			
-			/**
-			 * Timer that causes the feed reader synchronizer to poll its reader for remote
-			 * changes.
-			 */
-			private var _feedReaderSynchronizeTimer: Timer = null;
 			
 			/**
 			 * The maximum age of items we show in the ticker.
@@ -397,7 +386,7 @@
 				_feedModel.addEventListener(FeedModelEvent.FEED_LIST_UPDATED, handleFeedListUpdated);
 				
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
-					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_sqlConnection, _feedModel);
+					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
 					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
 						ReaderSynchronizerManager.reader.synchronizeAll();
 					});
@@ -696,9 +685,7 @@
 					_screenChangePollTimer.addEventListener(TimerEvent.TIMER, handleScreenChangePollTimer);
 					_screenChangePollTimer.start();	
 					
-					_feedReaderSynchronizeTimer = new Timer(FEED_READER_SYNC_INTERVAL);
-					_feedReaderSynchronizeTimer.addEventListener(TimerEvent.TIMER, handleFeedReaderSynchronizeTimer);
-					_feedReaderSynchronizeTimer.start();				
+					ReaderSynchronizerManager.startSyncTimer();
 				}
 			}
 			
@@ -762,10 +749,6 @@
 				use namespace airAppNS;
 				var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image16x16);
 				return iconFile.url;
-			}
-			
-			private function handleFeedReaderSynchronizeTimer(event: TimerEvent) : void {
-				ReaderSynchronizerManager.reader.synchronizeAll();
 			}
 			
 			/**
@@ -948,29 +931,6 @@
 				doShowOptions();
 			}
 			
-			private function reinitializeReaderSync(event: Event) : void {
-				//reset the timer so it doesn't interfere with the merge operation
-				if (_feedReaderSynchronizeTimer != null) {
-					_feedReaderSynchronizeTimer.reset();
-				}
-				
-				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
-					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_sqlConnection, _feedModel);
-					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
-						ReaderSynchronizerManager.reader.synchronizeAll();
-					});
-					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
-						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
-				}
-				else {
-					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
-				}
-				
-				if (_feedReaderSynchronizeTimer != null) {
-					_feedReaderSynchronizeTimer.start();
-				}			
-			}
-			
 			/**
 			 * Opens the Options popup.
 			 */
@@ -1001,7 +961,6 @@
 					}
 					options.pointerSide = currentSide;
 					options.addEventListener(Event.CLOSE, handleOptionsClose);
-					options.setReaderChangeHandler(reinitializeReaderSync);
 					options.open();
 					_optionsPopup = options;				
 				}

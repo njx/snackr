@@ -35,6 +35,7 @@ package model.feeds.readers
 	import model.feeds.FeedItem;
 	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
+	import model.logger.Logger;
 	
 	import mx.collections.ArrayCollection;
 
@@ -60,6 +61,7 @@ package model.feeds.readers
 		}
 		
 		public function synchronizeAll(): void {
+			Logger.instance.log("synchronizeAll() running", Logger.SEVERITY_DEBUG);
 			//get feed list from reader
 			getFeeds(function retrieveFeeds(feedsList: ArrayCollection) : void {
 				if(feedsList != null) {
@@ -71,13 +73,17 @@ package model.feeds.readers
 					
 					//for each feed in reader, if feed doesnt already exist AND its not in the ops list for removal, add it
 					for each (var feedURL: String in feedsList) {
-						if(!_pendingOperationModel.isMarkedForDelete(feedURL))
+						if(!_pendingOperationModel.isMarkedForDelete(feedURL)) {
+							Logger.instance.log("Adding feed from Reader: " + feedURL, Logger.SEVERITY_DEBUG);
 							_feedModel.addFeedURL(feedURL, true, false);
+						}
 					}
 					//for each feed in snackr, if feed isn't in the reader AND its not in the ops list for addition, remove it
 					for each (var feed: Feed in _feedModel.feeds) {
-						if(!(isInReaderFeedsList(feed.url, feedsList) || _pendingOperationModel.isMarkedForAdd(feed.url)))
+						if(!(isInReaderFeedsList(feed.url, feedsList) || _pendingOperationModel.isMarkedForAdd(feed.url))) {
+							Logger.instance.log("Deleting feed missing from Reader: " + feedURL, Logger.SEVERITY_DEBUG);
 							_feedModel.deleteFeed(feed, false);
+						}
 					}
 					//get read items list from server
 					getReadItems(function retrieveReadItems(itemsList: ArrayCollection) : void {
@@ -94,6 +100,7 @@ package model.feeds.readers
 								descriptors.push(new FeedItemDescriptor(readerItem.guid, readerItem.itemURL));
 							}
 						}
+						Logger.instance.log("Setting items read from Reader: " + descriptors, Logger.SEVERITY_DEBUG);
 						_feedModel.setItemsReadByDescriptors(descriptors, true, false);
 						var pendingOps: ArrayCollection = _pendingOperationModel.operations;
 						//clear pending operations from model

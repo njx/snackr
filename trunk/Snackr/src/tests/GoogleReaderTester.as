@@ -63,7 +63,7 @@ package tests
 				Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
 				throw error;
 			}
-			ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(sqlConnection, feedModel);
+			ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(feedModel);
 			_reader = GoogleReaderSynchronizer(ReaderSynchronizerManager.reader);
 		}
 		

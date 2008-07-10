@@ -163,6 +163,10 @@ package model.feeds
 			return _feeds;
 		}
 		
+		public function get sqlConnection() : SQLConnection {
+			return _sqlConnection;
+		}
+				
 		/**
 		 * Initializes the feed database, creating tables if this is the first startup, and
 		 * reading the existing set of feeds out of the feed table.

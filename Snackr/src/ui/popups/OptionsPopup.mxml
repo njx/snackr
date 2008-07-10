@@ -33,6 +33,8 @@
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" close="handleClose(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
 			import mx.collections.ArrayCollection;
 			import ui.utils.UIUtils;
 			import mx.events.PropertyChangeEvent;
@@ -67,16 +69,6 @@
 			
 			public function set optionsModel(value: OptionsModel): void {
 				_optionsModel = value;
-			}
-			
-			public function setReaderChangeHandler(callback: Function): void {
-				connectButton.addEventListener(MouseEvent.CLICK, callback);
-				this.addEventListener(Event.CLOSE, function checkCredentialsChanged(event: Event) : void {
-					if(readerCredentialsChanged) {
-						callback(event);
-						readerCredentialsChanged = false;
-					}
-				});
 			}
 			
 			override protected function handleCreationComplete(event: Event): void {
@@ -208,8 +200,28 @@
 			
 			private function handleConnectButtonPressed(event: Event) : void {
 				readerCredentialsChanged = false;
+				reinitializeReaderSync(event);
 			}
-			
+
+			private function reinitializeReaderSync(event: Event) : void {
+				//reset the timer so it doesn't interfere with the merge operation
+				ReaderSynchronizerManager.stopSyncTimer()
+				
+				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
+					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
+						ReaderSynchronizerManager.reader.synchronizeAll();
+					});
+					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
+				}
+				else {
+					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				}
+				
+				ReaderSynchronizerManager.startSyncTimer();		
+			}
+						
 			private function handleDeactivate(event: Event): void {
 				// Don't auto-close if we don't have any feeds. The user should continue to see the
 				// getting started dialog.

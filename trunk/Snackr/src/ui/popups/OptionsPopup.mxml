@@ -200,6 +200,12 @@
 			
 			private function handleConnectButtonPressed(event: Event) : void {
 				readerCredentialsChanged = false;
+				connectedLabel.visible = false;
+				badPasswordText.visible = false;
+				badConnectionText.visible = false;
+				authenticatingLabel.visible = true;
+				authenticatingSpinner.visible = true;
+				authenticatingSpinner.start();
 				reinitializeReaderSync(event);
 			}
 
@@ -210,7 +216,26 @@
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
 					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
 					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
+						authenticatingLabel.visible = false;
+						authenticatingSpinner.visible = false;
+						authenticatingSpinner.stop();
+						connectedLabel.visible = true;
 						ReaderSynchronizerManager.reader.synchronizeAll();
+					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, function authBadPassword(event: SynchronizerEvent) : void {
+						authenticatingLabel.visible = false;
+						authenticatingSpinner.visible = false;
+						authenticatingSpinner.stop();
+						badConnectionText.visible = false;
+						badPasswordText.visible = true;
+					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, function authBadConnection(event: SynchronizerEvent) : void {
+						if(!badPasswordText.visible) {
+							authenticatingLabel.visible = false;
+							authenticatingSpinner.visible = false;
+							authenticatingSpinner.stop();
+							badConnectionText.visible = true;
+						}
 					});
 					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
 						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
@@ -488,6 +513,25 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 				<mx:Label left="col3:0" right="col3:0" y="127" textAlign="right" text="Password:" id="passwordLabel" />
 				<mx:TextInput displayAsPassword="true" left="col4:10" y="125" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
 				<mx:Button left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
+				<utils:Spinner right="col3:0" y="185" id="authenticatingSpinner" visible="false" />
+				<mx:Label left="col4:10" y="193" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
+				<mx:Label left="col4:10" y="193" text="Snackr is currently connected to Google Reader" id="connectedLabel" visible="false" />
+				<mx:Text left="col4:10" y="193" id="badPasswordText" visible="false">
+					<mx:htmlText>
+						<![CDATA[<b>The user name and password did not match.</b>
+If you forgot your user name or password, visit <a href="https://www.google.com/accounts/ManageAccount"><font color="#ADD8E6">Google Accounts</font></a>
+and select "I cannot access my account" from underneath the sign in box.
+						]]>
+					</mx:htmlText>
+				</mx:Text>
+				<mx:Text left="col4:10" y="193" id="badConnectionText" visible="false">
+					<mx:htmlText>
+						<![CDATA[<b>Unable to contact Google Reader.</b>
+Make sure your network connection is functioning
+and that Google Reader is up and running.
+						]]>
+					</mx:htmlText>
+				</mx:Text>
 			</mx:Canvas>
 			<mx:Canvas label="Preferences" width="100%" height="100%" backgroundAlpha="0">
 				<mx:constraintColumns>

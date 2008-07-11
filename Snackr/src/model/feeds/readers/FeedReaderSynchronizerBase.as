@@ -153,6 +153,7 @@ package model.feeds.readers
 		}
 		
 		private function mergeOrSetFeeds(feedList: ArrayCollection, opCode: int) : void {
+			Logger.instance.log("mergeOrSetFeeds() running with opcode: " + opCode, Logger.SEVERITY_DEBUG);
 			//retrieve feed list from the reader
 			getFeeds(function retrieveFeeds(readerFeedsList: ArrayCollection) : void {
 				var snackrFeedsList: ArrayCollection = new ArrayCollection;

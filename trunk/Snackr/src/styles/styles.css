@@ -167,6 +167,7 @@ RadioButton
 {
 	fillAlphas: 1.0, 1.0;
 	fillColors: #CCCCCC, #666666;
+	textSelectedColor: #FFFFFF;
 }
 Image
 {

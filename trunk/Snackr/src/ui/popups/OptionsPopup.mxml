@@ -33,6 +33,8 @@
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" close="handleClose(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
+			import flash.utils.getQualifiedClassName;
+			import model.logger.Logger;
 			import model.feeds.readers.ReaderSynchronizerManager;
 			import model.feeds.readers.SynchronizerEvent;
 			import mx.collections.ArrayCollection;
@@ -171,6 +173,7 @@
 							accountHelpText.enabled = true;
 						}
 						else {
+							ReaderSynchronizerManager.initializeNullReaderSynchronizer();
 							enableReaderSyncCheckbox.selected = false;
 							userNameLabel.enabled = false;
 							userNameInput.enabled = false;
@@ -178,6 +181,9 @@
 							passwordInput.enabled = false;
 							connectButton.enabled = false;
 							accountHelpText.enabled = false;
+							connectedLabel.visible = false;
+							badConnectionText.visible = false;
+							badPasswordText.visible = false;
 						}
 						break;
 					}
@@ -215,13 +221,7 @@
 				
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
 					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
-					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function authenticationSuccess(event: SynchronizerEvent) : void {
-						authenticatingLabel.visible = false;
-						authenticatingSpinner.visible = false;
-						authenticatingSpinner.stop();
-						connectedLabel.visible = true;
-						ReaderSynchronizerManager.reader.synchronizeAll();
-					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthenticationSuccess);
 					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, function authBadPassword(event: SynchronizerEvent) : void {
 						authenticatingLabel.visible = false;
 						authenticatingSpinner.visible = false;
@@ -245,6 +245,40 @@
 				}
 				
 				ReaderSynchronizerManager.startSyncTimer();		
+			}
+			
+			private function handleAuthenticationSuccess(event: SynchronizerEvent) : void {
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				authenticatingSpinner.stop();
+				connectedLabel.visible = true;
+				var panel: MergeSetFeedsPanel = new MergeSetFeedsPanel();
+				panel.addEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+				//ReaderSynchronizerManager.reader.synchronizeAll();
+			}
+			
+			private function handleMergeSetCancelClose(event: CloseEvent) : void {
+				var panel: MergeSetFeedsPanel = MergeSetFeedsPanel(event.target);
+				switch(panel.optionSelected) {
+					case MergeSetFeedsPanel.MERGE_FEED_LIST:
+						ReaderSynchronizerManager.reader.mergeFeedLists();
+						break;
+					case MergeSetFeedsPanel.SET_GOOGLE_READER_FEED_LIST:
+						ReaderSynchronizerManager.reader.synchronizeAll();
+						break;
+					case MergeSetFeedsPanel.SET_SNACKR_FEED_LIST:
+						ReaderSynchronizerManager.reader.setFeedList(_feedModel.feeds);
+						break;
+					case MergeSetFeedsPanel.DISABLE_SYNCHRONIZATION:
+						_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+						break;
+					default:
+						Logger.instance.log("Value of MergeSetCancelPanel was invalid for some reason!", Logger.SEVERITY_NORMAL);
+				}
+				panel.removeEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
+				PopUpManager.removePopUp(panel);
 			}
 						
 			private function handleDeactivate(event: Event): void {

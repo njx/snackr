@@ -244,7 +244,6 @@
 					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
 				}
 				
-				ReaderSynchronizerManager.startSyncTimer();		
 			}
 			
 			private function handleAuthenticationSuccess(event: SynchronizerEvent) : void {
@@ -256,7 +255,7 @@
 				panel.addEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
 				PopUpManager.addPopUp(panel, this, true);
 				PopUpManager.centerPopUp(panel);
-				//ReaderSynchronizerManager.reader.synchronizeAll();
+				ReaderSynchronizerManager.startSyncTimer();		
 			}
 			
 			private function handleMergeSetCancelClose(event: CloseEvent) : void {
@@ -287,7 +286,7 @@
 				if (_feedModel.feeds.length > 0) {
 					doClose();
 				}
-			}	
+			}
 			
 			private function handleImportClick(): void {
 				doImport();

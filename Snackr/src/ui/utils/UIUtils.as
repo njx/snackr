@@ -35,12 +35,14 @@ package ui.utils
 	import flash.geom.Rectangle;
 	import flash.text.Font;
 	
+	import model.feeds.FeedItem;
+	import model.utils.FeedUtils;
+	
 	import mx.core.UIComponent;
 	import mx.effects.easing.Cubic;
 	import mx.events.EffectEvent;
 	
-	import model.feeds.FeedItem;
-	import model.utils.FeedUtils;
+	import ui.ticker.TickerItemData;
 	
 	public class UIUtils
 	{
@@ -125,7 +127,7 @@ package ui.utils
 		static public function convertFeedItemsToTickerItems(feedItems: Array): Array {
 			var result: Array = new Array();
 			for each (var feedItem: FeedItem in feedItems) {
-				var tickerItem: Object = new Object();
+				var tickerItem: TickerItemData = new TickerItemData();
 				tickerItem.feedItem = feedItem;
 				var title: String = stripHTML(feedItem.title);
 				if (title == null || title == "") {

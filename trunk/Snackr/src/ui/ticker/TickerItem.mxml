@@ -41,7 +41,7 @@
 			static public const IMAGE_SIDE_LEFT: Number = 0;
 			static public const IMAGE_SIDE_RIGHT: Number = 1;
 			
-			private var _data: Object = null;
+			private var _data: TickerItemData = null;
 			private var _isRolledOver: Boolean = false;
 			private var _bgInvalid: Boolean = true;
 			private var _imageSide: Number = IMAGE_SIDE_LEFT;
@@ -49,11 +49,19 @@
 			// TODO: We should have a well-defined ITickerItemData interface that we access.
 			[Bindable]
 			override public function get data(): Object {
-				return _data;
+				return itemData;
 			}			
 			override public function set data(value: Object): void {
+				itemData = TickerItemData(value);
+			}
+			
+			[Bindable]
+			public function get itemData(): TickerItemData {
+				return _data;
+			}
+			public function set itemData(value: TickerItemData): void {
 				_data = value;
-				if (_data == null || _data.imageURL == undefined || _data.imageURL == null || _data.imageURL == "") {
+				if (_data == null || _data.imageURL == null || _data.imageURL == "") {
 					currentState = (_imageSide == IMAGE_SIDE_LEFT ? "noImage" : "noImageRight");
 				}
 				else {
@@ -200,21 +208,21 @@
 	</mx:states>
 	
 	<mx:Canvas id="imageHolder" left="1" top="1" width="48" height="48" horizontalScrollPolicy="off" verticalScrollPolicy="off">
-		<utils:SmoothImage id="image" visible="false" source="{data.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
+		<utils:SmoothImage id="image" visible="false" source="{itemData.imageURL}" ioError="handleImageIOError(event)" scaleContent="false" complete="handleImageComplete(event)"/>	
 	</mx:Canvas>
-	<utils:CharSetDetectingText id="title" cacheAsBitmap="true" y="0" left="52" right="17" text="{data.title}" fontSize="12" height="36" selectable="false">
+	<utils:CharSetDetectingText id="title" cacheAsBitmap="true" y="0" left="52" right="17" text="{itemData.title}" fontSize="12" height="36" selectable="false">
 		<!-- HACK: null filter so we can fade out the text; apparently cacheAsBitmap isn't good enough by itself -->
 		<utils:filters>
 			<mx:DropShadowFilter alpha="0"/>
 		</utils:filters>
 	</utils:CharSetDetectingText>
 	<mx:HBox id="infoBox" y="35" left="52" right="17" horizontalGap="1">
-		<utils:CharSetDetectingLabel id="info" cacheAsBitmap="true" text="{data.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip="">
+		<utils:CharSetDetectingLabel id="info" cacheAsBitmap="true" text="{itemData.info}" fontSize="10" color="#AAAAAA" maxWidth="100" selectable="false" truncateToFit="true" toolTip="">
 			<utils:filters>
 				<mx:DropShadowFilter alpha="0"/>
 			</utils:filters>
 		</utils:CharSetDetectingLabel>
-		<utils:CharSetDetectingLabel id="info2" cacheAsBitmap="true" text="{data.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip="">		
+		<utils:CharSetDetectingLabel id="info2" cacheAsBitmap="true" text="{itemData.info2}" fontSize="10" color="#AAAAAA" selectable="false" truncateToFit="true" toolTip="">		
 			<utils:filters>
 				<mx:DropShadowFilter alpha="0"/>
 			</utils:filters>

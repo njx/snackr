@@ -46,13 +46,6 @@
 	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
-			import model.feeds.readers.SynchronizerEvent;
-			import model.feeds.readers.ReaderSynchronizerManager;
-			import model.feeds.readers.GoogleReaderSynchronizer;
-			import model.feeds.readers.IFeedReaderSynchronizer;
-			import model.feeds.readers.NullFeedReaderSynchronizer;
-			import ui.popups.DetailPopupManager;
-		
 			// In addition to being the main window, this acts as the main controller for the
 			// application. In general, individual components such as the ticker and the
 			// detail popup are relatively generic; this main application pulls data from the
@@ -96,7 +89,14 @@
 			import mx.collections.ArrayCollection;
 			import flash.display.Screen;
 			import ui.popups.StarredItemsPopup;
-
+			import ui.ticker.TickerItemData;
+			import model.feeds.readers.SynchronizerEvent;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.GoogleReaderSynchronizer;
+			import model.feeds.readers.IFeedReaderSynchronizer;
+			import model.feeds.readers.NullFeedReaderSynchronizer;
+			import ui.popups.DetailPopupManager;
+		
 			/**
 			 * Default height of the ticker (including the tab).
 			 */
@@ -703,14 +703,21 @@
 					_tickerStarted = true;
 					
 					// Add a fake "hint" item to the ticker queue as the first item.
+					var hintItem: TickerItemData = new TickerItemData();
 					if (_hints != null && _hints.hint.length() > 0) {
 						var hint: XML = _hints.hint[Math.floor(Math.random() * _hints.hint.length())];
-						ticker.queueItem({title: hint.title, description: hint.description, imageURL: appIconURL, info: "Snackr Tips"});
+						hintItem.title = hint.title;
+						hintItem.description = hint.description;
+						hintItem.imageURL = appIconURL;
+						hintItem.info = "Snackr Tips";
 					}
 					else {
-						ticker.queueItem({title: "Welcome to " + appName + "!", imageURL: appIconURL, info: "Narciso (nj) Jaramillo",
-							description: "<a href=\"http://www.snackr.net/\">" + appName + "</a> " + appVersion + " by <a href=\"mailto:nj@snackr.net\">Narciso (nj) Jaramillo</a>"});
+						hintItem.title = "Welcome to " + appName + "!";
+						hintItem.description =  "<a href=\"http://www.snackr.net/\">" + appName + "</a> " + appVersion + " by <a href=\"mailto:nj@snackr.net\">Narciso (nj) Jaramillo</a>";
+						hintItem.imageURL = appIconURL;
+						hintItem.info = "Narciso (nj) Jaramillo";
 					}
+					ticker.queueItem(hintItem);
 					
 					// Start the ticker.
 					ticker.animate();

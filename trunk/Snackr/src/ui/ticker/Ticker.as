@@ -36,7 +36,6 @@ package ui.ticker
 	import model.feeds.FeedModel;
 	import model.logger.Logger;
 	
-	import mx.core.Application;
 	import mx.core.UIComponent;
 	import mx.events.MoveEvent;
 	import mx.events.ResizeEvent;
@@ -93,7 +92,7 @@ package ui.ticker
 			return _itemDataQueue;
 		}
 		
-		public function queueItem(newItem: Object): void {
+		public function queueItem(newItem: TickerItemData): void {
 			queueItems([newItem]);
 		}
 		
@@ -106,8 +105,8 @@ package ui.ticker
 					tickerQueueLookup[tickerItem.data.feedItem.guid] = true;
 				}
 			}
-			for each (var tickerItemData: Object in _itemDataQueue) {
-				if (tickerItemData.feedItem != undefined && tickerItemData.feedItem != null) {
+			for each (var tickerItemData: TickerItemData in _itemDataQueue) {
+				if (tickerItemData.feedItem != null) {
 					tickerQueueLookup[tickerItemData.feedItem.guid] = true;
 				}
 			}
@@ -122,7 +121,7 @@ package ui.ticker
 					Logger.instance.log("Skipping item already in queue: " + newItems[i].feedItem.guid, Logger.SEVERITY_DEBUG);
 				}
 			}
-			for each (var item: Object in filteredItems) {
+			for each (var item: TickerItemData in filteredItems) {
 				_itemDataQueue.push(item);
 			}
 			fillItemsFromQueue();

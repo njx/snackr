@@ -32,6 +32,7 @@ package model.logger
 	import flash.filesystem.File;
 	import flash.filesystem.FileMode;
 	import flash.filesystem.FileStream;
+	import flash.system.Capabilities;
 	
 	/**
 	 * Class that logs messages to a log file and/or the debug console.
@@ -40,7 +41,8 @@ package model.logger
 	public class Logger extends EventDispatcher
 	{
 		/** 
-		 * Severity for messages that should only be output to the debug console.
+		 * Severity for messages that should only be output to the debug console. (These will be output
+		 * to the log file as well if running under ADL.)
 		 */
 		static public const SEVERITY_DEBUG: Number = -5;
 		
@@ -94,7 +96,9 @@ package model.logger
 		public function log(message: String, severity: Number = SEVERITY_NORMAL): void {
 			trace(message);
 			
-			if (severity >= SEVERITY_NORMAL && _logFile != null) {
+			// If we're running in the debug launcher, we log all messages to the log file.
+			// Otherwise, we only log messages with severity normal or above.
+			if ((Capabilities.isDebugger || severity >= SEVERITY_NORMAL) && _logFile != null) {
 				var stream: FileStream = new FileStream();
 				try {
 					stream.open(_logFile, FileMode.APPEND);

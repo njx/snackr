@@ -29,8 +29,11 @@
 -->
 
 <mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="runTests()">
+	<mx:Style source="styles/styles.css"/>
 	<mx:Script>
 		<![CDATA[
+			import mx.managers.PopUpManager;
+			import ui.popups.GoogleReaderConnectWindow;
 			import model.feeds.readers.GoogleReaderSynchronizer;
 			import tests.FeedReaderSynchronizerBaseTester;
 			import tests.GoogleReaderTester;
@@ -38,7 +41,7 @@
 			import tests.PendingOperationTester;
 			
 			public function runTests(): void {
-				testGoogleReaderAuth();
+				//testGoogleReaderAuth();
 				//testReadItemMethods();
 				//testGoogleReaderAddRemove();
 				//testReadItemMethods();
@@ -46,6 +49,8 @@
 				//runTestSync();
 				//runTestMerge();
 				//runTestSet();
+				var window: GoogleReaderConnectWindow = new GoogleReaderConnectWindow;
+				window.open(true);
 			}
 			
 			public function runTestSync(): void {

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="304" width="360" layout="absolute" horizontalCenter="0" verticalCenter="0" 
+	showTitleBar="true" systemChrome="none" type="utility" showGripper="false"
+	transparent="true" minimizable="false" maximizable="false" resizable="false" 
+	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off">	
+	<mx:states>
+		<mx:State name="Success">
+			<mx:RemoveChild target="{text1}"/>
+			<mx:RemoveChild target="{userNameLabel}"/>
+			<mx:RemoveChild target="{userNameInput}"/>
+			<mx:RemoveChild target="{passwordInput}"/>
+			<mx:RemoveChild target="{passwordLabel}"/>
+			<mx:RemoveChild target="{button1}"/>
+			<mx:RemoveChild target="{button2}"/>
+			<mx:RemoveChild target="{authenticatingLabel}"/>
+			<mx:RemoveChild target="{authenticatingSpinner}"/>
+			<mx:RemoveChild target="{badConnectionText}"/>
+			<mx:RemoveChild target="{badPasswordText}"/>
+			<mx:SetProperty name="height" value="66"/>
+			<mx:SetStyle name="borderColor" value="#000000"/>
+			<mx:SetProperty name="showTitleBar" value="false"/>
+			<mx:AddChild position="lastChild">
+				<mx:Label x="10" y="-4" text="Snackr is now connected to Google Reader!"/>
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	<mx:constraintColumns>
+		<mx:ConstraintColumn id="col1" />
+		<mx:ConstraintColumn id="col2" width="100%"/>
+	</mx:constraintColumns>
+	<mx:Script>
+		<![CDATA[
+			import mx.events.CloseEvent;
+		
+			private function handleOkPressed(event: Event) : void {
+				//dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+				this.close();
+			}
+			
+			private function handleCancelPressed(event: Event) : void {
+				//dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+				currentState="Success";
+				var timer: Timer = new Timer(2000,1);
+				timer.addEventListener(TimerEvent.TIMER_COMPLETE, closeWindow);
+				timer.start();
+			}
+			
+			private function closeWindow(event: Event) : void {
+				this.close();
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Text left="10" right="10" top="10" bottom="145" id="text1">
+		<mx:htmlText><![CDATA[Enter the user name and password for your Google Account.
+If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.
+]]></mx:htmlText>
+	</mx:Text>
+	<mx:Label left="col1:10" right="col1:0" y="73" textAlign="right" text="User name:" id="userNameLabel"/>
+	<mx:TextInput id="userNameInput" left="col2:10" y="71" width="170" />
+	<mx:Label left="col1:10" right="col1:0" y="106" textAlign="right" text="Password:" id="passwordLabel" />
+	<mx:TextInput displayAsPassword="true" left="col2:10" y="104" width="170" id="passwordInput" />
+	<utils:Spinner right="col1:0" y="134" id="authenticatingSpinner" visible="false" />
+	<mx:Label left="col2:10" y="140" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
+	<mx:Text left="col2:10" y="140" id="badPasswordText" visible="false">
+		<mx:htmlText>
+			<![CDATA[<b>The user name and password did not match.</b>
+If you forgot your user name or password, 
+visit <a href="https://www.google.com/accounts/ManageAccount"><font color="#ADD8E6">Google Accounts</font></a> and select "I cannot 
+access my account" from underneath 
+the sign in box.]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Text left="col2:10" y="140" id="badConnectionText" visible="false">
+		<mx:htmlText>
+			<![CDATA[<b>Unable to contact Google Reader.</b>
+Make sure your network connection is 
+functioning and that Google Reader is online.
+			]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Button label="Connect" width="75" click="handleOkPressed(event)" right="93" bottom="10" id="button1"/>
+	<mx:Button width="75" label="Cancel" click="handleCancelPressed(event)" right="10" bottom="10" id="button2"/>
+
+</mx:Window>

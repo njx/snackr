@@ -153,6 +153,13 @@ Panel
 	modalTransparency: 0.7;
 	modalTransparencyBlur: 0;
 }
+
+Window
+{
+	backgroundColor: #000000;
+	borderColor: #666666;
+}
+
 TextInput
 {
 	backgroundColor: #666666;

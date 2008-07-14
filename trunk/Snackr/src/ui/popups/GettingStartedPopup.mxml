@@ -35,8 +35,9 @@
 		<mx:Label y="10" text="Welcome to Snackr! To get started, you need some feeds." fontSize="16" left="10" right="21" visible="false"/>
 		<mx:Label y="53" text="What would you like to do?" left="10" right="276" fontSize="14" visible="false"/>
 		<mx:RadioButton id="_radioSample" y="81" label="Start with a sample feed set" left="12" right="243" groupName="buttonGroup" selected="true" fontSize="14" visible="false"/>
-		<mx:RadioButton id="_radioImport" y="113" label="Import a feed list (OPML) from another feed reader" left="12" right="136" groupName="buttonGroup" fontSize="14" visible="false"/>
-		<mx:RadioButton id="_radioManual" y="145" label="Add feeds manually using the + button on the ticker tab" left="12" right="94" groupName="buttonGroup" fontSize="14" visible="false"/>
+		<mx:RadioButton id="_radioGoogleReader" y="113" label="Synchronize Snackr with your Google Reader account" left="12" fontSize="14" groupName="buttonGroup" visible="false"/>
+		<mx:RadioButton id="_radioImport" y="145" label="Import a feed list (OPML) from another feed reader" left="12" right="136" groupName="buttonGroup" fontSize="14" visible="false"/>
+		<mx:RadioButton id="_radioManual" y="177" label="Add feeds manually using the + button on the ticker tab" left="12" right="94" groupName="buttonGroup" fontSize="14" visible="false"/>
 		<mx:Button id="_okButton" label="OK" width="64" bottom="10" right="10" click="handleOKClick()" visible="false"/>
 	</popupChildren>
 	<mx:RadioButtonGroup id="buttonGroup"/>
@@ -69,6 +70,9 @@
 				else if (_radioManual.selected) {
 					doClose();
 				}
+				else if (_radioGoogleReader.selected) {
+					doConnect();
+				}
 				else {
 					// Shouldn't happen...
 					doClose();
@@ -79,6 +83,10 @@
 				var file: File = File.documentsDirectory;
 				file.browseForOpen("Choose OPML File");
 				file.addEventListener(Event.SELECT, handleImportFileSelected);
+			}
+			
+			private function doConnect(): void {
+				
 			}
 			
 			private function handleImportFileSelected(event: Event): void {

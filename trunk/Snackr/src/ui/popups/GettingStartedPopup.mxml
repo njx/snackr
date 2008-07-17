@@ -45,6 +45,7 @@
 	
 	<mx:Script>
 		<![CDATA[
+			import mx.events.CloseEvent;
 			import model.options.OptionsModel;
 			import model.feeds.FeedModel;
 			
@@ -86,7 +87,23 @@
 			}
 			
 			private function doConnect(): void {
-				
+				_okButton.enabled = false;
+				var connectWindow:GoogleReaderConnectWindow = new GoogleReaderConnectWindow;
+				connectWindow.feedModel = _feedModel;
+				connectWindow.optionsModel = _optionsModel;
+				connectWindow.addEventListener(Event.CLOSE, function decideToClose(event: Event) : void {
+					//if Google Reader sync is enabled, the setup must have been successful and we should
+					//close the getting started window
+					var readerEnabled: Boolean = _optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1";
+					if(readerEnabled) {
+						doClose();
+					}
+					else {
+						_okButton.enabled = true;
+					}
+				});
+				connectWindow.open(true);
+				connectWindow.activate();
 			}
 			
 			private function handleImportFileSelected(event: Event): void {

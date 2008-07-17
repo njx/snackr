@@ -28,12 +28,14 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="304" width="360" layout="absolute" horizontalCenter="0" verticalCenter="0" 
-	showTitleBar="true" systemChrome="none" type="utility" showGripper="false"
-	transparent="true" minimizable="false" maximizable="false" resizable="false" 
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="240" width="360" layout="absolute" horizontalCenter="0" verticalCenter="0" 
+	showTitleBar="true" systemChrome="none" type="utility" showGripper="false" showFlexChrome="true"
+	transparent="true" minimizable="false" maximizable="false" resizable="false"
 	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off">	
 	<mx:states>
-		<mx:State name="Success">
+		<mx:State name="Expanded">
+		</mx:State>
+<!--		<mx:State name="Success">
 			<mx:RemoveChild target="{text1}"/>
 			<mx:RemoveChild target="{userNameLabel}"/>
 			<mx:RemoveChild target="{userNameInput}"/>
@@ -45,37 +47,123 @@
 			<mx:RemoveChild target="{authenticatingSpinner}"/>
 			<mx:RemoveChild target="{badConnectionText}"/>
 			<mx:RemoveChild target="{badPasswordText}"/>
-			<mx:SetProperty name="height" value="66"/>
-			<mx:SetStyle name="borderColor" value="#000000"/>
-			<mx:SetProperty name="showTitleBar" value="false"/>
-			<mx:AddChild position="lastChild">
-				<mx:Label x="10" y="-4" text="Snackr is now connected to Google Reader!"/>
+			<mx:AddChild position="lastChild" id="addSuccessMessage">
+				<mx:Label id="successMessage" horizontalCenter="0" y="25" text="Snackr is now connected to Google Reader!"/>
 			</mx:AddChild>
-		</mx:State>
+		</mx:State>-->
 	</mx:states>
+	<mx:transitions>
+		<mx:Transition fromState="*" toState="Expanded">
+			<mx:Resize target="{this}" duration="400" heightTo="304" effectEnd="handleExpanded(event)"/>
+		</mx:Transition>
+<!--		<mx:Transition fromState="*" toState="Success">
+			<mx:Sequence>
+				<mx:Parallel>
+					<mx:Fade duration="1000" alphaTo="0" targets="{[text1, userNameInput, userNameLabel, passwordInput, passwordLabel, button1, button2, authenticatingLabel, authenticatingSpinner]}"/>
+					<ds:AnimateColor xmlns:ds="com.darronschall.effects.*" duration="1000" property="borderColor" toValue="#000000" target="{this}" isStyle="true"/>
+					<utils:AnimateGradient duration="1000" property="titleBarColors" toValue="[#000000, #000000]" target="{this}" isStyle="true"/>
+					
+					<mx:Resize target="{this}" heightTo="66" duration="400" startDelay="900" />
+				</mx:Parallel>
+				<mx:RemoveChildAction targets="{[text1, userNameInput, userNameLabel, passwordInput, passwordLabel, button1, button2, authenticatingLabel, authenticatingSpinner]}"/>
+				<mx:AddChildAction target="{successMessage}" />
+			</mx:Sequence>
+		</mx:Transition>-->
+	</mx:transitions>
+	<mx:Fade id="fadeOutWindow" target="{this}" alphaTo="0.0" duration="500" effectEnd="close()"/>
 	<mx:constraintColumns>
 		<mx:ConstraintColumn id="col1" />
 		<mx:ConstraintColumn id="col2" width="100%"/>
 	</mx:constraintColumns>
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.SynchronizerEvent;
+			import model.feeds.FeedModel;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.options.OptionsModel;
 			import mx.events.CloseEvent;
+			
+			private var _optionsModel:OptionsModel;
+			private var _feedModel: FeedModel;
+			
+			private var lastAuthEvent: SynchronizerEvent;
+			
+			public function set feedModel(feedModel: FeedModel) : void {
+				_feedModel = feedModel;
+			}
+			
+			public function set optionsModel(optionsModel: OptionsModel) : void {
+				_optionsModel = optionsModel;
+			}
 		
 			private function handleOkPressed(event: Event) : void {
-				//dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
-				this.close();
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "1");
+				_optionsModel.setValue(OptionsModel.OPTION_READER_USER_NAME, userNameInput.text);
+				_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
+				ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
+				lastAuthEvent = null;
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthSuccess);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthBadCredentials);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthFailure);
+				badConnectionText.visible = false;
+				badPasswordText.visible = false;
+				connectButton.enabled = false;
+				cancelButton.enabled = false;
+				authenticatingLabel.visible = true;
+				authenticatingSpinner.visible = true;
+				authenticatingSpinner.start();
+				ReaderSynchronizerManager.reader.authenticate(userNameInput.text, passwordInput.text);
+			}
+			
+			private function handleAuthSuccess(event: SynchronizerEvent) : void {
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				successMessage.visible = true;
+				lastAuthEvent = event;
+				ReaderSynchronizerManager.reader.synchronizeAll();
+				ReaderSynchronizerManager.startSyncTimer();
+				var timer:Timer = new Timer(2000);
+				timer.addEventListener(TimerEvent.TIMER, function playFadeClose(event: Event) : void {
+					fadeOutWindow.play();
+				});
+				timer.start();
+			}
+
+			private function handleAuthBadCredentials(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				cancelButton.enabled = true;
+				connectButton.enabled = true;
+				lastAuthEvent = event;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				currentState = "Expanded";
+			}
+			
+			private function handleAuthFailure(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				connectButton.enabled = true;
+				cancelButton.enabled = true;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				if(!(lastAuthEvent != null && lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS)) {
+					lastAuthEvent = event;
+				}
+				currentState = "Expanded";
+			}
+
+			private function handleExpanded(event: Event) : void {
+				if(lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS) {
+					badPasswordText.visible = true
+				}
+				else {
+					badConnectionText.visible = true;
+				}
 			}
 			
 			private function handleCancelPressed(event: Event) : void {
-				//dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
-				currentState="Success";
-				var timer: Timer = new Timer(2000,1);
-				timer.addEventListener(TimerEvent.TIMER_COMPLETE, closeWindow);
-				timer.start();
-			}
-			
-			private function closeWindow(event: Event) : void {
-				this.close();
+				close();
 			}
 			
 		]]>
@@ -83,14 +171,15 @@
 	
 	<mx:Text left="10" right="10" top="10" bottom="145" id="text1">
 		<mx:htmlText><![CDATA[Enter the user name and password for your Google Account.
-If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.
-]]></mx:htmlText>
+If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.]]>
+		</mx:htmlText>
 	</mx:Text>
 	<mx:Label left="col1:10" right="col1:0" y="73" textAlign="right" text="User name:" id="userNameLabel"/>
 	<mx:TextInput id="userNameInput" left="col2:10" y="71" width="170" />
 	<mx:Label left="col1:10" right="col1:0" y="106" textAlign="right" text="Password:" id="passwordLabel" />
 	<mx:TextInput displayAsPassword="true" left="col2:10" y="104" width="170" id="passwordInput" />
 	<utils:Spinner right="col1:0" y="134" id="authenticatingSpinner" visible="false" />
+	<mx:Label id="successMessage" left="col2:10" y="140" text="Snackr is now connected to Google Reader!" visible="false"/>
 	<mx:Label left="col2:10" y="140" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
 	<mx:Text left="col2:10" y="140" id="badPasswordText" visible="false">
 		<mx:htmlText>
@@ -109,7 +198,7 @@ functioning and that Google Reader is online.
 			]]>
 		</mx:htmlText>
 	</mx:Text>
-	<mx:Button label="Connect" width="75" click="handleOkPressed(event)" right="93" bottom="10" id="button1"/>
-	<mx:Button width="75" label="Cancel" click="handleCancelPressed(event)" right="10" bottom="10" id="button2"/>
+	<mx:Button label="Connect" width="75" click="handleOkPressed(event)" right="93" bottom="10" id="connectButton"/>
+	<mx:Button width="75" label="Cancel" click="handleCancelPressed(event)" right="10" bottom="10" id="cancelButton"/>
 
 </mx:Window>

@@ -158,6 +158,16 @@ Window
 {
 	backgroundColor: #000000;
 	borderColor: #666666;
+	titleBarColors: #666666, #666666;
+	titleTextStyleName: "windowTitleText";
+	minimizeButtonSkin: Embed(source="empty.swf", symbol="Panel_titleBackgroundSkin");
+	maximizeButtonSkin: Embed(source="empty.swf", symbol="Panel_titleBackgroundSkin");
+	closeButtonSkin: Embed(source="closeUp.png");
+}
+
+.windowTitleText
+{
+	color: #FFFFFF;
 }
 
 TextInput

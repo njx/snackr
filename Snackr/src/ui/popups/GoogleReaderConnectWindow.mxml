@@ -30,7 +30,7 @@
 
 <mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="240" width="360" layout="absolute" horizontalCenter="0" verticalCenter="0" 
 	showTitleBar="true" systemChrome="none" type="utility" showGripper="false" showFlexChrome="true"
-	transparent="true" minimizable="false" maximizable="false" resizable="false"
+	transparent="true" minimizable="false" maximizable="false" resizable="false" alwaysInFront="true"
 	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off">	
 	<mx:states>
 		<mx:State name="Expanded">

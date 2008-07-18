@@ -32,17 +32,18 @@
 	title="Connect to Google Reader" xmlns:utils="ui.utils.*" defaultButton="{okButton}">	
 	<mx:Script>
 		<![CDATA[
+			import mx.controls.Alert;
 			import mx.events.CloseEvent;
 		]]>
 	</mx:Script>
 	
 	<mx:RadioButtonGroup id="connectToReaderGroup" />
-	<mx:Text left="10" right="10" top="10" bottom="145">
+	<mx:Text left="10" right="10" top="10" bottom="107">
 		<mx:text>You provided a user name and password, but have not yet connected to Google Reader. Would you like to:</mx:text>
 	</mx:Text>
 	<mx:RadioButton x="10" y="57" label="Connect to Google Reader now" groupName="connectToReaderGroup" id="connectButton" selected="true" />
 	<mx:RadioButton x="10" y="79" label="Disable Google Reader synchronization and close" groupName="connectToReaderGroup" id="disableButton" />
-	<mx:Button id="okButton" label="OK" width="63" right="82" bottom="10" click="dispatchEvent(new CloseEvent(CloseEvent.CLOSE))"/>
-	<mx:Button id="cancelButton" label="Cancel" width="63" right="11" bottom="10" click="dispatchEvent(new CloseEvent(CloseEvent.CLOSE))" />
+	<mx:Button id="okButton" label="OK" width="63" right="82" bottom="10" click="dispatchEvent(new CloseEvent(CloseEvent.CLOSE,false, false, Alert.OK))"/>
+	<mx:Button id="cancelButton" label="Cancel" width="63" right="11" bottom="10" click="dispatchEvent(new CloseEvent(CloseEvent.CLOSE, false, false, Alert.CANCEL))" />
 
 </mx:Panel>

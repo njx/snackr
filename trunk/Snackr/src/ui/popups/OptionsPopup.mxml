@@ -30,7 +30,7 @@
 
 <Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
 	desiredWidth="700" desiredHeight="400"
-	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" close="handleClose(event)" xmlns:utils="ui.utils.*">
+	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
 			import flash.utils.getQualifiedClassName;
@@ -469,28 +469,29 @@
 				_optionsModel.setValue(OptionsModel.OPTION_SCREEN_SIDE, String(screenSideCombo.selectedIndex));
 			}
 			
-			private function handleClose(event: Event): void {
+			override public function doClose() : void {
 				if(readerCredentialsUnchecked) {
 					if(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME) == "" && _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD) == "") {
 						//if username and password are blank, assume the user meant to just disable GR integration
 						_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED,"0");
 						_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+						super.doClose();
 					}
 					else {
-						event.preventDefault();
 						readerCredentialsUnchecked = false;
 						var panel:ConfirmAuthenticateOnClosePanel = new ConfirmAuthenticateOnClosePanel;
-						panel.okButton.addEventListener(MouseEvent.CLICK, function okPressed(event: Event) : void {
-							if(panel.connectButton.selected) {
-								tabs.selectedChild = googleReaderTab;
-								handleConnectButtonPressed();
+						panel.addEventListener(CloseEvent.CLOSE, function okPressed(event: CloseEvent) : void {
+							if(event.detail == Alert.OK) {
+								if(panel.connectButton.selected) {
+									tabs.selectedChild = googleReaderTab;
+									handleConnectButtonPressed();
+								}
+								else {
+									_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+									_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+									callSuperClose();
+								}
 							}
-							else {
-								_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
-								doClose();
-							}
-						});
-						panel.addEventListener(CloseEvent.CLOSE, function handleConfirmClose(event: Event) : void {
 							PopUpManager.removePopUp(panel);
 						});
 						PopUpManager.addPopUp(panel, this, true);
@@ -499,9 +500,15 @@
 				}
 				else {
 					_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+					super.doClose();
 				}
 			}
 			
+			//stupid hack so I can call doClose from the inline okPressed event handler funtion
+			private function callSuperClose() : void {
+				super.doClose();
+			}
+
 			private function handleCheckAllNowClick(event: Event): void {
 				_feedModel.fetchAllFeeds();
 			}

@@ -55,8 +55,8 @@
 			private var _feedModel: FeedModel = null;
 			private var _optionsModel: OptionsModel = null;
 			
-			//used to determine whether to modify the reader when a close event occurs
-			private var readerCredentialsChanged: Boolean = false;
+			//used to determine whether to prompt the user to authenticate with google reader when a close event occurs
+			private var readerCredentialsUnchecked: Boolean = false;
 			
 			[Bindable]
 			public var popupTitle: String = "";
@@ -204,18 +204,18 @@
 				}
 			}
 			
-			private function handleConnectButtonPressed(event: Event) : void {
-				readerCredentialsChanged = false;
+			private function handleConnectButtonPressed(event: Event = null) : void {
+				readerCredentialsUnchecked = false;
 				connectedLabel.visible = false;
 				badPasswordText.visible = false;
 				badConnectionText.visible = false;
 				authenticatingLabel.visible = true;
 				authenticatingSpinner.visible = true;
 				authenticatingSpinner.start();
-				reinitializeReaderSync(event);
+				reinitializeReaderSync();
 			}
 
-			private function reinitializeReaderSync(event: Event) : void {
+			private function reinitializeReaderSync() : void {
 				//reset the timer so it doesn't interfere with the merge operation
 				ReaderSynchronizerManager.stopSyncTimer()
 				
@@ -470,7 +470,36 @@
 			}
 			
 			private function handleClose(event: Event): void {
-				_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+				if(readerCredentialsUnchecked) {
+					if(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME) == "" && _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD) == "") {
+						//if username and password are blank, assume the user meant to just disable GR integration
+						_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED,"0");
+						_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+					}
+					else {
+						event.preventDefault();
+						readerCredentialsUnchecked = false;
+						var panel:ConfirmAuthenticateOnClosePanel = new ConfirmAuthenticateOnClosePanel;
+						panel.okButton.addEventListener(MouseEvent.CLICK, function okPressed(event: Event) : void {
+							if(panel.connectButton.selected) {
+								tabs.selectedChild = googleReaderTab;
+								handleConnectButtonPressed();
+							}
+							else {
+								_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+								doClose();
+							}
+						});
+						panel.addEventListener(CloseEvent.CLOSE, function handleConfirmClose(event: Event) : void {
+							PopUpManager.removePopUp(panel);
+						});
+						PopUpManager.addPopUp(panel, this, true);
+						PopUpManager.centerPopUp(panel);
+					}
+				}
+				else {
+					_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+				}
 			}
 			
 			private function handleCheckAllNowClick(event: Event): void {
@@ -479,21 +508,21 @@
 			
 			private function handleEnableReaderSyncChange(event : Event) : void {
 				if(enableReaderSyncCheckbox.selected != (_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1")) {
-					readerCredentialsChanged = true;
+					readerCredentialsUnchecked = true;
 					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, (enableReaderSyncCheckbox.selected ? "1" : "0"));					
 				}
 			}
 			
 			private function handleUserNameCommit(event: Event): void {
 				if(userNameInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME)) {
-					readerCredentialsChanged = true;
+					readerCredentialsUnchecked = true;
 					_optionsModel.setValue(OptionsModel.OPTION_READER_USER_NAME, userNameInput.text);
 				}
 			}
 			
 			private function handlePasswordCommit(event: Event): void {
 				if(passwordInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD)) {
-					readerCredentialsChanged = true;
+					readerCredentialsUnchecked = true;
 					_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
 				}
 			}
@@ -526,7 +555,7 @@
 				<mx:Button label="Add..." width="80" right="78" bottom="-1" click="handleNewClick()"/>
 				<mx:HRule left="0" right="0" bottom="22" strokeWidth="1" strokeColor="#666666"/>
 			</mx:Canvas>
-			<mx:Canvas label="Google Reader" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+			<mx:Canvas id="googleReaderTab" label="Google Reader" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
 				<mx:constraintColumns>
 					<mx:ConstraintColumn id="padding2" width="10"/>
 					<mx:ConstraintColumn id="col3"/>

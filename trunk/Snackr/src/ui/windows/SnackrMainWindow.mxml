@@ -280,10 +280,13 @@
 			 */
 			private var _firstRedock: Boolean = true;
 			/**
-			 * Whether the ticker is minimized.
+			 * Whether the ticker is minimized to the dock or systray.
 			 */
 			private var _isMinimized: Boolean = false;
-
+			/**
+			 * Whether the ticker is collapsed.
+			 */
+			private var _isCollapsed: Boolean = false;
 			/**
 			 * Whether we're in the middle of a ticker drag ("toss") operation.
 			 */
@@ -313,10 +316,23 @@
 			private var _inUpdateDisplayList: Boolean = false;
 			
 			/**
+			 * Pause reason flags. These are used to make it so the ticker knows when to properly pause and
+			 * resume itself. Since there might be multiple reasons the ticker might be paused, the ticker
+			 * waits until all of the reasons are cleared before it resumes.
+			 */
+			private var _pauseReasonCollapsed: int;
+			private var _pauseReasonMinimized: int;
+			private var _pauseReasonRolledOver: int;
+			
+			/**
 			 * The main startup sequence for Snackr; this happens after all the subcomponents of
 			 * the window are created.
 			 */
 			private function handleCreationComplete(event: Event): void {
+				_pauseReasonCollapsed = ticker.allocatePauseReasonFlag();
+				_pauseReasonMinimized = ticker.allocatePauseReasonFlag();
+				_pauseReasonRolledOver = ticker.allocatePauseReasonFlag();
+				
 				NativeApplication.nativeApplication.addEventListener(Event.EXITING, handleExiting);
 				
 				// Create the Snackr data folder if it doesn't exist (inside the user's
@@ -474,7 +490,7 @@
 			private function handleDisplayStateChange(event: NativeWindowDisplayStateEvent): void {
 				if (event.afterDisplayState == NativeWindowDisplayState.NORMAL || event.afterDisplayState == NativeWindowDisplayState.MAXIMIZED) {
 					_isMinimized = false;
-					ticker.resume();
+					ticker.resume(_pauseReasonMinimized);
 				}
 			}
 			
@@ -497,7 +513,7 @@
 					_isMinimized = false;
 					nativeWindow.visible = true;
 					nativeWindow.activate();
-					ticker.resume();
+					ticker.resume(_pauseReasonMinimized);
 				}
 			}
 			
@@ -514,7 +530,7 @@
 			 */
 			private function handleRollOver(event: MouseEvent): void {
 				if (event.target == ticker) {
-					ticker.pause();
+					ticker.pause(_pauseReasonRolledOver);
 				}
 			}
 			
@@ -522,8 +538,8 @@
 			 * Handler for the roll out event. We unpause the ticker.
 			 */
 			private function handleRollOut(event: MouseEvent): void {
-				if (event.target == ticker && !_isMinimized) {
-					ticker.resume();
+				if (event.target == ticker) {
+					ticker.resume(_pauseReasonRolledOver);
 				}
 			}
 		
@@ -623,6 +639,9 @@
 					case OptionsModel.OPTION_AGE_LIMIT_UNITS: {
 						_ageLimitUnits = value;
 						break;
+					}
+					case OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY: {
+						collapseButton.toolTip = (value == "1" ? "Minimize" : (_isCollapsed ? "Expand" : "Collapse"));
 					}
 					default:
 						break;
@@ -887,7 +906,7 @@
 					ticker.isVertical = isVertical;
 				
 					// If we were collapsed before, we're not now...
-					if (_isMinimized) {
+					if (_isCollapsed) {
 						collapse();
 					}
 				}
@@ -908,7 +927,7 @@
 				quickFadeIn.play([ticker]);
 				
 				// If we were collapsed before, we're not now...
-				if (_isMinimized) {
+				if (_isCollapsed) {
 					collapse();
 				}
 			}
@@ -1321,10 +1340,10 @@
 						minimize();
 					}
 					_isMinimized = true;
-					ticker.pause();
+					ticker.pause(_pauseReasonMinimized);
 				}
 				else {
-					if (_isMinimized) {
+					if (_isCollapsed) {
 						expand();
 					}
 					else {
@@ -1339,11 +1358,10 @@
 			private function collapse(): void {
 				DetailPopupManager.instance.closePopups();
 
-				if (!_isMinimized) {
-					ticker.pause();
-				}
-				_isMinimized = true;
+				ticker.pause(_pauseReasonCollapsed);
+				_isCollapsed = true;
 				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "collapseButton" : "expandButton");
+				collapseButton.toolTip = "Expand";
 				if (currentSide == UIUtils.SIDE_TOP) {
 					resizeToY(true, currentScreen.visibleBounds.y + TAB_HEIGHT + 4);
 				}
@@ -1357,7 +1375,8 @@
 			 */
 			private function expand(): void {
 				collapseButton.styleName = (currentSide == UIUtils.SIDE_TOP ? "expandButton" : "collapseButton");
-				ticker.resume();
+				collapseButton.toolTip = "Collapse";
+				ticker.resume(_pauseReasonCollapsed);
 				var newY: int;
 				var resizeFromBottom: Boolean = false;
 				if (isVertical) {
@@ -1375,7 +1394,9 @@
 				
 				// We can't just turn off _isCollapsed here--we want it to happen after the resize is done.
 				// So we add an effect-end handler to do it.
-				resizeToY(resizeFromBottom, newY, function (event: EffectEvent): void { _isMinimized = false });
+				resizeToY(resizeFromBottom, newY, function (event: EffectEvent): void { 
+					_isCollapsed = false;
+				});
 			}
 			
 			/**
@@ -1580,7 +1601,7 @@
 			 * we're collapsed, we uncollapse.
 			 */
 			private function handleClick(event: MouseEvent): void {
-				if ((event.target == this || event.target is TickerItem) && _isMinimized) {
+				if ((event.target == this || event.target is TickerItem) && _isCollapsed) {
 					expand();
 				}
 			}		

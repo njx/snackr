@@ -1,0 +1,17 @@
+#summary Release notes for v0.37 TEST build
+#labels Featured
+
+==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.37-TEST.air v0.37 TEST build]==
+
+If you're upgrading from the 0.33 official release, see also the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_34_TEST v0.34 release notes] and the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_35_TEST v0.35 release notes].
+
+Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database]!
+
+  * Added initial version of Google Reader integration (by Rob Adams)--woohoo! You can set this up from the Getting Started popup, or go to the Options Popup and click on the Google Reader tab. Some caveats:
+    * If you have a lot of feeds or read items in Google Reader, the ticker may stutter a bit after you first connect as it synchronizes everything.
+    * Items from your Reader feeds won't show up until a couple minutes after you first connect (if the ticker is already running when you connect).
+  * Added the ability to star items so you can read them later. Just click the star icon on item popups, then click the star on the main ticker tab to see the list of all starred items.
+    * *NOTE*: Starred items are not yet being synced with Google Reader.
+  * Snackr now minimizes to the system tray (Windows)/dock (OS X) by default. To get the old collapsing behavior back, uncheck the option in the Preferences tab of the Options popup.
+  * You can now horizontally resize Snackr when it's vertical (thanks Matthew Boedicker). You can't resize it when it's horizontal yet.
+  * Many bugfixes: see [http://code.google.com/p/snackr/issues/list?can=1&q=fixedafter:0.35&colspec=ID%20Type%20Status%20Priority%20FixBy%20FixedAfter%20Owner%20Summary this list].

@@ -97,6 +97,7 @@
 					if (data.feedItem != null && data.feedItem != undefined) {
 						starButton.visible = true;
 						starButton.styleName = (data.feedItem.starred ? "unmarkStarButton" : "markStarButton");
+						starButton.toolTip = (data.feedItem.starred ? "Unstar item" : "Star item");
 						postButton.visible = true;
 					}
 					else {
@@ -215,6 +216,6 @@
 		</mx:HTML>
 		<mx:LinkButton id="viewPostLink" fontWeight="normal" label="View post" bottom="3" left="3" click="navigateToURL(new URLRequest(data.link))"/>
 		<mx:Button id="starButton" styleName="markStarButton" width="16" height="16" bottom="5" right="23" click="handleStarButtonClick(event)" toolTip="Star item to read later"/>					
-		<mx:Button id="postButton" styleName="postButton" width="16" height="16" bottom="5" right="3" click="handlePostButtonClick(event)" toolTip="Post tools"/>					
+		<mx:Button id="postButton" styleName="postButton" width="16" height="16" bottom="5" right="3" click="handlePostButtonClick(event)" toolTip="Send/post item"/>					
 	</popupChildren>
 </Popup>

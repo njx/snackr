@@ -39,6 +39,8 @@
 	-->
 	<mx:Script>
 		<![CDATA[
+			import mx.events.MenuEvent;
+			import mx.controls.Menu;
 			import model.feeds.FeedItem;
 			import ui.utils.AnimateRectProperty;
 			import mx.effects.easing.Exponential;
@@ -46,9 +48,20 @@
 			import mx.effects.AnimateProperty;
 			import mx.effects.Parallel;
 			import ui.utils.UIUtils;
+			
 			private var _data: Object = null;
 			private var _isHTMLComplete: Boolean = false;
 			private var _dataChanged: Boolean = false;
+			
+			// List of items for the "Post Tools" menu. 
+			// TODO: make configurable in the Options popup
+			static private const POST_TOOLS: Array = [
+				new CopyToClipboardPostMenuItem(),
+				new URLPatternPostMenuItem("Send in email", "mailto:?subject=${title}&body=${link}"),
+				new URLPatternPostMenuItem("Post to del.icio.us", "http://del.icio.us/post?v=4&url=${link}&title=${title}"),
+				new URLPatternPostMenuItem("Digg this", "http://digg.com/submit?url=${link}&title=${title}"),
+				new URLPatternPostMenuItem("Make short URL using Snipr", "http://snipr.com/site/snip?link=${link}&title=${title}") 
+			];
 			
 			[Bindable]
 			override public function get data(): Object {
@@ -84,9 +97,11 @@
 					if (data.feedItem != null && data.feedItem != undefined) {
 						starButton.visible = true;
 						starButton.styleName = (data.feedItem.starred ? "unmarkStarButton" : "markStarButton");
+						postButton.visible = true;
 					}
 					else {
 						starButton.visible = false;
+						postButton.visible = false;
 					}
 				}
 			}
@@ -171,6 +186,21 @@
 				invalidateProperties();
 			}
 			
+			private function handlePostButtonClick(event: MouseEvent): void {
+				var postMenu: NativeMenu = new NativeMenu();
+				for each (var tool: IPostMenuItem in POST_TOOLS) {
+					var menuItem: NativeMenuItem = new NativeMenuItem(tool.label);
+					menuItem.data = tool;
+					postMenu.addItem(menuItem);
+				}
+				postMenu.addEventListener(Event.SELECT, handlePostMenuItemClick);
+				postMenu.display(postButton.stage, event.stageX, event.stageY);
+			}
+			
+			private function handlePostMenuItemClick(event: Event): void {
+				var item: IPostMenuItem = IPostMenuItem(event.target.data);
+				item.execute(data.feedItem);
+			}
 		]]>
 	</mx:Script>
 	<popupChildren>
@@ -184,6 +214,7 @@
 			</mx:filters>
 		</mx:HTML>
 		<mx:LinkButton id="viewPostLink" fontWeight="normal" label="View post" bottom="3" left="3" click="navigateToURL(new URLRequest(data.link))"/>
-		<mx:Button id="starButton" styleName="markStarButton" width="16" height="16" bottom="5" right="3" click="handleStarButtonClick(event)" toolTip="Star item to read later"/>					
+		<mx:Button id="starButton" styleName="markStarButton" width="16" height="16" bottom="5" right="23" click="handleStarButtonClick(event)" toolTip="Star item to read later"/>					
+		<mx:Button id="postButton" styleName="postButton" width="16" height="16" bottom="5" right="3" click="handlePostButtonClick(event)" toolTip="Post tools"/>					
 	</popupChildren>
 </Popup>

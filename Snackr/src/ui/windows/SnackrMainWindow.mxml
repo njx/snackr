@@ -96,6 +96,7 @@
 			import model.feeds.readers.IFeedReaderSynchronizer;
 			import model.feeds.readers.NullFeedReaderSynchronizer;
 			import ui.popups.DetailPopupManager;
+			import mx.managers.CursorManagerPriority;
 		
 			/**
 			 * Default height of the ticker (including the tab).
@@ -292,6 +293,10 @@
 			 */
 			private var _isDragging: Boolean = false;
 			/**
+			 * Whether the mouse is over a resize hit area.
+			 */
+			private var _isOverResizeHitArea: Boolean = false;
+			/**
 			 * The upper-left corner of the window at the time the drag started.
 			 */
 			private var _dragStart: Point = null;
@@ -324,6 +329,16 @@
 			private var _pauseReasonMinimized: int;
 			private var _pauseReasonRolledOver: int;
 			
+		 	[Embed(source="../assets/cursorResizeLeftRight.png")]
+			private var ResizeCursorLeftRight:Class;
+
+			/* the width of the resize left right cursor image */
+			static private const RESIZE_CURSOR_LEFT_RIGHT_WIDTH: Number = 20;
+			/* how close to the border you need to be for resize */
+			static private const RESIZE_BORDER_WIDTH: Number = 8;
+
+			private var _cursor:Class;
+
 			/**
 			 * The main startup sequence for Snackr; this happens after all the subcomponents of
 			 * the window are created.
@@ -532,8 +547,42 @@
 				if (event.target == ticker) {
 					ticker.pause(_pauseReasonRolledOver);
 				}
+				systemManager.addEventListener(
+					MouseEvent.MOUSE_MOVE, checkResizeCursor, true);
 			}
 			
+
+			private function checkResizeCursor(event: MouseEvent): void {
+				if ((currentSide == UIUtils.SIDE_RIGHT) &&
+					(event.stageX < RESIZE_BORDER_WIDTH)) {
+					this.setCursor(ResizeCursorLeftRight);
+					_isOverResizeHitArea = true;
+				} else if((currentSide == UIUtils.SIDE_LEFT) &&
+					(event.stageX > nativeWindow.bounds.right - RESIZE_BORDER_WIDTH)) {
+					this.setCursor(ResizeCursorLeftRight, -RESIZE_CURSOR_LEFT_RIGHT_WIDTH, 0);
+					_isOverResizeHitArea = true;
+				} else {
+					this.setCursor(null);
+					_isOverResizeHitArea = false;
+				}
+			}
+
+			private function setCursor(newCursor: Class, xOffset:Number = 0,
+				yOffset:Number = 0): void {
+				if (this.cursor != newCursor) {
+					cursorManager.removeCursor(cursorManager.currentCursorID);
+					if (newCursor != null) {
+						cursorManager.setCursor(newCursor,
+							CursorManagerPriority.HIGH, xOffset, yOffset);
+					}
+					this._cursor = newCursor;
+				}
+			}
+
+			private function get cursor(): Class {
+				return this._cursor;
+			}
+
 			/**
 			 * Handler for the roll out event. We unpause the ticker.
 			 */
@@ -541,6 +590,9 @@
 				if (event.target == ticker) {
 					ticker.resume(_pauseReasonRolledOver);
 				}
+				systemManager.removeEventListener(MouseEvent.MOUSE_MOVE,
+					checkResizeCursor);
+				this.setCursor(null);
 			}
 		
 			/**
@@ -1025,7 +1077,9 @@
 					graphics.beginGradientFill(GradientType.LINEAR, [0x333333, 0x000000], [_backgroundOpacity, _backgroundOpacity], [0, 255], gradientMatrix, SpreadMethod.PAD);
 					if (isVertical) {
 						// Don't need a tab if we're vertical.
-						graphics.drawRect(0, 0, desiredWidth, desiredHeight);
+						// TODO: needed to change this back to unscaledWidth/Height to work properly
+						// during resize. Doesn't seem to mess up collapsing.
+						graphics.drawRect(0, 0, unscaledWidth, unscaledHeight);
 					}
 					else {
 						if (currentSide == UIUtils.SIDE_TOP) {
@@ -1366,7 +1420,11 @@
 					resizeToY(true, currentScreen.visibleBounds.y + TAB_HEIGHT + 4);
 				}
 				else {
-					resizeToY(false, currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - 4 - TAB_HEIGHT);
+					var newY: int = currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - TAB_HEIGHT;
+					if (currentSide == UIUtils.SIDE_LEFT || currentSide == UIUtils.SIDE_TOP) {
+						newY -= 4;
+					}
+					resizeToY(false, newY);
 				}
 			}
 			
@@ -1442,17 +1500,35 @@
 			private function handleMouseDown(event: MouseEvent): void {
 				// Remove our "ignore clicks" handler, if any.
 				systemManager.removeEventListener(MouseEvent.CLICK, handleIgnoreMouseClick, true);
-				
-				// Register to listen for mouse move/mouse up. If the user moves the mouse past a certain
-				// threshold, we start a drag. We add these as capturing event handlers to the system manager
-				// so we get them in advance of any of our subcomponents.
-				systemManager.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseMove, true);
-				systemManager.addEventListener(MouseEvent.MOUSE_UP, handleMouseUp, true);
-				_dragStart = new Point(nativeWindow.bounds.x + event.stageX, nativeWindow.bounds.y + event.stageY);
-				_dragCurrent = new Point(_dragStart.x, _dragStart.y);
+
+				if (_isOverResizeHitArea) {
+					nativeWindow.startResize(resizeDirection);
+				} else {
+					// Register to listen for mouse move/mouse up. If the user moves the mouse past a certain
+					// threshold, we start a drag. We add these as capturing event handlers to the system manager
+					// so we get them in advance of any of our subcomponents.
+					systemManager.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseMove, true);
+					systemManager.addEventListener(MouseEvent.MOUSE_UP, handleMouseUp, true);
+					_dragStart = new Point(nativeWindow.bounds.x + event.stageX, nativeWindow.bounds.y + event.stageY);
+					_dragCurrent = new Point(_dragStart.x, _dragStart.y);
+				}
 				Logger.instance.log("Mouse down", Logger.SEVERITY_DEBUG);
 			}
-			
+
+			public function get resizeDirection():String {
+				if (currentSide == UIUtils.SIDE_TOP) {
+					return NativeWindowResize.BOTTOM;
+				} else if (currentSide == UIUtils.SIDE_RIGHT) {
+					return NativeWindowResize.LEFT;
+				} else if (currentSide == UIUtils.SIDE_BOTTOM) {
+					return NativeWindowResize.TOP;
+				} else if (currentSide == UIUtils.SIDE_LEFT) {
+					return NativeWindowResize.RIGHT;
+				} else {
+					return null;
+				}
+			}
+
 			/**
 			 * Handles a mouse move on the application. This is only active during a ticker drag.
 			 */

@@ -239,6 +239,12 @@ Image
 	overSkin: Embed(source="starOver.png");
 	downSkin: Embed(source="starDown.png");
 }
+.postButton
+{
+	upSkin: Embed(source="postUp.png");
+	overSkin: Embed(source="postOver.png");
+	downSkin: Embed(source="postDown.png");
+}
 CheckBox
 {
 	disabledIcon: Embed(source="CheckBox_disabledIcon.png");

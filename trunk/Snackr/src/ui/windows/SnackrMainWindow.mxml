@@ -1077,9 +1077,9 @@
 					graphics.beginGradientFill(GradientType.LINEAR, [0x333333, 0x000000], [_backgroundOpacity, _backgroundOpacity], [0, 255], gradientMatrix, SpreadMethod.PAD);
 					if (isVertical) {
 						// Don't need a tab if we're vertical.
-						// TODO: needed to change this back to unscaledWidth/Height to work properly
-						// during resize. Doesn't seem to mess up collapsing.
-						graphics.drawRect(0, 0, unscaledWidth, unscaledHeight);
+						// TODO: using this width/height breaks resize according to Matthew, but using unscaledWidth/Height
+						// breaks collapse on Mac.
+						graphics.drawRect(0, 0, desiredWidth, desiredHeight);
 					}
 					else {
 						if (currentSide == UIUtils.SIDE_TOP) {

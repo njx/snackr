@@ -12,6 +12,7 @@ Before installing a test build, please [http://code.google.com/p/snackr/wiki/Tes
     * Items from your Reader feeds won't show up until a couple minutes after you first connect (if the ticker is already running when you connect).
   * Added the ability to star items so you can read them later. Just click the star icon on item popups, then click the star on the main ticker tab to see the list of all starred items.
     * *NOTE*: Starred items are not yet being synced with Google Reader.
+  * Added a copy/post menu in the item popup to let you copy the item URL to the clipboard, email it, post it to del.icio.us/digg, or make a short URL. Future versions will make this extensible so you can add your own commands.
   * Snackr now minimizes to the system tray (Windows)/dock (OS X) by default. To get the old collapsing behavior back, uncheck the option in the Preferences tab of the Options popup.
   * You can now horizontally resize Snackr when it's vertical (thanks Matthew Boedicker). You can't resize it when it's horizontal yet.
   * Many bugfixes: see [http://code.google.com/p/snackr/issues/list?can=1&q=fixedafter:0.35&colspec=ID%20Type%20Status%20Priority%20FixBy%20FixedAfter%20Owner%20Summary this list].

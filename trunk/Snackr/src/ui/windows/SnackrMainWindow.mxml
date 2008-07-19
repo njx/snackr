@@ -35,7 +35,7 @@
 -->
 
 <mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
-	showTitleBar="false" systemChrome="none" type="utility" showFlexChrome="false"
+	showTitleBar="false" systemChrome="none" type="normal" showFlexChrome="false"
 	title="Snackr" transparent="true" minimizable="false" maximizable="false" resizable="false" width="100%" height="100%"
 	minWidth="50" minHeight="4"
 	showStatusBar="false" showGripper="false"

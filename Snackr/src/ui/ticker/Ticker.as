@@ -70,7 +70,10 @@ package ui.ticker
 		private var _mask: Sprite = new Sprite();
 		private var _maskInvalid: Boolean = true;
 		private var _isVertical: Boolean = false;
-		private var _pauseRequesters: int = 0;
+		private var _pauseReasonFlags: int = 0;
+		private var _nextPauseReasonFlag: int = 0;
+		
+		private var _pauseReasonDetailOpen: int;
 		
 		public var currentScreen: Screen;
 		public var currentSide: Number;
@@ -82,6 +85,7 @@ package ui.ticker
 		public function Ticker()
 		{
 			super();
+			_pauseReasonDetailOpen = allocatePauseReasonFlag();
 		}
 		
 		public function set feedModel(value: FeedModel): void {
@@ -285,17 +289,23 @@ package ui.ticker
 			addEventListener(Event.ENTER_FRAME, handleEnterFrame);
 		}
 		
-		public function pause(): void {
-			if (_pauseRequesters == 0) {
-				removeEventListener(Event.ENTER_FRAME, handleEnterFrame);
+		public function allocatePauseReasonFlag(): int {
+			if (_nextPauseReasonFlag > 31) {
+				Logger.instance.log("Too many pause flags!", Logger.SEVERITY_SERIOUS);
 			}
-			_pauseRequesters++;
+			return _nextPauseReasonFlag++;
 		}
 		
-		public function resume(): void {
-			_pauseRequesters--;
-			if (_pauseRequesters <= 0) {
-				_pauseRequesters = 0;
+		public function pause(pauseReasonFlag: int): void {
+			if (_pauseReasonFlags == 0) {
+				removeEventListener(Event.ENTER_FRAME, handleEnterFrame);
+			}
+			_pauseReasonFlags |= (1 << pauseReasonFlag);
+		}
+		
+		public function resume(pauseReasonFlag: int): void {
+			_pauseReasonFlags &= ~(1 << pauseReasonFlag);
+			if (_pauseReasonFlags == 0) {
 				_frameCount = 0;
 				addEventListener(Event.ENTER_FRAME, handleEnterFrame);
 			}
@@ -419,14 +429,14 @@ package ui.ticker
 		 * Handler for when detail popups open. Pauses the ticker.
 		 */
 		private function handleDetailPopupOpen(event: DetailPopupManagerEvent): void {
-			pause();
+			pause(_pauseReasonDetailOpen);
 		}
 		
 		/**
 		 * Handler for when detail popups close. Resumes the ticker.
 		 */
 		private function handleDetailPopupClose(event: DetailPopupManagerEvent): void {
-			resume();
+			resume(_pauseReasonDetailOpen);
 		}
 		
 		/**

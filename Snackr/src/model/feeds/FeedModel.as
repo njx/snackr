@@ -253,6 +253,11 @@ package model.feeds
 			createIndex2.text =
 				"CREATE INDEX IF NOT EXISTS main.idxFeedsByPriority ON feeds (priority)";
 			createIndex2.execute();
+			var createIndex3: LoggingStatement = new LoggingStatement();
+			createIndex3.sqlConnection = _sqlConnection;
+			createIndex3.text =
+				"CREATE INDEX IF NOT EXISTS main.idxFeedItemsByLink ON feedItems (link)";
+			createIndex3.execute();
 			
 			// Turn off the "wasShown" bit for all items, so we always see the newest stuff. 
 			// (Read items will still be skipped.)

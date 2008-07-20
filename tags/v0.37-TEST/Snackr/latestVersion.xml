@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<snackr>
+        <version>v0.33</version>
+        <url>http://snackr.net/Snackr.air</url>
+        <info><![CDATA[
+<p>New in version 0.33:</p>
+<ul>
+<li><b>Follow "snackr" on twitter</b> to get the latest Snackr news!</li>
+<li>Snackr now properly renders item titles with non-Latin characters.</li>
+<li>You can now select multiple feeds and delete them from the feed list.</li>
+<li>Bug fixes that should eliminate duplicate items when there's only one item left in a given feed. Behavior still isn't great when you only have a few feeds and few items in each.</li>
+<li>Stay-on-top (and other options) should be properly remembered between invocations now.</li>
+</ul>
+		]]></info>
+</snackr>

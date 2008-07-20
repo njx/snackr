@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" 
+	initialWidth="300" initialHeight="60" animateOnOpen="false"
+	deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
+	<!-- TODO: doesn't look right, need to inflate window boundaries -->
+	<!--
+	<mx:filters>
+		<mx:DropShadowFilter distance="5" color="#000000" alpha="0.5" blurX="5" blurY="5"/>
+	</mx:filters>
+	-->
+	<mx:Script>
+		<![CDATA[
+			import mx.events.MenuEvent;
+			import mx.controls.Menu;
+			import model.feeds.FeedItem;
+			import ui.utils.AnimateRectProperty;
+			import mx.effects.easing.Exponential;
+			import mx.events.EffectEvent;
+			import mx.effects.AnimateProperty;
+			import mx.effects.Parallel;
+			import ui.utils.UIUtils;
+			
+			private var _data: Object = null;
+			private var _isHTMLComplete: Boolean = false;
+			private var _dataChanged: Boolean = false;
+			
+			// List of items for the "Post Tools" menu. 
+			// TODO: make configurable in the Options popup
+			static private const POST_TOOLS: Array = [
+				new CopyToClipboardPostMenuItem(),
+				new URLPatternPostMenuItem("Send in email", "mailto:?subject=${title}&body=${link}"),
+				new URLPatternPostMenuItem("Post to del.icio.us", "http://del.icio.us/post?v=4&url=${link}&title=${title}"),
+				new URLPatternPostMenuItem("Digg this", "http://digg.com/submit?url=${link}&title=${title}"),
+				new URLPatternPostMenuItem("Make short URL using Snipr", "http://snipr.com/site/snip?link=${link}&title=${title}") 
+			];
+			
+			[Bindable]
+			override public function get data(): Object {
+				return _data;
+			}			
+			override public function set data(value: Object): void {
+				_data = value;
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			override protected function commitProperties(): void {
+				super.commitProperties();
+				if (_dataChanged && html != null) {
+					_dataChanged = false;
+					updateHTML();
+				}
+				if (!_isLoading) {
+					// We don't actually want to update the controls here if we haven't done the
+					// opening animation yet, because we don't want the "View Post" link and star
+					// button to appear until after that's done.
+					updateControls();
+				}
+			}
+			
+			override protected function handleOpenAnimationComplete(): void {
+				updateControls();
+			}
+			
+			private function updateControls(): void {
+				if (data != null) {
+					viewPostLink.visible = (data.link != null);
+					if (data.feedItem != null && data.feedItem != undefined) {
+						starButton.visible = true;
+						starButton.styleName = (data.feedItem.starred ? "unmarkStarButton" : "markStarButton");
+						starButton.toolTip = (data.feedItem.starred ? "Unstar item" : "Star item");
+						postButton.visible = true;
+					}
+					else {
+						starButton.visible = false;
+						postButton.visible = false;
+					}
+				}
+			}
+
+			override protected function get ignoreChildren(): Array {
+				return [spinner];
+			}
+			
+			override protected function handleCreationComplete(event: Event): void {
+				super.handleCreationComplete(event);
+
+				// Make sure links pop up in the system browser rather than navigating within
+				// our little window.
+				html.htmlLoader.navigateInSystemBrowser = true;
+				
+				// Show a "loading" label if we don't complete loading the HTML within a short while.
+				var loadingTimer: Timer = new Timer(250, 1);
+				loadingTimer.addEventListener(TimerEvent.TIMER, handleLoadingTimer);
+				loadingTimer.start();
+				
+				updateHTML();
+			}
+
+			private function updateHTML(): void {
+				// If the description is empty, just open the actual HTML page.
+				if (_data.description == undefined || _data.description == null || String(_data.description).replace(/\s+/g, "") == "") {
+					if (data.link != null) {
+						html.location = data.link;
+					}
+				}
+				else {
+					html.htmlText = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><body>' + _data.description + '</body></html>';
+				}
+			}
+			
+			private function handleLoadingTimer(event: TimerEvent): void {
+				if (!_isHTMLComplete) {
+					spinner.visible = true;
+					spinner.start();
+				}
+			}
+						
+			private function handleDeactivate(event: Event): void {
+				doClose();
+			}
+			
+			private function resizeToContent(): void {										
+				spinner.stop();
+				spinner.visible = false;
+
+				var newWidth: Number;
+				var newHeight: Number;
+				if (pointerSide == UIUtils.SIDE_TOP || pointerSide == UIUtils.SIDE_BOTTOM) {
+					newWidth = Math.min(currentScreen.visibleBounds.width, html.contentWidth + 30);
+					newHeight = Math.min(
+						(pointerSide == UIUtils.SIDE_TOP ? currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - anchorPoint.y :
+							anchorPoint.y - currentScreen.visibleBounds.y),
+						html.contentHeight + 90);
+				}
+				else {
+					newWidth = Math.min(
+						(pointerSide == UIUtils.SIDE_LEFT ? currentScreen.visibleBounds.x + currentScreen.visibleBounds.width - anchorPoint.x :
+							anchorPoint.x - currentScreen.visibleBounds.x),
+						html.contentWidth + 30);
+					newHeight = Math.min(currentScreen.visibleBounds.height, html.contentHeight + 90);					
+				}
+				animateToSize(newWidth, newHeight);
+			}
+			
+			private function handleHTMLComplete(event: Event): void {
+				_isHTMLComplete = true;
+				if (!nativeWindow.closed) {
+					resizeToContent();
+				}
+			}
+
+			private function handleStarButtonClick(event: Event): void {
+				if (data != null && data.feedItem != undefined && data.feedItem != null) {
+					var feedItem: FeedItem = data.feedItem;
+					feedItem.feed.setItemStarred(feedItem, !feedItem.starred);
+				}
+				invalidateProperties();
+			}
+			
+			private function handlePostButtonClick(event: MouseEvent): void {
+				var postMenu: NativeMenu = new NativeMenu();
+				for each (var tool: IPostMenuItem in POST_TOOLS) {
+					var menuItem: NativeMenuItem = new NativeMenuItem(tool.label);
+					menuItem.data = tool;
+					postMenu.addItem(menuItem);
+				}
+				postMenu.addEventListener(Event.SELECT, handlePostMenuItemClick);
+				postMenu.display(postButton.stage, event.stageX, event.stageY);
+			}
+			
+			private function handlePostMenuItemClick(event: Event): void {
+				var item: IPostMenuItem = IPostMenuItem(event.target.data);
+				item.execute(data.feedItem);
+			}
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<utils:Spinner id="spinner" horizontalCenter="0" verticalCenter="0" visible="false"/>
+		<utils:CharSetDetectingLabel id="titleLabel" htmlText="{data.title}" fontSize="12" left="3" y="3" right="42" minWidth="25"/>
+		<mx:Button id="closeButton" styleName="closeButton" width="16" height="16" y="3" right="3" click="doClose()"/>
+		<mx:HTML id="html" left="5" top="25" right="5" bottom="25" paintsDefaultBackground="true"
+			paddingLeft="5" paddingTop="5" paddingRight="5" paddingBottom="5" complete="handleHTMLComplete(event)">
+			<mx:filters>
+				<mx:DropShadowFilter angle="90"/>
+			</mx:filters>
+		</mx:HTML>
+		<mx:LinkButton id="viewPostLink" fontWeight="normal" label="View post" bottom="3" left="3" click="navigateToURL(new URLRequest(data.link))"/>
+		<mx:Button id="starButton" styleName="markStarButton" width="16" height="16" bottom="5" right="23" click="handleStarButtonClick(event)" toolTip="Star item to read later"/>					
+		<mx:Button id="postButton" styleName="postButton" width="16" height="16" bottom="5" right="3" click="handlePostButtonClick(event)" toolTip="Send/post item"/>					
+	</popupChildren>
+</Popup>

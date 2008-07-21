@@ -7,7 +7,7 @@ Builds with TEST in the version number are builds that haven't been tested much 
 
 Before you install a test build, you should either back up your existing Snackr database, or at least export your current feed list, so if your database goes south you can at least get all your feeds back. If you plan to enable Google Reader integration, make sure you back up your Google Reader settings by exporting your feed list to an OPML file.
 
-*To back up your database*, just go into your My Documents (Windows) or Documents (Mac) folder, look for the Snackr subfolder, and copy the FeedDatabase.sql file somewhere safe. To restore the database, just quit Snackr, copy the file back into the Documents/Snackr folder, and restart Snackr.
+*To back up your database*, just go into your My Documents (Windows) or Documents (Mac) folder, look for the Snackr subfolder, and copy the !FeedDatabase.sql file somewhere safe. To restore the database, just quit Snackr, copy the file back into the Documents/Snackr folder, and restart Snackr.
 
 *To export your feeds*, click the Export button at the bottom of the Feeds tab of the Options popup. To reimport your feeds, use the Import button.
 

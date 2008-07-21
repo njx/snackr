@@ -8,6 +8,7 @@ If you're upgrading from the 0.33 official release, see also the [http://code.go
 Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database AND your Google Reader feed list]!
 
   * Added initial version of Google Reader integration (by Rob Adams)--woohoo! You can set this up from the Getting Started popup, or go to the Options Popup and click on the Google Reader tab. Some caveats:
+    * *If you delete a feed in Snackr, it will automatically be deleted in Reader as well* (and if you add a feed in Snackr, it will get added to Reader too). We plan to make this optional in the future.
     * If you have a lot of feeds or read items in Google Reader, the ticker may stutter a bit after you first connect as it synchronizes everything.
     * Items from your Reader feeds won't show up until a couple minutes after you first connect (if the ticker is already running when you connect).
     * *NOTE*: Starred items are not yet being synced with Google Reader.

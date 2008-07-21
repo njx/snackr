@@ -51,6 +51,12 @@ package model.feeds.readers
 		public function authenticate(login: String, password: String) : void {
 			Logger.instance.log("NullFeedReaderSynchronizer: authenticate: " + login + ", " + password, Logger.SEVERITY_DEBUG);
 		}
+		
+		public function get connected() : Boolean {
+			Logger.instance.log("NullFeedReaderSynchronizer: connected", Logger.SEVERITY_DEBUG);
+			//the null feed reader synchronizer is never connected
+			return false;
+		}
 
 		public function synchronizeAll(): void
 		{

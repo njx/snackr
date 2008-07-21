@@ -515,7 +515,13 @@
 			
 			private function handleEnableReaderSyncChange(event : Event) : void {
 				if(enableReaderSyncCheckbox.selected != (_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1")) {
-					readerCredentialsUnchecked = true;
+					//we don't want to check credentials if the user has disabled synchronization
+					if(enableReaderSyncCheckbox.selected) {
+						readerCredentialsUnchecked = true;
+					}
+					else {
+						readerCredentialsUnchecked = false;
+					}
 					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, (enableReaderSyncCheckbox.selected ? "1" : "0"));					
 				}
 			}
@@ -533,6 +539,7 @@
 					_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
 				}
 			}
+			
 		]]>
 	</mx:Script>
 	<popupChildren>
@@ -542,13 +549,22 @@
 				<mx:DropShadowFilter angle="90" blurX="5" blurY="5"/>
 			</mx:filters>
 			<mx:Canvas label="Feeds" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" id="canvas1">
-				<mx:DataGrid id="feedGrid" left="10" top="0" right="-2" bottom="21" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
-					itemRenderer="ui.utils.CharSetDetectingLabel">
-					<mx:columns>
-						<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
-						<mx:DataGridColumn headerText="URL" dataField="url"/>
-					</mx:columns>
-				</mx:DataGrid>
+
+				<mx:VBox left="0" top="0" right="-2" bottom="21">
+					<mx:Canvas width="100%" backgroundColor="#FFFFFF" includeInLayout="{ReaderSynchronizerManager.reader.connected}" visible="{ReaderSynchronizerManager.reader.connected}">
+						<mx:Label x="10" y="0" color="#000000" text="Connected to Google Reader - adding/removing feeds will update your Google Reader account."/>						
+					</mx:Canvas>
+					<mx:Canvas width="100%" height="100%">
+					<mx:DataGrid x="10" width="100%" height="100%" id="feedGrid" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
+						itemRenderer="ui.utils.CharSetDetectingLabel">
+						<mx:columns>
+							<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
+							<mx:DataGridColumn headerText="URL" dataField="url"/>
+						</mx:columns>
+					</mx:DataGrid>
+					</mx:Canvas>
+				</mx:VBox>
+
 				<mx:HRule left="0" right="0" top="25" strokeWidth="1" strokeColor="#666666"/>
 				<mx:HBox left="10" bottom="-1" verticalAlign="middle">
 					<mx:Label text="Check feeds every"/>
@@ -584,7 +600,13 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 				<mx:Button left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
 				<utils:Spinner right="col3:0" y="185" id="authenticatingSpinner" visible="false" />
 				<mx:Label left="col4:10" y="193" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
-				<mx:Label left="col4:10" y="193" text="Snackr is currently connected to Google Reader" id="connectedLabel" visible="false" />
+				<mx:Text left="col4:10" y="193" text="" id="connectedLabel" visible="{ReaderSynchronizerManager.reader.connected}">
+					<mx:htmlText>
+						<![CDATA[Snackr is currently connected to Google Reader.
+<b>Adding feeds to Snackr will cause them to be added to Google Reader and vice-versa.</b>
+<b>Removing feeds from Snackr will cause them to be removed from Google Reader and vice-versa.]]>
+					</mx:htmlText>
+				</mx:Text>
 				<mx:Text left="col4:10" y="193" id="badPasswordText" visible="false">
 					<mx:htmlText>
 						<![CDATA[<b>The user name and password did not match.</b>

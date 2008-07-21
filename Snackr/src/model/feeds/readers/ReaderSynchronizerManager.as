@@ -28,7 +28,6 @@
 
 package model.feeds.readers
 {
-	import flash.data.SQLConnection;
 	import flash.events.TimerEvent;
 	import flash.utils.Timer;
 	
@@ -44,8 +43,9 @@ package model.feeds.readers
 		 * How long to wait between syncs with the external feed reader program.
 		 */
 		static private const FEED_READER_SYNC_INTERVAL : Number = 600000;
-
-		private static var _reader: IFeedReaderSynchronizer;
+		
+		[Bindable]
+		public static var reader: IFeedReaderSynchronizer;
 		
 		/**
 		 * Timer that causes the feed reader synchronizer to poll its reader for remote
@@ -54,17 +54,13 @@ package model.feeds.readers
 		private static var _feedReaderSynchronizeTimer: Timer = null;
 		
 		public static function initializeGoogleReaderSynchronizer(feedModel: FeedModel) : void {
-			_reader = new GoogleReaderSynchronizer(feedModel.sqlConnection, feedModel);
+			reader = new GoogleReaderSynchronizer(feedModel.sqlConnection, feedModel);
 			initializeTimer();
 		}
 		
 		public static function initializeNullReaderSynchronizer() : void {
-			_reader = new NullFeedReaderSynchronizer;
+			reader = new NullFeedReaderSynchronizer;
 			initializeTimer();
-		}
-		
-		public static function get reader() : IFeedReaderSynchronizer {
-			return _reader;
 		}
 		
 		public static function startSyncTimer() : void {
@@ -76,7 +72,7 @@ package model.feeds.readers
 			initializeTimer();
 			_feedReaderSynchronizeTimer.stop();
 		}
-		
+
 		private static function initializeTimer() : void {
 			if(_feedReaderSynchronizeTimer == null) {
 				_feedReaderSynchronizeTimer = new Timer(FEED_READER_SYNC_INTERVAL);
@@ -86,8 +82,8 @@ package model.feeds.readers
 		}
 		
 		private static function handleSyncTimerEvent(event: TimerEvent) : void {
-			if(_reader != null)
-				_reader.synchronizeAll();
+			if(reader != null)
+				reader.synchronizeAll();
 		}
 	}
 }

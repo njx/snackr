@@ -30,13 +30,16 @@
 
 <mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" height="158" layout="absolute" horizontalCenter="0" verticalCenter="0" 
 	defaultButton="{_noButton}" title="Remove Feed" creationComplete="handleCreationComplete(event)" xmlns:utils="ui.utils.*">
-	<mx:Label left="10" right="10" y="10" id="question" text="Are you sure you want to remove this feed:"/>
-	<utils:CharSetDetectingLabel id="_feedNameLabel" y="38" left="10" right="10" text="{feedName}"/>
+	<mx:VBox left="10" right="10" y="10">
+		<mx:Text id="question" text="Are you sure you want to remove this feed:"/>
+		<utils:CharSetDetectingLabel id="_feedNameLabel" text="{feedName}"/>
+	</mx:VBox>
 	<mx:Button label="Yes" width="63" bottom="10" click="handleDeleteFeedYes()" right="81"/>
 	<mx:Button id="_noButton" label="No" width="63" bottom="10" click="handleDeleteFeedNo()" right="11"/>
 	
 	<mx:Script>
 		<![CDATA[
+			import model.feeds.readers.ReaderSynchronizerManager;
 			import mx.controls.Alert;
 			import mx.events.CloseEvent;
 			
@@ -53,7 +56,15 @@
 			
 			private function handleCreationComplete(event: Event): void {
 				if (feedName == "") {
-					question.text = "Are you sure you want to remove these feeds?";
+					if(ReaderSynchronizerManager.reader.connected) {
+						question.text = "Are you sure you want to remove these feeds\nfrom Snackr and Google Reader?";
+					}
+					else {
+						question.text = "Are you sure you want to remove these feeds?";
+					}
+				}
+				else if(ReaderSynchronizerManager.reader.connected) {
+					question.text = "Are you sure you want to remove this feed\nfrom Snackr and Google Reader:";
 				}
 			}
 		]]>

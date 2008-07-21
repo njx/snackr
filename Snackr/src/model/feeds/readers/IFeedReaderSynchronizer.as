@@ -47,6 +47,12 @@ package model.feeds.readers
 		 * @param password The user's password
 		 */
 		function authenticate(login: String, password: String): void;
+		
+		/**
+		 * Tells us whether the synchronizer is currently connected to its remote reader client or not.
+		 * @return true if connected, false otherwise
+		 */
+		function get connected(): Boolean;
 			
 		/**
 		 *	Sync up all feeds and read/unread items between the local Snackr database and the external feed reader

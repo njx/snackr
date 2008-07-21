@@ -63,6 +63,8 @@ package model.feeds.readers
 		private var _SID: String;
 		private var optionsModel:OptionsModel;
 		
+		private var _connected: Boolean = false;
+		
 		namespace atom = "http://www.w3.org/2005/Atom";
 		namespace gr = "http://www.google.com/schemas/reader/atom/";
 		
@@ -92,6 +94,7 @@ package model.feeds.readers
 				for(var i:int = 0; i < tokens.length; i++) {
 					if((tokens[i] == "SID") && (i+1 != tokens.length)) {
 						_SID = tokens[i+1];
+						connected = true;
 						break;
 					}
 				}
@@ -100,14 +103,28 @@ package model.feeds.readers
 			});
 			authConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleAuthFaultEvent(event: IOErrorEvent): void {
 				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event:" + event, Logger.SEVERITY_NORMAL);
+				connected = false;
 				dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_FAILURE));
 			});
 			authConnection.addEventListener(HTTPStatusEvent.HTTP_STATUS, function handleAuthStatusEvent(event: HTTPStatusEvent) : void {
 				Logger.instance.log("GoogleReaderSynchronizer: response status: " + event, Logger.SEVERITY_DEBUG);
+				connected = false;
 				if(event.status == AUTH_BAD_CREDENTIALS_STATUS_CODE)
 					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_BAD_CREDENTIALS));
 			});
 			authConnection.load(authRequest);
+		}
+		
+		[Bindable(event="connectedChanged")]
+		override public function get connected() : Boolean {
+			return _connected;
+		}
+		
+		public function set connected(value: Boolean) : void {
+			if(_connected != value) {
+				_connected = value;
+				dispatchEvent(new Event("connectedChanged"));
+			}
 		}
 		
 		/**
@@ -227,7 +244,6 @@ package model.feeds.readers
 		}
 		
 		override public function getReadItems(callback: Function): void {
-			//TODO: GR will only return the last 20 read items by default - figure out how many we should request
 			getReadItemsHelper(callback, new ArrayCollection, null);
 		}
 		

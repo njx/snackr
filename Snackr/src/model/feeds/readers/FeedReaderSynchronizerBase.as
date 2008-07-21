@@ -206,7 +206,7 @@ package model.feeds.readers
 				}
 			});
 		}
-			
+		
 		public function setFeedList(newFeedList: ArrayCollection): void {
 			mergeOrSetFeeds(newFeedList, SET);
 		}
@@ -215,6 +215,11 @@ package model.feeds.readers
 			//implemented by subclasses
 		}
 		
+		public function get connected() : Boolean {
+			//needs to be overridden by subclasses to work
+			return false;
+		}
+			
 		public function getFeeds(callback: Function): void
 		{
 			//implemented by subclasses

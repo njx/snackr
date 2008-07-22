@@ -54,7 +54,7 @@
 	</mx:states>
 	<mx:transitions>
 		<mx:Transition fromState="*" toState="Expanded">
-			<mx:Resize target="{this}" duration="400" heightTo="304" effectEnd="handleExpanded(event)"/>
+			<mx:Resize target="{this}" duration="400" heightTo="320" effectEnd="handleExpanded(event)"/>
 		</mx:Transition>
 <!--		<mx:Transition fromState="*" toState="Success">
 			<mx:Sequence>
@@ -88,6 +88,8 @@
 			
 			private var lastAuthEvent: SynchronizerEvent;
 			
+			private static const FADE_OUT_DELAY: Number = 10000;
+			
 			public function set feedModel(feedModel: FeedModel) : void {
 				_feedModel = feedModel;
 			}
@@ -118,15 +120,20 @@
 			private function handleAuthSuccess(event: SynchronizerEvent) : void {
 				authenticatingLabel.visible = false;
 				authenticatingSpinner.visible = false;
-				successMessage.visible = true;
 				lastAuthEvent = event;
 				ReaderSynchronizerManager.reader.synchronizeAll();
 				ReaderSynchronizerManager.startSyncTimer();
-				var timer:Timer = new Timer(2000);
+				var timer:Timer = new Timer(FADE_OUT_DELAY);
 				timer.addEventListener(TimerEvent.TIMER, function playFadeClose(event: Event) : void {
 					fadeOutWindow.play();
 				});
 				timer.start();
+				if(currentState != "Expanded") {
+					currentState = "Expanded";
+				}
+				else {
+					successMessage.visible = true;
+				}
 			}
 
 			private function handleAuthBadCredentials(event: SynchronizerEvent) : void {
@@ -137,7 +144,13 @@
 				connectButton.enabled = true;
 				lastAuthEvent = event;
 				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
-				currentState = "Expanded";
+				if(currentState != "Expanded") {
+					currentState = "Expanded";
+				}
+				else {
+					badConnectionText.visible = false;
+					badPasswordText.visible = true;
+				}
 			}
 			
 			private function handleAuthFailure(event: SynchronizerEvent) : void {
@@ -149,16 +162,26 @@
 				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
 				if(!(lastAuthEvent != null && lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS)) {
 					lastAuthEvent = event;
+					if(currentState != "Expanded") {
+						currentState = "Expanded";
+					}
+					else {
+						badConnectionText.visible = true;
+					}
 				}
-				currentState = "Expanded";
+				
 			}
 
 			private function handleExpanded(event: Event) : void {
 				if(lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS) {
-					badPasswordText.visible = true
+					badConnectionText.visible = false;
+					badPasswordText.visible = true;
+				}
+				else if(lastAuthEvent.type == SynchronizerEvent.AUTH_FAILURE && !badPasswordText.visible) {
+					badConnectionText.visible = true;
 				}
 				else {
-					badConnectionText.visible = true;
+					successMessage.visible = true;
 				}
 			}
 			
@@ -179,7 +202,15 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 	<mx:Label left="col1:10" right="col1:0" y="106" textAlign="right" text="Password:" id="passwordLabel" />
 	<mx:TextInput displayAsPassword="true" left="col2:10" y="104" width="170" id="passwordInput" />
 	<utils:Spinner right="col1:0" y="134" id="authenticatingSpinner" visible="false" />
-	<mx:Label id="successMessage" left="col2:10" y="140" text="Snackr is now connected to Google Reader!" visible="false"/>
+	<mx:Text id="successMessage" left="col2:10" y="140" visible="false">
+		<mx:htmlText>
+			<![CDATA[Snackr is now connected to Google Reader.
+<b>Adding feeds to Snackr will add them
+to Google Reader and vice-versa.</b>
+<b>Removing feeds from Snackr will remove 
+them from Google Reader and vice-versa.]]>
+		</mx:htmlText>
+	</mx:Text>
 	<mx:Label left="col2:10" y="140" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
 	<mx:Text left="col2:10" y="140" id="badPasswordText" visible="false">
 		<mx:htmlText>

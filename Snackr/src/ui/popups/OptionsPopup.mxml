@@ -603,8 +603,8 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 				<mx:Text left="col4:10" y="193" text="" id="connectedLabel" visible="{ReaderSynchronizerManager.reader.connected}">
 					<mx:htmlText>
 						<![CDATA[Snackr is currently connected to Google Reader.
-<b>Adding feeds to Snackr will cause them to be added to Google Reader and vice-versa.</b>
-<b>Removing feeds from Snackr will cause them to be removed from Google Reader and vice-versa.]]>
+<b>Adding feeds to Snackr will add them to Google Reader and vice-versa.</b>
+<b>Removing feeds from Snackr will remove them from Google Reader and vice-versa.]]>
 					</mx:htmlText>
 				</mx:Text>
 				<mx:Text left="col4:10" y="193" id="badPasswordText" visible="false">

@@ -1,4 +1,4 @@
-#summary Release notes for v0.37 TEST build
+#summary Release notes for v0.37 TEST build [DEPRECATED]
 #labels Deprecated
 
 *IMPORTANT*: v0.37 is now deprecated. Please read the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_38_TEST v0.38 release notes] and [http://code.google.com/p/snackr/downloads/detail?name=Snackr-v0.38-TEST.air download v0.38] instead.

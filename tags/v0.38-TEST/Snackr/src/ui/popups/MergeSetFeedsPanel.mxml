@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" height="246" width="332" layout="absolute" horizontalCenter="0" verticalCenter="0" 
+	title="Combine Feed Lists" xmlns:utils="ui.utils.*">	
+	<mx:Script>
+		<![CDATA[
+			import mx.events.CloseEvent;
+		
+			public static const MERGE_FEED_LIST: String = "merge";
+			public static const SET_GOOGLE_READER_FEED_LIST: String = "setGoogleReader";
+			public static const SET_SNACKR_FEED_LIST: String = "setSnackr";
+			public static const DISABLE_SYNCHRONIZATION: String = "disable";
+		
+			public var optionSelected: String = MERGE_FEED_LIST;
+			
+			private function handleRadioChange(event: Event) : void {
+				optionSelected = event.currentTarget.selectedValue;
+			}
+			
+			private function handleOkPressed(event: Event) : void {
+				dispatchEvent(new CloseEvent(CloseEvent.CLOSE));
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:RadioButtonGroup id="mergeSetCancelGroup" itemClick="handleRadioChange(event)"/>
+	<mx:Text left="10" right="10" top="10" bottom="145">
+		<mx:text>
+		To finish connecting to Google Reader, we need to make the Snackr feed list the same as the list in Reader.
+		How should we do this?
+		</mx:text>
+	</mx:Text>
+	<mx:RadioButton x="10" y="67" label="Merge the feed lists together" groupName="mergeSetCancelGroup" id="mergeButton" selected="true" value="{MERGE_FEED_LIST}"/>
+	<mx:RadioButton x="10" y="89" label="Use Google Reader's list" groupName="mergeSetCancelGroup" id="googleReaderButton" value="{SET_GOOGLE_READER_FEED_LIST}"/>
+	<mx:RadioButton x="10" y="111" label="Use Snackr's list" groupName="mergeSetCancelGroup" id="snackrButton" value="{SET_SNACKR_FEED_LIST}"/>
+	<mx:RadioButton x="10" y="133" label="Disable Google Reader synchronization" groupName="mergeSetCancelGroup" id="disableButton" value="{DISABLE_SYNCHRONIZATION}"/>
+	<mx:Button label="OK" width="63" right="10" bottom="10" click="handleOkPressed(event)"/>
+
+</mx:Panel>

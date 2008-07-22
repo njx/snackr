@@ -551,21 +551,21 @@
 			<mx:Canvas label="Feeds" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" id="canvas1">
 
 				<mx:VBox left="0" top="0" right="-2" bottom="21">
-					<mx:Canvas width="100%" backgroundColor="#FFFFFF" includeInLayout="{ReaderSynchronizerManager.reader.connected}" visible="{ReaderSynchronizerManager.reader.connected}">
-						<mx:Label x="10" y="0" color="#000000" text="Connected to Google Reader - adding/removing feeds will update your Google Reader account."/>						
+					<mx:Canvas width="100%" backgroundColor="#009900" includeInLayout="{ReaderSynchronizerManager.reader.connected}" visible="{ReaderSynchronizerManager.reader.connected}">
+						<mx:Label x="10" y="0" text="Connected to Google Reader - adding/removing feeds will update your Google Reader account."/>						
 					</mx:Canvas>
 					<mx:Canvas width="100%" height="100%">
-					<mx:DataGrid x="10" width="100%" height="100%" id="feedGrid" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
-						itemRenderer="ui.utils.CharSetDetectingLabel">
-						<mx:columns>
-							<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
-							<mx:DataGridColumn headerText="URL" dataField="url"/>
-						</mx:columns>
-					</mx:DataGrid>
+						<mx:DataGrid x="10" width="100%" height="100%" id="feedGrid" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
+							itemRenderer="ui.utils.CharSetDetectingLabel">
+							<mx:columns>
+								<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
+								<mx:DataGridColumn headerText="URL" dataField="url"/>
+							</mx:columns>
+						</mx:DataGrid>
+						<mx:HRule left="0" right="0" top="25" strokeWidth="1" strokeColor="#666666"/>
 					</mx:Canvas>
 				</mx:VBox>
 
-				<mx:HRule left="0" right="0" top="25" strokeWidth="1" strokeColor="#666666"/>
 				<mx:HBox left="10" bottom="-1" verticalAlign="middle">
 					<mx:Label text="Check feeds every"/>
 					<mx:TextInput id="feedCheckMinTimeInput" width="46" valueCommit="handleFeedCheckMinTimeInput(event)"/>

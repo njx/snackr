@@ -1,18 +1,3 @@
 #summary Release notes for v0.37 TEST build
-#labels Featured
 
-==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.37-TEST.air v0.37 TEST build]==
-
-If you're upgrading from the 0.33 official release, see also the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_34_TEST v0.34 release notes] and the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_35_TEST v0.35 release notes].
-
-Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database AND your Google Reader feed list]!
-
-  * Added initial version of Google Reader integration (by Rob Adams)--woohoo! This keeps your feed lists and read items synchronized between Reader and Snackr. You can set this up from the Getting Started popup, or go to the Options Popup and click on the Google Reader tab. Some caveats:
-    * *If you delete a feed in Snackr, it will automatically be deleted in Reader as well* (and if you add a feed in Snackr, it will get added to Reader too). We plan to make this optional in the future.
-    * If you have a lot of feeds or read items in Google Reader, the ticker may stutter a bit after you first connect as it synchronizes everything.
-    * Items from your Reader feeds won't show up until a couple minutes after you first connect (if the ticker is already running when you connect).
-    * *NOTE*: Starred items are not yet being synced with Google Reader.
-  * Added a copy/post menu in the item popup (the arrow icon next to the star) to let you copy the item URL to the clipboard, email it, post it to del.icio.us/digg, or make a short URL. Future versions will make this extensible so you can add your own commands.
-  * Snackr now minimizes to the system tray (Windows)/dock (OS X) by default. To get the old collapsing behavior back, uncheck the option in the Preferences tab of the Options popup.
-  * You can now horizontally resize Snackr when it's vertical (thanks Matthew Boedicker). You can't resize it when it's horizontal yet.
-  * Many bugfixes: see [http://code.google.com/p/snackr/issues/list?can=1&q=fixedafter:0.35&colspec=ID%20Type%20Status%20Priority%20FixBy%20FixedAfter%20Owner%20Summary this list].
+*IMPORTANT*: v0.37 is now deprecated. Please read the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_38_TEST v0.38 release notes] and [http://code.google.com/p/snackr/downloads/detail?name=Snackr-v0.38-TEST.air download v0.38] instead.

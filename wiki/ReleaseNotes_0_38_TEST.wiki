@@ -1,7 +1,7 @@
 #summary Release notes for v0.38 TEST build
 #labels Featured
 
-==Release notes for [http://snackr.googlecode.com/files/Snackr-v0.38-TEST.air v0.38 TEST build]==
+==Release notes for v0.38 TEST build ([http://snackr.googlecode.com/files/Snackr-v0.38-TEST.air click to download)]==
 
 If you're upgrading from the 0.33 official release, see also the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_34_TEST v0.34 release notes] and the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_35_TEST v0.35 release notes].
 

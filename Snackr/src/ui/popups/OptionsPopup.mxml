@@ -33,6 +33,7 @@
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
+			import mx.collections.Sort;
 			import flash.utils.getQualifiedClassName;
 			import model.logger.Logger;
 			import model.feeds.readers.ReaderSynchronizerManager;
@@ -90,6 +91,11 @@
 				tabs.selectedIndex = 1;
 				tabs.validateNow();	
 				tabs.selectedIndex = 0;
+				
+				var initialSort: Sort = new Sort();
+				initialSort.compareFunction = caseInsensitiveCompare;
+				feedModel.feeds.sort = initialSort;
+				feedModel.feeds.refresh();
 			}
 			
 			private function handleOptionChange(event: OptionChangeEvent): void {
@@ -369,7 +375,7 @@
 				doClose();
 			}
 			
-			private function caseInsensitiveCompare(obj1: Object, obj2: Object): int {
+			private function caseInsensitiveCompare(obj1: Object, obj2: Object, fields:Array = null): int {
 				var str1: String = String(obj1.name).toLowerCase();
 				var str2: String = String(obj2.name).toLowerCase();
 				if (str1 < str2) {

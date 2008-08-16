@@ -431,10 +431,10 @@ package model.feeds
 		private function handleFeedURLCheckResult(event: ResultEvent): void {
 			var result: String = String(event.result);
 			var url: String = HTTPService(event.target).url;
+			var isValid: Boolean = false;
 			
 			// Looks like we can't get the content-type (headers seems to be null often).
 			// Does this look like HTML? If so, try to find possible autodiscover tags.
-			var autodiscovered: Boolean = false;
 			var hrefRegExp: RegExp = /href="([^"]+)"/i;
 			if (result.match(/<html/i) != null) {
 				var links: Array = result.match(/<link [^>]*>/gi);
@@ -446,28 +446,31 @@ package model.feeds
 							var feedURL: String = FeedUtils.resolveURL(feedURLMatches[1], url);
 							// Go and fetch it and make sure it looks like a feed.
 							addOrDiscoverNewFeed(feedURL);
-							autodiscovered = true;
+							isValid = true;
 							break;
 						}
 					}
 				}
-				if (!autodiscovered) {
-					dispatchEvent(new FeedModelEvent(FeedModelEvent.INVALID_FEED, url));
+			}
+			else if (result.match(/<?xml/) != null || result.match(/<rss/) != null || result.match(/<RDF/) != null || result.match(/<feed/) != null) {
+				// Make sure it looks like a real feed.
+				try {
+					var resultXML: XML = XML(result);
+					var localName: String = resultXML.localName();
+					if (localName == "rss" || localName == "RDF" || localName == "feed") {			
+						// TODO: this will end up fetching the feed again...kind of dumb; should just pass through
+						// the XML we already got.
+						addFeedURL(url, true);
+						isValid = true;
+					}
+				}
+				catch (e: Error) {
+					Logger.instance.log("FeedModel.addOrDiscoverNewFeed(): error checking feed " + url + ": " + e.message);
 				}
 			}
-			else if (result.match(/<?xml/) != null) {
-				// Make sure it looks like a real feed.
-				var resultXML: XML = XML(result);
-				var localName: String = resultXML.localName();
-				if (localName == "rss" || localName == "RDF" || localName == "feed") {			
-					// TODO: this will end up fetching the feed again...kind of dumb; should just pass through
-					// the XML we already got.
-					addFeedURL(url, true);
-				}
-				else {
-					dispatchEvent(new FeedModelEvent(FeedModelEvent.INVALID_FEED, url));
-				}
-			}	
+			if (!isValid) {
+				dispatchEvent(new FeedModelEvent(FeedModelEvent.INVALID_FEED, url));
+			}
 		}
 		
 		/**

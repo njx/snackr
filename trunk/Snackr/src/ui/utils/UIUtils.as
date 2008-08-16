@@ -132,6 +132,9 @@ package ui.utils
 				var title: String = stripHTML(feedItem.title);
 				if (title == null || title == "") {
 					tickerItem.title = stripHTML(feedItem.description);
+					if (tickerItem.title.length > 150) {
+						tickerItem.title = tickerItem.title.substr(0, 150) + "...";
+					}
 				}
 				else {
 					tickerItem.title = title;

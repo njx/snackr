@@ -157,11 +157,6 @@
 			 * installation directory.
 			 */
 			static private const HINTS_FILE: String = "hints.xml";
-			/**
-			 * Name of the database where we store all feeds and options. This file
-			 * is within the user's documents folder in the Snackr subfolder.
-			 */		
-			static private const DB_FILE: String = "FeedDatabase.sql";
 						
 			/**
 			 * Default values for all options. We set these on startup if they're not
@@ -186,11 +181,6 @@
 			 * whether to update Snackr.
 			 */
 			static private const UPDATE_INFO_URL: String = "http://snackr.net/latestVersion.xml";
-			
-			/**
-			 * The namespace of the AIR application XML file schema.
-			 */
-			namespace airAppNS = "http://ns.adobe.com/air/application/1.0";
 			
 			/**
 			 * Our connection to the local database. We keep this open for the lifetime of the app.
@@ -338,45 +328,31 @@
 			static private const RESIZE_BORDER_WIDTH: Number = 8;
 
 			private var _cursor:Class;
+			
+			public function initializeModels(sqlConnection: SQLConnection, feedModel: FeedModel, optionsModel: OptionsModel): void {
+				_sqlConnection = sqlConnection;
+				_feedModel = feedModel;
+				_optionsModel = optionsModel;
+			}
 
 			/**
 			 * The main startup sequence for Snackr; this happens after all the subcomponents of
 			 * the window are created.
 			 */
 			private function handleCreationComplete(event: Event): void {
+				if (_sqlConnection == null || _feedModel == null || _optionsModel == null) {
+					// These must be initialized before the window is opened.
+					throw new Error("Models not initialized before window open");
+				}
+				
+				Logger.instance.addEventListener(LogEvent.LOG_ITEM, handleLogItem);				
+
 				_pauseReasonCollapsed = ticker.allocatePauseReasonFlag();
 				_pauseReasonMinimized = ticker.allocatePauseReasonFlag();
 				_pauseReasonRolledOver = ticker.allocatePauseReasonFlag();
 				
 				NativeApplication.nativeApplication.addEventListener(Event.EXITING, handleExiting);
-				
-				// Create the Snackr data folder if it doesn't exist (inside the user's
-				// document's folder).
-				var docRoot: File = File.documentsDirectory.resolvePath(appName);
-				docRoot.createDirectory();
-				
-				// Initialize the logger. The logger writes to the file Log.txt in the
-				// Snackr data folder. We keep the previous 3 log files around.
-				var oldLogFile: File;
-				for (var i: int = 2; i >= 0; i--) {
-					oldLogFile = docRoot.resolvePath("Log" + (i == 0 ? "" : String(i)) + ".txt");
-					if (oldLogFile.exists) {
-						try {
-							oldLogFile.moveTo(docRoot.resolvePath("Log" + String(i+1) + ".txt"), true);
-						}
-						catch (e: Error) {
-							// Too early to log this. Oh well. It just means that we won't be preserving
-							// log files earlier than the current one.
-							trace("Can't back up log file " + oldLogFile.name);
-						}
-					}			
-				}
-				
-				Logger.instance.initialize(docRoot.resolvePath("Log.txt"));
-				Logger.instance.addEventListener(LogEvent.LOG_ITEM, handleLogItem);
-				
-				Logger.instance.log("Snackr starting");
-				
+								
 				// Try to open and read the hints file.
 				var hintsFile: File = File.applicationDirectory.resolvePath(HINTS_FILE);
 				var fileStream: FileStream = new FileStream();
@@ -391,25 +367,11 @@
 					fileStream.close();
 				}			
 				
-				// Open the Snackr database file and initialize the models from it.
-				var dbFile: File = docRoot.resolvePath(DB_FILE);
-				try {
-					_sqlConnection = new SQLConnection();
-					_sqlConnection.open(dbFile);
-					_sqlConnection.compact();
-					_optionsModel = new OptionsModel(_sqlConnection);
-					_feedModel = new FeedModel(_sqlConnection);
-				}
-				catch (error: SQLError) {
-					Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
-					throw error;
-				}
-				
 				ticker.feedModel = _feedModel;
 				
 				// Load the existing options values (or set them to their defaults if they don't exist).
 				readOptions();
-				_optionsModel.setValue(OptionsModel.OPTION_VERSION, appVersion);
+				_optionsModel.setValue(OptionsModel.OPTION_VERSION, UIUtils.appVersion);
 
 				// Add listeners for model events.
 				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
@@ -482,7 +444,7 @@
 			    	// Load the icon image. When it's complete, we'll assign it to the system tray icon.
 			    	var iconLoader: Loader = new Loader();
 			    	iconLoader.contentLoaderInfo.addEventListener(Event.COMPLETE, handleSysTrayIconComplete);
-			    	iconLoader.load(new URLRequest(appSmallIconURL));
+			    	iconLoader.load(new URLRequest(UIUtils.appSmallIconURL));
 			    	
 			    	var sysTrayIcon: SystemTrayIcon = NativeApplication.nativeApplication.icon as SystemTrayIcon;
 			    	sysTrayIcon.tooltip = "Snackr";
@@ -782,51 +744,17 @@
 						var hint: XML = _hints.hint[Math.floor(Math.random() * _hints.hint.length())];
 						hintItem.title = hint.title;
 						hintItem.description = hint.description;
-						hintItem.imageURL = appIconURL;
+						hintItem.imageURL = UIUtils.appIconURL;
 						hintItem.info = "Snackr Tips";
 					}
 					else {
-						hintItem.title = "Welcome to " + appName + "!";
-						hintItem.description =  "<a href=\"http://www.snackr.net/\">" + appName + "</a> " + appVersion + " by <a href=\"mailto:nj@snackr.net\">Narciso (nj) Jaramillo</a>";
-						hintItem.imageURL = appIconURL;
+						hintItem.title = "Welcome to " + UIUtils.appName + "!";
+						hintItem.description =  "<a href=\"http://www.snackr.net/\">" + UIUtils.appName + "</a> " + UIUtils.appVersion + " by <a href=\"mailto:nj@snackr.net\">Narciso (nj) Jaramillo</a>";
+						hintItem.imageURL = UIUtils.appIconURL;
 						hintItem.info = "Narciso (nj) Jaramillo";
 					}
 					ticker.queueItem(hintItem);
 				}
-			}
-			
-			/**
-			 * Returns the name of the application ("Snackr", of course!)
-			 */
-			private function get appName(): String {
-				return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::name;	
-			}
-			
-			/**
-			 * Returns the current version of the application. Note that this is a string, and
-			 * is of the form "v" + version number. Strip off any non-numeric characters off the
-			 * front before using it for numeric version comparisons.
-			 */
-			private function get appVersion(): String {
-				return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::version;
-			}
-			
-			/**
-			 * URL to the Snackr application icon.
-			 */
-			private function get appIconURL(): String {
-				use namespace airAppNS;
-				var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image48x48);
-				return iconFile.url;
-			}
-			
-			/**
-			 * URL to the small version of the Snackr icon.
-			 */
-			private function get appSmallIconURL(): String {
-				use namespace airAppNS;
-				var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image16x16);
-				return iconFile.url;
 			}
 			
 			/**
@@ -1037,7 +965,7 @@
 					options.currentScreen = currentScreen;
 					options.feedModel = _feedModel;
 					options.optionsModel = _optionsModel;
-					options.popupTitle = appName + " " + appVersion;
+					options.popupTitle = UIUtils.appName + " " + UIUtils.appVersion;
 					
 					// Figure out where to place the popup. It should grow out of the options button.
 					if (isVertical) {
@@ -1159,12 +1087,12 @@
 				var newVersion: String = event.result.version.toString();
 				if (newVersion != null) {
 					var newVersionNum: Number = extractVersion(newVersion);
-					if (newVersionNum > extractVersion(appVersion)) {
+					if (newVersionNum > extractVersion(UIUtils.appVersion)) {
 						// A new version is available. Ask the user if s/he wants to install it.
 						var updatePopup: UpdatePopup = new UpdatePopup();
 						updatePopup.currentScreen = currentScreen;
 						updatePopup.newVersion = newVersion;
-						updatePopup.oldVersion = appVersion;
+						updatePopup.oldVersion = UIUtils.appVersion;
 						updatePopup.updaterURL = event.result.url.toString();
 						updatePopup.updateInfoHTML = event.result.info.toString();
 						updatePopup.open(false);
@@ -1396,7 +1324,7 @@
 						// The first time the user minimizes, tell them we're going in the system tray.
 						if (_optionsModel.getValue(OptionsModel.OPTION_SHOWED_MINIMIZE_HINT) == "0") {
 							var notifier: NotifierWindow = new NotifierWindow();
-							notifier.iconURL = appIconURL;
+							notifier.iconURL = UIUtils.appIconURL;
 							notifier.message = "Click the Snackr icon in the system tray to bring Snackr back.";
 							notifier.open();
 							_optionsModel.setValue(OptionsModel.OPTION_SHOWED_MINIMIZE_HINT, "1");

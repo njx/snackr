@@ -30,8 +30,10 @@ package ui.utils
 {
 	import flash.desktop.Clipboard;
 	import flash.desktop.ClipboardFormats;
+	import flash.desktop.NativeApplication;
 	import flash.display.Graphics;
 	import flash.display.NativeWindow;
+	import flash.filesystem.File;
 	import flash.geom.Rectangle;
 	import flash.text.Font;
 	
@@ -51,6 +53,11 @@ package ui.utils
 		static public const SIDE_LEFT: Number = 2;
 		static public const SIDE_RIGHT: Number = 3;
 		
+		/**
+		 * The namespace of the AIR application XML file schema.
+		 */
+		namespace airAppNS = "http://ns.adobe.com/air/application/1.0";
+			
 		static public function drawSpeechBalloon(graphics: Graphics, pointerSide: Number, bounds: Rectangle, pointerPos: Number,
 			pointerWidth: Number, pointerHeight: Number): void {	
 			graphics.lineStyle();
@@ -234,6 +241,40 @@ package ui.utils
 			str = str.replace("&gt;", ">");
 			str = str.replace("&amp;", "&");
 			return str;
+		}
+		
+		/**
+		 * Returns the name of the application ("Snackr", of course!)
+		 */
+		static public function get appName(): String {
+			return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::name;	
+		}
+		
+		/**
+		 * Returns the current version of the application. Note that this is a string, and
+		 * is of the form "v" + version number. Strip off any non-numeric characters off the
+		 * front before using it for numeric version comparisons.
+		 */
+		static public function get appVersion(): String {
+			return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::version;
+		}
+
+		/**
+		 * URL to the Snackr application icon.
+		 */
+		static public function get appIconURL(): String {
+			use namespace airAppNS;
+			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image48x48);
+			return iconFile.url;
+		}
+		
+		/**
+		 * URL to the small version of the Snackr icon.
+		 */
+		static public function get appSmallIconURL(): String {
+			use namespace airAppNS;
+			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image16x16);
+			return iconFile.url;
 		}
 	}
 }

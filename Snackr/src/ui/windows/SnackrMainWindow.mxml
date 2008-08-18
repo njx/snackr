@@ -772,7 +772,10 @@
 					spinner.stop();
 					
 					_tickerStarted = true;
-					
+										
+					// Start the ticker.
+					ticker.animate();
+
 					// Add a fake "hint" item to the ticker queue as the first item.
 					var hintItem: TickerItemData = new TickerItemData();
 					if (_hints != null && _hints.hint.length() > 0) {
@@ -789,9 +792,6 @@
 						hintItem.info = "Narciso (nj) Jaramillo";
 					}
 					ticker.queueItem(hintItem);
-					
-					// Start the ticker.
-					ticker.animate();
 				}
 			}
 			
@@ -907,8 +907,21 @@
 				else {
 					ageLimitMS = _ageLimit * 1000 * 60 * 60;
 				}
-				var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, ageLimitMS);
-				ticker.queueItems(UIUtils.convertFeedItemsToTickerItems(feedItems));
+				// If there are no more unshown items, don't try to pick any until the
+				// ticker is empty.
+				if (_feedModel.hasUnshownItems(ageLimitMS) || !ticker.hasVisibleItems()) {
+					var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, ageLimitMS);
+					if (!ticker.queueItems(UIUtils.convertFeedItemsToTickerItems(feedItems))) {
+						// Unable to find any items to show. If there are no visible items, add an
+						// item indicating there are no more items.
+						if (!ticker.hasVisibleItems()) {
+							var noMoreItems: TickerItemData = new TickerItemData();
+							noMoreItems.title = "No more unread items."
+							noMoreItems.description =  "There are no more unread items within the time limit you've set in Preferences. You might want to increase the time limit, add more feeds, or click the Check Feeds Now button in the Options popup.";
+							ticker.queueItem(noMoreItems);						
+						}
+					}
+				}
 			}
 			
 			/**

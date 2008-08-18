@@ -96,11 +96,11 @@ package ui.ticker
 			return _itemDataQueue;
 		}
 		
-		public function queueItem(newItem: TickerItemData): void {
-			queueItems([newItem]);
+		public function queueItem(newItem: TickerItemData): Boolean {
+			return queueItems([newItem]);
 		}
 		
-		public function queueItems(newItems: Array): void {
+		public function queueItems(newItems: Array): Boolean {
 			// Remove redundant items.
 			var filteredItems: Array = new Array();
 			var tickerQueueLookup: Object = new Object();
@@ -129,6 +129,7 @@ package ui.ticker
 				_itemDataQueue.push(item);
 			}
 			fillItemsFromQueue();
+			return (filteredItems.length > 0);
 		}
 		
 		public function queueRunningLow(): Boolean {
@@ -314,11 +315,22 @@ package ui.ticker
 		private function handleEnterFrame(event: Event): void {
 			if (++_frameCount >= _framesPerMove) {
 				_frameCount = 0;
+				// If we have no items, move the child container back to the right/bottom edge of the ticker.				
 				if (_isVertical) {
-					_childContainer.move(_childContainer.x, _childContainer.y - _pixelsToMove);
+					if (_items.length > 0) {
+						_childContainer.move(_childContainer.x, _childContainer.y - _pixelsToMove);
+					}
+					else if (_childContainer.y < height) {
+						_childContainer.y = height;
+					}
 				}
 				else {
-					_childContainer.move(_childContainer.x - _pixelsToMove, _childContainer.y);
+					if (_items.length > 0) {
+						_childContainer.move(_childContainer.x - _pixelsToMove, _childContainer.y);
+					}
+					else if (_childContainer.x < width) {
+						_childContainer.x = width;
+					}
 				}
 				fillItemsFromQueue();
 			}
@@ -457,6 +469,13 @@ package ui.ticker
 				mask = _mask;
 				_maskInvalid = false;
 			}
+		}
+		
+		/**
+		 * Returns true if there are any items currently being displayed in the ticker.
+		 */
+		public function hasVisibleItems(): Boolean {
+			return (_items.length > 0);
 		}		
 	}
 }

@@ -581,6 +581,26 @@ package model.feeds
 		}
 		
 		/**
+		 * Returns true if there are any available items in the database--unshown, unread items within the age limit.
+		 */
+		public function hasUnshownItems(ageLimit: Number): Boolean {
+			var hasUnshownItemsStatement: LoggingStatement = _statements.getStatement(FeedStatements.HAS_UNSHOWN_ITEMS);
+			hasUnshownItemsStatement.parameters[":limitDate"] = getLimitDateFromAgeLimit(ageLimit);
+			hasUnshownItemsStatement.execute();
+			var hasUnshownItemsResult: SQLResult = hasUnshownItemsStatement.getResult();
+			return (hasUnshownItemsResult != null && hasUnshownItemsResult.data != null && hasUnshownItemsResult.data.length != 0);
+		} 
+		
+		private function getLimitDateFromAgeLimit(ageLimit: Number): Date {
+			if (ageLimit >= 1) {
+				return new Date(new Date().time - ageLimit);
+			}
+			else {
+				return new Date(0);
+			}
+		}
+		
+		/**
 		 * Choose a random batch of unshown, unread items from the database. Eventually this will use things like the
 		 * feed priority, but right now it just picks a random feed, then a random item from that feed.
 		 * @param numItems The number of items to pick. We might return fewer if there aren't enough
@@ -604,15 +624,8 @@ package model.feeds
 
 			// Note: eventually this needs to go inside the loop, and we should cache the
 			// list of feeds with unread items by priority.
-			var priority: Number = 5;
-			
-			var limitDate: Date;
-			if (ageLimit >= 1) {
-				limitDate = new Date(new Date().time - ageLimit);
-			}
-			else {
-				limitDate = new Date(0);
-			}
+			var priority: Number = 5;			
+			var limitDate: Date = getLimitDateFromAgeLimit(ageLimit);
 			
 			// Find all feeds with the given priority with unread items within the age limit.
 			// (Note that even if an item has no unshown items, we want it as long as it has

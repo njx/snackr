@@ -53,6 +53,7 @@ package model.options
 		static public const OPTION_READER_PASSWORD: String = "readerPassword";
 		static public const OPTION_MINIMIZE_TO_SYSTRAY: String = "minimizeToSysTray";
 		static public const OPTION_SHOWED_MINIMIZE_HINT: String = "showedMinimizeHint";
+		static public const OPTION_SHOW_IN_TASKBAR: String = "showInTaskbar";
 		
 		static public const OPTION_VALUE_AGE_LIMIT_DAYS: String = "days";
 		static public const OPTION_VALUE_AGE_LIMIT_HOURS: String = "hours";
@@ -61,7 +62,7 @@ package model.options
 			OPTION_VERSION, OPTION_TICKER_SPEED, OPTION_ALWAYS_IN_FRONT, OPTION_AGE_LIMIT, OPTION_SCREENS_PREFIX, 
 			OPTION_CHECK_FOR_UPDATES, OPTION_SCREEN_SIDE, OPTION_FEED_CHECK_MIN_TIME, OPTION_TICKER_OPACITY, OPTION_AGE_LIMIT_UNITS,
 			OPTION_READER_ENABLED, OPTION_READER_USER_NAME, OPTION_READER_PASSWORD, OPTION_MINIMIZE_TO_SYSTRAY,
-			OPTION_SHOWED_MINIMIZE_HINT
+			OPTION_SHOWED_MINIMIZE_HINT, OPTION_SHOW_IN_TASKBAR
 		];
 		
 		private var _sqlConnection: SQLConnection;

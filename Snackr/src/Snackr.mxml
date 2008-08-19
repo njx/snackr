@@ -103,6 +103,13 @@
 
 				_mainWindow = new SnackrMainWindow();
 				_mainWindow.initializeModels(sqlConnection, feedModel, optionsModel);
+				var showInTaskbar: String = optionsModel.getValue(OptionsModel.OPTION_SHOW_IN_TASKBAR);
+				if (showInTaskbar == "0") {
+					_mainWindow.type = "lightweight";
+				}
+				else {
+					_mainWindow.type = "normal";
+				}
 				_mainWindow.open();
 			}
 		]]>

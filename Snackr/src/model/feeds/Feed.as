@@ -383,9 +383,9 @@ package model.feeds
 					use namespace rss10;
 					var isRDF: Boolean = (result.localName() == "RDF");
 					
-					name = result.channel.title;
-					homeURL = result.channel.link;
-					logoURL = (isRDF ? result.channel.image.@resource : result.channel.image.url);
+					name = ensureUnique(result.channel.title);
+					homeURL = ensureUnique(result.channel.link);
+					logoURL = ensureUnique(isRDF ? result.channel.image.@resource : result.channel.image.url);
 					
 					var guid: String;
 					for each (var item: XML in (isRDF ? result.item : result.channel.item)) {
@@ -449,10 +449,9 @@ package model.feeds
 					// Atom 0.3 or 1.0
 					use namespace atom03;
 					use namespace atom10;
-					name = result.title;
-					// TODO: what if more than one link?
+					name = ensureUnique(result.title);
 					homeURL = getAlternateLinkHref(result);
-					logoURL = result.logo;
+					logoURL = ensureUnique(result.logo);
 					for each (var entry: XML in result.entry) {
 						if (existingItems[entry.id.toString()] != undefined) {
 							// We don't update the existing item, to improve performance. This does mean we won't
@@ -530,7 +529,16 @@ package model.feeds
 				
 				// Commit all the batched changes into the database.
 				_sqlConnection.commit();
-			dispatchEvent(new FeedEvent(FeedEvent.FETCHED, this));
+				dispatchEvent(new FeedEvent(FeedEvent.FETCHED, this));
+			}
+		}
+		
+		private function ensureUnique(item: *): * {
+			if (item is XMLList) {
+				return XMLList(item)[0];
+			}
+			else {
+				return item;
 			}
 		}
 		

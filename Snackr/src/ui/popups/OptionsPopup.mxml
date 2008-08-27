@@ -679,9 +679,10 @@ and that Google Reader is up and running.
 							<p><font size="18">Thank you for using Snackr!</font></p>
 							<p>&nbsp;</p>
 							<p>For updates and documentation, visit <a href="http://snackr.net"><font color="#A0A0FF">snackr.net</font></a>.<br>
-							To report bugs or suggest features, send mail to <a href="mailto:nj@snackr.net"><font color="#A0A0FF">&lt;nj@snackr.net&gt;</font></a>.<br>
-							For Snackr news, check out the Snackr category on my blog, <a href="http://rictus.com/muchado"><font color="#A0A0FF">much ado about something</font></a>,<br>
-							or follow <a href="http://twitter.com/snackr"><font color="#A0A0FF">snackr</font></a> on twitter.</p>
+							To report bugs or suggest features, post to the <a href="http://forum.snackr.net"><font color="#A0A0FF">forums</font></a>, use the <a href="http://code.google.com/p/snackr/issues/list"><font color="#A0A0FF">issue tracker</font></a>, or <a href="mailto:nj@snackr.net"><font color="#A0A0FF">send mail</font></a>.<br>
+							For Snackr news, check out the <a href="http://forum.snackr.net"><font color="#A0A0FF">forums</font></a>, read the <a href="http://rictus.com/muchado"><font color="#A0A0FF">Snackr category</font></a> on my blog,
+							or follow <a href="http://twitter.com/snackr"><font color="#A0A0FF">@snackr</font></a> on Twitter.<br>
+							For the latest test builds and source code, visit the <a href="http://snackr.googlecode.com/"><font color="#A0A0FF">Snackr open source project</font></a> on Google Code.</p>
 							<p>&nbsp;</p>
 							<p>Snackr was written by <a href="mailto:nj@snackr.net"><font color="#A0A0FF">Narciso (nj) Jaramillo</font></a>.<br>
 							Google Reader integration was contributed by <a href="http://usereccentric.com"><font color="#A0A0FF">Rob Adams</font></a>.<br>

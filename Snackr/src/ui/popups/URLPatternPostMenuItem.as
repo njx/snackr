@@ -5,6 +5,10 @@ package ui.popups
 	
 	import model.feeds.FeedItem;
 	
+	import mx.rpc.events.FaultEvent;
+	import mx.rpc.events.ResultEvent;
+	import mx.rpc.http.HTTPService;
+	
 	/**
 	 * Class for posting links to a given URL, substituting information about the item
 	 * into the URL as necessary.
@@ -21,6 +25,7 @@ package ui.popups
 	{
 		private var _label: String = "";
 		private var _urlPattern: String = "";
+		private var _params: Object = null;
 		
 		public function URLPatternPostMenuItem(label: String, urlPattern: String)
 		{
@@ -35,11 +40,39 @@ package ui.popups
 		
 		public function execute(item: FeedItem): void
 		{
-			var params: Object = new Object();
-			params.link = item.link;
-			params.title = item.title;
+			_params = new Object();
+			_params.link = item.link;
+			_params.title = item.title;
+			_params.shortlink = "";
+			if (_urlPattern.indexOf("${shortlink}") >= 0) {
+				makeShortLinkAndExecute();
+			}
+			else {
+				doExecute();
+			}
+		}	
+		
+		private function doExecute(): void {
 			// TODO: handle ${prompt("some label")}
-			navigateToURL(new URLRequest(doSubstitutions(_urlPattern, params)));
+			navigateToURL(new URLRequest(doSubstitutions(_urlPattern, _params)));
+		}
+		
+		private function makeShortLinkAndExecute(): void {
+			var service: HTTPService = new HTTPService();
+			service.url = doSubstitutions("http://snipr.com/site/snip?r=simple&link=${link}&title=${title}", _params);
+			service.resultFormat = HTTPService.RESULT_FORMAT_TEXT;
+			service.addEventListener(ResultEvent.RESULT, handleMakeShortLinkResult);
+			service.addEventListener(FaultEvent.FAULT, handleMakeShortLinkFault);
+			service.send();
+		}
+		
+		private function handleMakeShortLinkResult(event: ResultEvent): void {
+			_params.shortlink = event.result.toString();
+			doExecute();	
+		}
+		
+		private function handleMakeShortLinkFault(event: FaultEvent): void {
+			// TODO
 		}
 		
 		private function doSubstitutions(urlPattern: String, params: Object): String {

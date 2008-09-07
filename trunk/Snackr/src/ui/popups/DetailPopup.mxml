@@ -58,6 +58,9 @@
 			static private const POST_TOOLS: Array = [
 				new CopyToClipboardPostMenuItem(),
 				new URLPatternPostMenuItem("Send in email", "mailto:?subject=${title}&body=${link}"),
+				new URLPatternPostMenuItem("Send in email (short URL)", "mailto:?subject=${title}&body=${shortlink}"),
+				new URLPatternPostMenuItem("Post to Twitter", "http://twitter.com/home?status=${title}: ${link}"),
+				new URLPatternPostMenuItem("Post to Twitter (short URL)", "http://twitter.com/home?status=${title}: ${shortlink}"),
 				new URLPatternPostMenuItem("Post to del.icio.us", "http://del.icio.us/post?v=4&url=${link}&title=${title}"),
 				new URLPatternPostMenuItem("Digg this", "http://digg.com/submit?url=${link}&title=${title}"),
 				new URLPatternPostMenuItem("Make short URL using Snipr", "http://snipr.com/site/snip?link=${link}&title=${title}") 

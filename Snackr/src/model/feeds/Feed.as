@@ -106,6 +106,11 @@ package model.feeds
 		public var color: uint = 0x000000;
 		
 		/**
+		 * List of tags applied to this feed.
+		 */
+		public var tags: Array = new Array();
+		
+		/**
 		 * The connection to the local SQL database.
 		 */
 		private var _sqlConnection: SQLConnection;
@@ -153,6 +158,12 @@ package model.feeds
 			priority = feedInfo.priority;
 			hasColor = feedInfo.hasColor;
 			color = feedInfo.color;
+			if (feedInfo.tags == undefined || feedInfo.tags == null) {
+				tags = new Array();
+			}
+			else {
+				tags = feedInfo.tags;
+			}
 			_lastFetched = feedInfo.lastFetched;
 		}
 		
@@ -164,6 +175,16 @@ package model.feeds
 			fillFeedParameters(statement.parameters);
 			statement.execute();
 			feedId = statement.getResult().lastInsertRowID;
+			if (tags != null) {
+				for each (var tag: String in tags) {
+					// TODO: not sure this will work 
+					// TODO: double-check that tags exist here?
+					statement = _statements.getStatement(FeedStatements.ADD_FEED_TAG_BY_NAME);
+					statement.parameters[":feedId"] = feedId;
+					statement.parameters[":tag"] = tag;
+					statement.execute();
+				}
+			}
 		}
 		
 		/**

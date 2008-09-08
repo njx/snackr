@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	desiredWidth="700" desiredHeight="400"
+	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.Sort;
+			import flash.utils.getQualifiedClassName;
+			import model.logger.Logger;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
+			import mx.collections.ArrayCollection;
+			import ui.utils.UIUtils;
+			import mx.events.PropertyChangeEvent;
+			import mx.events.EffectEvent;
+			import model.options.OptionChangeEvent;
+			import model.options.OptionsModel;
+			import ui.ticker.Ticker;
+			import mx.managers.PopUpManager;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import ui.utils.UIUtils;
+			import model.feeds.Feed;
+			import model.feeds.FeedModel;
+			import model.utils.FeedUtils;
+			
+			private var _feedModel: FeedModel = null;
+			private var _optionsModel: OptionsModel = null;
+			
+			//used to determine whether to prompt the user to authenticate with google reader when a close event occurs
+			private var readerCredentialsUnchecked: Boolean = false;
+			
+			[Bindable]
+			public var popupTitle: String = "";
+			
+			[Bindable]
+			public function get feedModel(): FeedModel {
+				return _feedModel;
+			}
+			public function set feedModel(value: FeedModel): void {
+				_feedModel = value;
+			}
+			
+			public function set optionsModel(value: OptionsModel): void {
+				_optionsModel = value;
+			}
+			
+			override protected function handleCreationComplete(event: Event): void {
+				super.handleCreationComplete(event);
+				for each (var option: String in OptionsModel.ALL_OPTIONS) {
+					if (option == OptionsModel.OPTION_SCREENS_PREFIX) {
+						option += String(Screen.screens.length);
+					}
+					setOption(option, _optionsModel.getValue(option));
+				}
+				_optionsModel.addEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+				screenPicker.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, handleScreenPickerChange);
+				connectButton.addEventListener(MouseEvent.CLICK, handleConnectButtonPressed);
+		
+				// Hack. If I don't do this, the Feeds tab shows up as "Fee..." when the popup opens.
+				// Setting the selected index seems to cause it to relayout properly.
+				tabs.selectedIndex = 1;
+				tabs.validateNow();	
+				tabs.selectedIndex = 0;
+				
+				var initialSort: Sort = new Sort();
+				initialSort.compareFunction = caseInsensitiveCompare;
+				feedModel.feeds.sort = initialSort;
+				feedModel.feeds.refresh();
+			}
+			
+			private function handleOptionChange(event: OptionChangeEvent): void {
+				setOption(event.option, event.value);
+			}
+			
+			private function setOption(option: String, value: String): void {
+				if (option == OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length)) {
+					screenPicker.selectedScreenIndex = Number(value);
+					showScreenPicker(Screen.screens.length > 1);
+				}
+				else switch (option) {
+					case OptionsModel.OPTION_TICKER_SPEED: {
+						var speed: Number = Number(value);
+						var sliderValue: Number = _speeds.length - 1;
+						for (var i: int = 0; i < _speeds.length; i++) {
+							if (speed <= _speeds[i]) {
+								sliderValue = i;
+								break;
+							}
+						}
+						speedSlider.value = sliderValue;
+						break;
+					}
+					case OptionsModel.OPTION_ALWAYS_IN_FRONT: {
+						alwaysInFrontCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT: {
+						var ageLimit: Number = Number(value);
+						if (ageLimit <= 0) {
+							ageLimitCheck.selected = false;
+							ageLimitInput.text = "";
+							ageLimitInput.enabled = false;
+							ageLimitUnitsCombo.enabled = false;
+						}
+						else {
+							ageLimitCheck.selected = true;
+							ageLimitInput.text = value;
+							ageLimitInput.enabled = true;
+							ageLimitUnitsCombo.enabled = true;
+							setOption(OptionsModel.OPTION_AGE_LIMIT_UNITS, _optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT_UNITS));
+						}
+						break;
+					}
+					case OptionsModel.OPTION_CHECK_FOR_UPDATES: {
+						checkForUpdatesCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_SCREEN_SIDE: {
+						screenSideCombo.selectedIndex = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_FEED_CHECK_MIN_TIME: {
+						feedCheckMinTimeInput.text = value;
+						break;
+					}
+					case OptionsModel.OPTION_TICKER_OPACITY: {
+						opacitySlider.value = Number(value);
+						break;
+					}
+					case OptionsModel.OPTION_AGE_LIMIT_UNITS: {
+						var comboItem: Object = null;
+						var comboData: ArrayCollection = ArrayCollection(ageLimitUnitsCombo.dataProvider);
+						for (i = 0; i < comboData.length; i++) {
+							if (comboData.getItemAt(i).value == value) {
+								ageLimitUnitsCombo.selectedItem = comboData.getItemAt(i);
+								break;
+							}
+						}
+						break;
+					}
+					case OptionsModel.OPTION_READER_ENABLED: {
+						if (value == "1") {
+							enableReaderSyncCheckbox.selected = true;
+							userNameLabel.enabled = true;
+							userNameInput.enabled = true;
+							passwordLabel.enabled = true;
+							passwordInput.enabled = true;
+							connectButton.enabled = true;
+							accountHelpText.enabled = true;
+						}
+						else {
+							ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+							enableReaderSyncCheckbox.selected = false;
+							userNameLabel.enabled = false;
+							userNameInput.enabled = false;
+							passwordLabel.enabled = false;
+							passwordInput.enabled = false;
+							connectButton.enabled = false;
+							accountHelpText.enabled = false;
+							connectedLabel.visible = false;
+							badConnectionText.visible = false;
+							badPasswordText.visible = false;
+						}
+						break;
+					}
+					case OptionsModel.OPTION_READER_USER_NAME: {
+						userNameInput.text = value;
+						break;
+					}
+					case OptionsModel.OPTION_READER_PASSWORD: {
+						passwordInput.text = value;
+						break;
+					}
+					case OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY: {
+						minimizeToSysTrayCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_SHOW_IN_TASKBAR: {
+						showInTaskbarCheck.selected = (value == "1");
+						break;
+					}
+					default:
+						break;
+				}
+			}
+			
+			private function handleConnectButtonPressed(event: Event = null) : void {
+				readerCredentialsUnchecked = false;
+				connectedLabel.visible = false;
+				badPasswordText.visible = false;
+				badConnectionText.visible = false;
+				authenticatingLabel.visible = true;
+				authenticatingSpinner.visible = true;
+				authenticatingSpinner.start();
+				reinitializeReaderSync();
+			}
+
+			private function reinitializeReaderSync() : void {
+				//reset the timer so it doesn't interfere with the merge operation
+				ReaderSynchronizerManager.stopSyncTimer()
+				
+				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1") {
+					ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthenticationSuccess);
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, function authBadPassword(event: SynchronizerEvent) : void {
+						authenticatingLabel.visible = false;
+						authenticatingSpinner.visible = false;
+						authenticatingSpinner.stop();
+						badConnectionText.visible = false;
+						badPasswordText.visible = true;
+					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, function authBadConnection(event: SynchronizerEvent) : void {
+						if(!badPasswordText.visible) {
+							authenticatingLabel.visible = false;
+							authenticatingSpinner.visible = false;
+							authenticatingSpinner.stop();
+							badConnectionText.visible = true;
+						}
+					});
+					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
+				}
+				else {
+					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				}
+				
+			}
+			
+			private function handleAuthenticationSuccess(event: SynchronizerEvent) : void {
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				authenticatingSpinner.stop();
+				connectedLabel.visible = true;
+				var panel: MergeSetFeedsPanel = new MergeSetFeedsPanel();
+				panel.addEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+				ReaderSynchronizerManager.startSyncTimer();		
+			}
+			
+			private function handleMergeSetCancelClose(event: CloseEvent) : void {
+				var panel: MergeSetFeedsPanel = MergeSetFeedsPanel(event.target);
+				switch(panel.optionSelected) {
+					case MergeSetFeedsPanel.MERGE_FEED_LIST:
+						ReaderSynchronizerManager.reader.mergeFeedLists();
+						break;
+					case MergeSetFeedsPanel.SET_GOOGLE_READER_FEED_LIST:
+						ReaderSynchronizerManager.reader.synchronizeAll();
+						break;
+					case MergeSetFeedsPanel.SET_SNACKR_FEED_LIST:
+						ReaderSynchronizerManager.reader.setFeedList(_feedModel.feeds);
+						break;
+					case MergeSetFeedsPanel.DISABLE_SYNCHRONIZATION:
+						_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+						break;
+					default:
+						Logger.instance.log("Value of MergeSetCancelPanel was invalid for some reason!", Logger.SEVERITY_NORMAL);
+				}
+				panel.removeEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
+				PopUpManager.removePopUp(panel);
+			}
+						
+			private function handleDeactivate(event: Event): void {
+				// Don't auto-close if we don't have any feeds. The user should continue to see the
+				// getting started dialog.
+				if (_feedModel.feeds.length > 0) {
+					doClose();
+				}
+			}
+			
+			private function handleImportClick(): void {
+				doImport();
+			}
+			
+			private function doImport(): void {
+				var file: File = File.documentsDirectory;
+				file.browseForOpen("Choose OPML File");
+				file.addEventListener(Event.SELECT, handleImportFileSelected);
+			}
+			
+			private function handleImportFileSelected(event: Event): void {
+				_feedModel.loadOPMLFile(File(event.target));
+				close();
+			}		
+			
+			private function handleExportClick(): void {
+				var file: File = File.documentsDirectory;
+				file.browseForSave("Save OPML File");
+				file.addEventListener(Event.SELECT, handleExportFileSelected);
+			}
+			
+			private function handleExportFileSelected(event: Event): void {
+				_feedModel.saveOPMLFile(File(event.target));
+			}		
+			
+			private function handleNewClick(): void {
+				var url: String = UIUtils.getURLFromClipboard();
+				var panel: AddFeedPanel = new AddFeedPanel();
+				panel.feedURL = url;
+				panel.addEventListener(CloseEvent.CLOSE, handleAddFeedClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+			}
+			
+			private function handleAddFeedClose(event: CloseEvent): void {
+				var panel: AddFeedPanel = AddFeedPanel(event.target);
+				if (event.detail == Alert.OK) {
+					_feedModel.addOrDiscoverNewFeed(FeedUtils.fixupFeedURL(panel.feedURL));
+				}
+				panel.removeEventListener(CloseEvent.CLOSE, handleAddFeedClose);
+				PopUpManager.removePopUp(panel);
+			}
+			
+			private function handleDeleteClick(): void {
+				var panel: DeleteFeedPanel = new DeleteFeedPanel();
+				if (feedGrid.selectedItems.length > 1) {
+					panel.feedName = "";
+				}
+				else {
+					var name: String = Feed(feedGrid.selectedItem).name;
+					if (name == null || name == "") {
+						name = Feed(feedGrid.selectedItem).url;
+					}
+					panel.feedName = name;
+				}
+				panel.addEventListener(CloseEvent.CLOSE, handleDeleteFeedClose);
+				PopUpManager.addPopUp(panel, this, true);
+				PopUpManager.centerPopUp(panel);
+			}
+			
+			private function handleDeleteFeedClose(event: CloseEvent): void {
+				if (event.detail == Alert.YES) {
+					// Save the list of feeds out of the selection, so if the grid updates as
+					// a result of a model update we don't get confused.
+					var feedsToDelete: Array = [];
+					for (var i: int = 0; i < feedGrid.selectedItems.length; i++) {
+						feedsToDelete.push(feedGrid.selectedItems[i]);
+					}
+					for (i = 0; i < feedsToDelete.length; i++) {
+						_feedModel.deleteFeed(Feed(feedsToDelete[i]));
+					}
+				}
+				var panel: DeleteFeedPanel = DeleteFeedPanel(event.target);
+				panel.removeEventListener(CloseEvent.CLOSE, handleDeleteFeedClose);
+				PopUpManager.removePopUp(panel);
+			}
+			
+			private function handleCloseClick(): void {
+				doClose();
+			}
+			
+			private function caseInsensitiveCompare(obj1: Object, obj2: Object, fields:Array = null): int {
+				var str1: String = String(obj1.name).toLowerCase();
+				var str2: String = String(obj2.name).toLowerCase();
+				if (str1 < str2) {
+					return -1;
+				}
+				else if (str1 == str2) {
+					return 0;
+				}
+				else {
+					return 1;
+				}
+			}
+			
+			static private const _speeds: Array = [20, 30, 60, 120, 180];
+			
+			private function handleSpeedChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_TICKER_SPEED, String(_speeds[speedSlider.value]));
+			}
+			
+			private function handleOpacityChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_TICKER_OPACITY, String(opacitySlider.value));
+			}
+			
+			private function handleAlwaysInFrontChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_ALWAYS_IN_FRONT, (alwaysInFrontCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleUpdateCheckChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_CHECK_FOR_UPDATES, (checkForUpdatesCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleMinimizeToSysTrayCheckChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY, (minimizeToSysTrayCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleShowInTaskbarCheckChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SHOW_IN_TASKBAR, (showInTaskbarCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleAgeLimitCheckChange(event: Event): void {
+				var value: Number;
+				if (ageLimitCheck.selected) {
+					ageLimitInput.enabled = true;
+					if (ageLimitInput.text == "") {
+						ageLimitInput.text = "30";
+					}
+					value = Number(ageLimitInput.text);
+				}
+				else {
+					ageLimitInput.enabled = false;
+					value = -1;
+				}
+				if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT))) {
+					_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT, String(value));
+				}
+			}
+			
+			private function handleAgeLimitUnitsChange(event: Event): void {
+				var value: String = null;
+				if (ageLimitUnitsCombo.selectedItem.value == "hours") {
+					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_HOURS;
+				}
+				else {
+					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS;
+				}
+				_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT_UNITS, value);
+			}
+			
+			private function handleAgeLimitInput(event: Event): void {
+				if (ageLimitCheck.selected) {
+					var value: Number = Number(ageLimitInput.text);
+					if (value < 1) {
+						value = 1;
+					}
+					if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_AGE_LIMIT))) {
+						_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT, String(value));
+					}
+				}
+			}
+			
+			private function handleFeedCheckMinTimeInput(event: Event): void {
+				var value: Number = Number(feedCheckMinTimeInput.text);
+				if (value < 5) {
+					value = 5;
+				}
+				if (value != Number(_optionsModel.getValue(OptionsModel.OPTION_FEED_CHECK_MIN_TIME))) {
+					_optionsModel.setValue(OptionsModel.OPTION_FEED_CHECK_MIN_TIME, String(value));
+				} 
+			}
+			
+			private function showScreenPicker(show: Boolean): void {
+				screenPickerLabel.visible = show;
+				screenPicker.visible = show;
+			}
+			
+			private function handleScreenPickerChange(event: PropertyChangeEvent): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length), String(screenPicker.selectedScreenIndex));
+			}
+			
+			private function handleScreenSideComboChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SCREEN_SIDE, String(screenSideCombo.selectedIndex));
+			}
+			
+			override public function doClose() : void {
+				if(readerCredentialsUnchecked) {
+					if(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME) == "" && _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD) == "") {
+						//if username and password are blank, assume the user meant to just disable GR integration
+						_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED,"0");
+						_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+						super.doClose();
+					}
+					else {
+						readerCredentialsUnchecked = false;
+						var panel:ConfirmAuthenticateOnClosePanel = new ConfirmAuthenticateOnClosePanel;
+						panel.addEventListener(CloseEvent.CLOSE, function okPressed(event: CloseEvent) : void {
+							if(event.detail == Alert.OK) {
+								if(panel.connectButton.selected) {
+									tabs.selectedChild = googleReaderTab;
+									handleConnectButtonPressed();
+								}
+								else {
+									_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+									_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+									callSuperClose();
+								}
+							}
+							PopUpManager.removePopUp(panel);
+						});
+						PopUpManager.addPopUp(panel, this, true);
+						PopUpManager.centerPopUp(panel);
+					}
+				}
+				else {
+					_optionsModel.removeEventListener(OptionChangeEvent.OPTION_CHANGE, handleOptionChange);
+					super.doClose();
+				}
+			}
+			
+			//stupid hack so I can call doClose from the inline okPressed event handler funtion
+			private function callSuperClose() : void {
+				super.doClose();
+			}
+
+			private function handleCheckAllNowClick(event: Event): void {
+				_feedModel.fetchAllFeeds();
+			}
+			
+			private function handleEnableReaderSyncChange(event : Event) : void {
+				if(enableReaderSyncCheckbox.selected != (_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1")) {
+					//we don't want to check credentials if the user has disabled synchronization
+					if(enableReaderSyncCheckbox.selected) {
+						readerCredentialsUnchecked = true;
+					}
+					else {
+						readerCredentialsUnchecked = false;
+					}
+					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, (enableReaderSyncCheckbox.selected ? "1" : "0"));					
+				}
+			}
+			
+			private function handleUserNameCommit(event: Event): void {
+				if(userNameInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME)) {
+					readerCredentialsUnchecked = true;
+					_optionsModel.setValue(OptionsModel.OPTION_READER_USER_NAME, userNameInput.text);
+				}
+			}
+			
+			private function handlePasswordCommit(event: Event): void {
+				if(passwordInput.text != _optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD)) {
+					readerCredentialsUnchecked = true;
+					_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
+				}
+			}
+			
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<mx:Button id="closeButton" styleName="closeButton" width="16" height="16" y="9" right="8" click="handleCloseClick()"/>
+		<mx:TabNavigator id="tabs" top="10" bottom="10" left="10" right="10" creationPolicy="all">
+			<mx:filters>
+				<mx:DropShadowFilter angle="90" blurX="5" blurY="5"/>
+			</mx:filters>
+			<mx:Canvas label="Feeds" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" id="canvas1">
+
+				<mx:VBox left="0" top="0" right="-2" bottom="21">
+					<mx:Canvas width="100%" backgroundColor="#009900" includeInLayout="{ReaderSynchronizerManager.reader.connected}" visible="{ReaderSynchronizerManager.reader.connected}">
+						<mx:Label x="10" y="0" text="Connected to Google Reader - adding/removing feeds will update your Google Reader account."/>						
+					</mx:Canvas>
+					<mx:Canvas width="100%" height="100%">
+						<mx:DataGrid x="10" width="100%" height="100%" id="feedGrid" dataProvider="{feedModel.feeds}" allowMultipleSelection="true"
+							itemRenderer="ui.utils.CharSetDetectingLabel">
+							<mx:columns>
+								<mx:DataGridColumn headerText="Name" dataField="name" sortCompareFunction="caseInsensitiveCompare"/>
+								<mx:DataGridColumn headerText="URL" dataField="url"/>
+							</mx:columns>
+						</mx:DataGrid>
+						<mx:HRule left="0" right="0" top="25" strokeWidth="1" strokeColor="#666666"/>
+					</mx:Canvas>
+				</mx:VBox>
+
+				<mx:HBox left="10" bottom="-1" verticalAlign="middle">
+					<mx:Label text="Check feeds every"/>
+					<mx:TextInput id="feedCheckMinTimeInput" width="46" valueCommit="handleFeedCheckMinTimeInput(event)"/>
+					<mx:Label text="minutes"/>
+					<mx:Button label="Check All Now" click="handleCheckAllNowClick(event)"/>
+				</mx:HBox>
+				<mx:Button right="236" label="Import..." width="80" click="handleImportClick()" bottom="-1" id="button1"/>
+				<mx:Button right="157" label="Export..." width="80" bottom="-1" click="handleExportClick()"/>
+				<mx:Button label="Remove..." width="80" right="-1" bottom="-1" click="handleDeleteClick()" enabled="{feedGrid.selectedItem != null}"/>
+				<mx:Button label="Add..." width="80" right="78" bottom="-1" click="handleNewClick()"/>
+				<mx:HRule left="0" right="0" bottom="22" strokeWidth="1" strokeColor="#666666"/>
+			</mx:Canvas>
+			<mx:Canvas id="googleReaderTab" label="Google Reader" width="100%" height="100%" backgroundAlpha="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+				<mx:constraintColumns>
+					<mx:ConstraintColumn id="padding2" width="10"/>
+					<mx:ConstraintColumn id="col3"/>
+					<mx:ConstraintColumn id="col4" width="100%"/>
+				</mx:constraintColumns>
+				<mx:CheckBox left="10" y="5" label="Enable Google Reader synchronization" id="enableReaderSyncCheckbox" selected="false" change="handleEnableReaderSyncChange(event)"/>
+				<mx:Text left="10" y="25" id="accountHelpText">
+					<mx:htmlText>
+						<![CDATA[
+Enter the user name and password for your Google Account.
+If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.
+						]]>
+					</mx:htmlText>
+				</mx:Text> 
+				<mx:Label left="col3:0" right="col3:0" y="94" textAlign="right" text="User name:" id="userNameLabel"/>
+				<mx:TextInput id="userNameInput" left="col4:10" y="92" width="170" valueCommit="handleUserNameCommit(event)"/>
+				<mx:Label left="col3:0" right="col3:0" y="127" textAlign="right" text="Password:" id="passwordLabel" />
+				<mx:TextInput displayAsPassword="true" left="col4:10" y="125" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
+				<mx:Button left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
+				<utils:Spinner right="col3:0" y="185" id="authenticatingSpinner" visible="false" />
+				<mx:Label left="col4:10" y="193" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
+				<mx:Text left="col4:10" y="193" text="" id="connectedLabel" visible="{ReaderSynchronizerManager.reader.connected}">
+					<mx:htmlText>
+						<![CDATA[Snackr is currently connected to Google Reader.
+<b>Adding feeds to Snackr will add them to Google Reader and vice-versa.</b>
+<b>Removing feeds from Snackr will remove them from Google Reader and vice-versa.]]>
+					</mx:htmlText>
+				</mx:Text>
+				<mx:Text left="col4:10" y="193" id="badPasswordText" visible="false">
+					<mx:htmlText>
+						<![CDATA[<b>The user name and password did not match.</b>
+If you forgot your user name or password, visit <a href="https://www.google.com/accounts/ManageAccount"><font color="#ADD8E6">Google Accounts</font></a>
+and select "I cannot access my account" from underneath the sign in box.
+						]]>
+					</mx:htmlText>
+				</mx:Text>
+				<mx:Text left="col4:10" y="193" id="badConnectionText" visible="false">
+					<mx:htmlText>
+						<![CDATA[<b>Unable to contact Google Reader.</b>
+Make sure your network connection is functioning
+and that Google Reader is up and running.
+						]]>
+					</mx:htmlText>
+				</mx:Text>
+			</mx:Canvas>
+			<mx:Canvas label="Preferences" width="100%" height="100%" backgroundAlpha="0">
+				<mx:constraintColumns>
+					<mx:ConstraintColumn id="padding" width="10"/>
+					<mx:ConstraintColumn id="col1"/>
+					<mx:ConstraintColumn id="col2" width="100%"/>
+				</mx:constraintColumns>
+				<mx:Label left="col1:0" right="col1:0" y="10" textAlign="right" text="Ticker opacity:"/>
+				<mx:Label left="col2:10" y="10" text="0%"/>
+				<mx:HSlider id="opacitySlider" left="col2:41" y="7" minimum="0" maximum="1.0" snapInterval="0.05" liveDragging="true" allowTrackClick="true" change="handleOpacityChange(event)" showDataTip="false"/>
+				<mx:Label left="col2:201" y="10" text="100%"/>
+				<mx:Label left="col1:0" right="col1:0" y="43" textAlign="right" text="Ticker speed:"/>
+				<mx:Label left="col2:10" y="43" text="Slow"/>
+				<mx:HSlider id="speedSlider" left="col2:41" y="40" minimum="0" maximum="4" snapInterval="1" liveDragging="false" allowTrackClick="true" change="handleSpeedChange(event)" showDataTip="false"/>
+				<mx:Label left="col2:201" y="43" text="Fast"/>
+				<mx:Label left="col1:0" right="col1:0" y="73" textAlign="right" text="Options:"/>
+				<mx:CheckBox id="alwaysInFrontCheck" left="col2:10" y="71" label="Keep Snackr in front of other windows (right-click or control-click to hide temporarily)" selected="true" change="handleAlwaysInFrontChange(event)"/>
+				<mx:CheckBox id="showInTaskbarCheck" left="col2:10" y="104" label="Show in taskbar and Alt-Tab menu (Windows only, requires restart)" selected="true" change="handleShowInTaskbarCheckChange(event)"/>
+				<mx:CheckBox id="minimizeToSysTrayCheck" left="col2:10" y="137" label="Minimize to dock (OS X) / system tray (Windows)" selected="true" change="handleMinimizeToSysTrayCheckChange(event)"/>
+				<mx:CheckBox left="col2:10" y="170" label="Don't show items older than" selected="true" id="ageLimitCheck" change="handleAgeLimitCheckChange(event)"/>
+				<mx:TextInput left="col2:187" y="170" width="46" id="ageLimitInput" valueCommit="handleAgeLimitInput(event)"/>
+				<mx:ComboBox id="ageLimitUnitsCombo" labelField="text" left="col2:237" y="170" change="handleAgeLimitUnitsChange(event)">
+					<mx:dataProvider>
+						<mx:Object text="hours" value="hours"/>
+						<mx:Object text="days" value="days"/>
+					</mx:dataProvider>
+				</mx:ComboBox>
+				<mx:CheckBox left="col2:10" y="203" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
+				<mx:Label left="col1:0" right="col1:0" y="236" textAlign="right" text="Dock to side:"/>
+				<!-- HACK: Order of strings in this combobox must be the same as the UIUtils enum for SIDE_* -->
+				<mx:ComboBox left="col2:10" y="233" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
+				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="269" textAlign="right" text="Screen:"/>
+				<ScreenPicker id="screenPicker" left="col2:10" top="269" right="10" bottom="10"/>
+			</mx:Canvas>
+			<mx:Canvas label="About" width="100%" height="100%" backgroundAlpha="0">
+				<utils:SmoothImage source="@Embed(source='styles/snackr-icon-flat-128.png')" left="10" top="10" width="64" height="64"/>
+				<mx:TextArea left="84" top="10" right="10" bottom="20" backgroundAlpha="0" condenseWhite="true" borderStyle="none" focusEnabled="false" editable="false">
+					<mx:htmlText>
+						<![CDATA[
+							<p><font size="18">Thank you for using Snackr!</font></p>
+							<p>&nbsp;</p>
+							<p>For updates and documentation, visit <a href="http://snackr.net"><font color="#A0A0FF">snackr.net</font></a>.<br>
+							To report bugs or suggest features, post to the <a href="http://forum.snackr.net"><font color="#A0A0FF">forums</font></a>, use the <a href="http://code.google.com/p/snackr/issues/list"><font color="#A0A0FF">issue tracker</font></a>, or <a href="mailto:nj@snackr.net"><font color="#A0A0FF">send mail</font></a>.<br>
+							For Snackr news, check out the <a href="http://forum.snackr.net"><font color="#A0A0FF">forums</font></a>, read the <a href="http://rictus.com/muchado"><font color="#A0A0FF">Snackr category</font></a> on my blog,
+							or follow <a href="http://twitter.com/snackr"><font color="#A0A0FF">@snackr</font></a> on Twitter.<br>
+							For the latest test builds and source code, visit the <a href="http://snackr.googlecode.com/"><font color="#A0A0FF">Snackr open source project</font></a> on Google Code.</p>
+							<p>&nbsp;</p>
+							<p>Snackr was written by <a href="mailto:nj@snackr.net"><font color="#A0A0FF">Narciso (nj) Jaramillo</font></a>.<br>
+							Google Reader integration was contributed by <a href="http://usereccentric.com"><font color="#A0A0FF">Rob Adams</font></a>.<br>
+							Other contributions by Justin Patrin and Matthew M. Boedicker.</p>
+							<p>&nbsp;</p>
+							<p>Copyright (c) 2008 Narciso Jaramillo<br>
+							All rights reserved.</p>
+							<p>&nbsp;</p>
+							<p>Redistribution and use in source and binary forms, with or without 
+							modification, are permitted provided that the following conditions are met:</p>
+							<p>&nbsp;</p>
+							<li>Redistributions of source code must retain the above copyright notice, 
+							      this list of conditions and the following disclaimer.</li>
+							<li>Redistributions in binary form must reproduce the above copyright 
+      							notice, this list of conditions and the following disclaimer in the 
+      							documentation and/or other materials provided with the distribution.</li>
+							<li>Neither the name of Narciso Jaramillo nor the names of other 
+      							contributors may be used to endorse or promote products derived from 
+      							this software without specific prior written permission.</li>
+							<p>&nbsp;</p>
+							<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+							AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+							IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+							DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+							FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+							DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+							SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+							CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+							OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+							USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+						]]>
+					</mx:htmlText>
+				</mx:TextArea>
+			</mx:Canvas>
+		</mx:TabNavigator>
+		<mx:Label id="titleLabel" y="9" right="34" textAlign="right" text="{popupTitle}"/>		
+	</popupChildren>
+</Popup>

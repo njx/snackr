@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<!-- Panel that appears when the user clicks on Add Feed from the Options popup. -->
+
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="452" height="120" 
+	defaultButton="{_okButton}" title="Add Feed" creationComplete="_feedURLInput.setFocus()">
+	<mx:Label x="10" y="10" text="Feed URL:"/>
+	<mx:TextInput x="75" y="8" width="347" id="_feedURLInput" text="{feedURL}" change="handleFeedURLChange()"/>
+	<mx:Button id="_okButton" x="288" label="OK" width="63" bottom="10" click="handleOK()" 
+		enabled="{feedURL != ''}"/>
+	<mx:Button x="358" label="Cancel" width="63" bottom="10" click="handleCancel()"/>
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			
+			// TODO: This needs to incorporate the feedback functionality from the AddFeedPopup.
+			
+			[Bindable]
+			public var feedURL: String = "";
+						
+			private function handleFeedURLChange(): void {
+				feedURL = _feedURLInput.text;
+			}
+			
+			private function handleOK(): void {
+				dispatchEvent(new CloseEvent(CloseEvent.CLOSE, false, false, Alert.OK));
+			}
+
+			private function handleCancel(): void {
+				dispatchEvent(new CloseEvent(CloseEvent.CLOSE, false, false, Alert.CANCEL));
+			}
+		]]>
+	</mx:Script>
+</mx:Panel>

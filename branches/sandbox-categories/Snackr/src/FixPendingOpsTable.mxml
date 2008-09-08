@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="fixPendingOpsTable()">
+	<mx:Script>
+		<![CDATA[
+			import model.logger.Logger;
+			import model.feeds.LoggingStatement;
+			public function fixPendingOpsTable() : void {
+				var _sqlConnection: SQLConnection;
+				var docRoot: File = File.documentsDirectory.resolvePath("Snackr");
+				docRoot.createDirectory();
+				var dbFile: File = docRoot.resolvePath("FeedDatabase.sql");
+				try {
+					_sqlConnection = new SQLConnection();
+					_sqlConnection.open(dbFile);
+					_sqlConnection.compact();
+					var dropTable: LoggingStatement = new LoggingStatement();
+					dropTable.sqlConnection = _sqlConnection;
+					// Not sure why, but parameters don't work here.
+					dropTable.text = "DROP TABLE main.pendingops";
+					dropTable.execute(); 
+					
+					var createTable: LoggingStatement = new LoggingStatement();
+					createTable.sqlConnection = _sqlConnection;
+					createTable.text = 
+						"CREATE TABLE IF NOT EXISTS main.pendingops (" +
+						"	opId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+						"	opCode INTEGER, " +
+						"	feedURL TEXT, " + 
+						"	feedItemGuid TEXT " +
+						")";
+					createTable.execute();
+				}
+				catch (error: SQLError) {
+					Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
+					throw error;
+				}
+				
+			}
+		]]>
+	</mx:Script>
+	
+</mx:WindowedApplication>

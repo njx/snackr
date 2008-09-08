@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<hints>
+	<hint>
+		<title>Tip #1: How do I get Snackr out of my way?</title>
+		<description>
+			<![CDATA[
+				<p>There are a few ways to get Snackr out of the way:</p>
+				<ul>
+					<li>Right-click or ctrl-click on the ticker, or click the collapse arrow button on the tab, to collapse it. Click the collapse button again to uncollapse</li>
+					<li>"Toss" Snackr to a different side of the screen or onto another monitor by dragging it a little ways and letting go. You can also set this manually in the Preferences tab of the Options popup.</li>
+					<li>In the Preferences tab of the Options popup, turn off "always on top".</li>					
+				</ul>
+			]]>
+		</description>
+	</hint>
+	<hint>
+		<title>Tip #2: How come I'm not seeing some items from my feeds?</title>
+		<description>
+			<![CDATA[
+				<p>There are a few reasons why you might not see items:</p>
+				<ul>
+					<li>By default, Snackr doesn't show items older than 30 days ago. You can adjust this in the Preferences tab of the Options popup.</li>					
+					<li>Once you read an item, it never shows up again.</li>
+					<li>Snackr shows unread items from a given feed in reverse order. If you don't read an item, it will eventually cycle back around.</li>
+					<li>There might be a bug! If you feel like you're never seeing items from a feed, <a href="mailto:nj@snackr.net">send the feed URL to me</a> and I'll take a look at it.</li>
+				</ul>
+			]]>
+		</description>
+	</hint>
+	<hint>
+		<title>Tip #3: How can I quickly add a feed?</title>
+		<description>
+			<![CDATA[
+				<p>There are several ways to add a feed:</p>
+				<ul>
+					<li>From Firefox on Windows, you can set Snackr as your main RSS feed reader. Click on a feed icon on a website, then from the dropdown at the top, choose "Choose Application...",
+					   and browse to the Snackr application in Program Files. 
+					   From then on, when you hit Subscribe, Snackr will automatically add the feed. You can also check the "Always use Snackr to subscribe to feeds" to make Firefox
+					   add feeds to Snackr as soon as you
+					   click on a feed icon. (Unfortunately, Firefox on Mac doesn't seem to support this workflow properly at the moment.)</li>
+					<li>If you're mouse-oriented, copy the site or feed URL to the clipboard, then click the + button on the feed ticker. (Snackr will auto-discover feeds from websites if they have autodiscovery set up.)</li>
+					<li>If you're keyboard-oriented, copy the URL, Alt-Tab/Cmd-Tab to the Snackr window, then hit Ctrl-V/Cmd-V to paste the feed.</li>
+				</ul>
+			]]>
+		</description>
+	</hint>
+	<hint>
+		<title>Tip #4: Snackr is cool, but it would be so much better if...</title>
+		<description>
+			<![CDATA[
+				<p>Got a great idea for Snackr? <a href="mailto:nj@snackr.net">Send it to me!</a></p>
+			]]>
+		</description>
+	</hint>
+	<hint>
+		<title>Tip #5: Where can I get more Snackr news?</title>
+		<description>
+			<![CDATA[
+				<p>You can follow <a href="http://twitter.com/snackr">snackr</a> on twitter, or check the
+				   <a href="http://rictus.com/muchado/category/Snackr/">Snackr category</a> on my blog, 
+				   <a href="http://rictus.com/muchado">much ado about something</a>.</p>
+			]]>
+		</description>
+	</hint>
+</hints>

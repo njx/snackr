@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<!-- 
+	 Generic class for animated popup windows, shaped kind of like a speech balloon. 
+	 To use this class as a base for a custom popup, you need to do the following:
+	 
+	 * Set initialWidth and initialHeight to the size you want the popup to appear at before the expand animation.
+	 * Set desiredWidth and desiredHeight to the size you want the popup to expand to (if animateOnOpen is true).
+	 * If you don't want the popup to expand automatically, set animateOnOpen to false and manually call animateToSize() when you're ready.
+	 * VERY IMPORTANT: All your children must be in a <popupChildren> tag, not children of the root tag.
+	 * When you want to call the popup, call doClose() (not close()), to make the "close" animation happen.
+	 
+	 When you want to open the popup, you'll need to set pointerSide, anchorPoint, and currentScreen appropriately.
+-->
+
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	type="lightweight" systemChrome="none" showTitleBar="false" showStatusBar="false" showGripper="false" showFlexChrome="false"
+	transparent="true" minimizable="false" maximizable="false"
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" alwaysInFront="true"
+	initialize="handleInitialize(event)"
+	resize="handleResize(event)" creationComplete="handleCreationComplete(event)"
+	minWidth="0" minHeight="0">
+	<mx:Fade id="quickFadeIn" alphaTo="1.0" duration="150"/>
+	<mx:Fade id="quickFadeOut" alphaTo="0.0" duration="150"/>
+	<mx:Canvas left="0" top="0" right="0" bottom="10" id="childContainer" horizontalScrollPolicy="off" verticalScrollPolicy="off"/>
+	<mx:Script>
+		<![CDATA[
+			import ui.utils.UIUtils;
+			import mx.effects.easing.Cubic;
+			import mx.core.UIComponent;
+			import mx.events.EffectEvent;
+			import mx.events.ResizeEvent;
+			
+			static public const DEFAULT_POINTER_WIDTH: Number = 14;
+			static public const DEFAULT_POINTER_HEIGHT: Number = 10;
+			
+			/**
+			 * The list of child components for this popup. Subclasses *must* put children inside
+			 * a <popupChildren> tag (instead of just children of the root as with a normal component).
+			 */
+			[ArrayElementType("mx.core.UIComponent")]
+			public var popupChildren: Array;
+			
+			/**
+			 * Width that the popup should start at before it expands on open.
+			 * @default 300
+			 */
+			public var initialWidth: Number = 300;
+			
+			/**
+			 * Height that the popup should start at before it expands on open.
+			 * @default 50
+			 */
+			public var initialHeight: Number = 50;
+			
+			/**
+			 * Width that the popup should expand to on opening.
+			 * @default 400
+			 */
+			public var desiredWidth: Number = 400;
+			
+			/**
+			 * Height that the popup should expand to on opening.
+			 * @default 300
+			 */
+			public var desiredHeight: Number = 300;
+			
+			/**
+			 * Controls whether the popup automatically animates open. If this is set to false,
+			 * the popup will need to manually call animateToSize() when it knows what size it wants
+			 * to be.
+			 * @default true
+			 */
+			public var animateOnOpen: Boolean = true;
+			
+			private var _bgInvalid: Boolean = true;
+			private var _pointerWidth: Number = DEFAULT_POINTER_WIDTH;
+			private var _pointerHeight: Number = DEFAULT_POINTER_HEIGHT;
+			private var _pointerPos: Number = DEFAULT_POINTER_WIDTH / 2;
+			private var _pointerSide: Number = UIUtils.SIDE_BOTTOM;
+			private var _anchorPoint: Point = new Point(0, 0);
+			private var _currentScreen: Screen = null;
+
+			protected var _isLoading: Boolean = true;
+			protected var _isClosing: Boolean = false;
+			
+			/**
+			 * The point that the popup pointer should be anchored to.
+			 * The rest of the popup is positioned so as to center the pointer on the
+			 * given pointerSide; the position is then adjusted to keep the popup window fully
+			 * within the currentScreen.
+			 */
+			[Bindable]
+			public function get anchorPoint(): Point {
+				return _anchorPoint;
+			}
+			public function set anchorPoint(value: Point): void {
+				_anchorPoint = value;
+				invalidateBackground();
+			}
+			
+			/**
+			 * The screen that this popup should appear on.
+			 */
+			public function get currentScreen(): Screen {
+				if (_currentScreen == null) {
+					return Screen.mainScreen;
+				}
+				return _currentScreen;
+			}
+			
+			public function set currentScreen(value: Screen): void {
+				_currentScreen = value;
+				invalidateDisplayList();
+			}
+
+			/**
+			 * The desired width of the pointer.
+			 * @default 14
+			 */
+			[Bindable]
+			public function get pointerWidth(): Number {
+				return _pointerWidth;
+			}
+			public function set pointerWidth(value: Number): void {
+				_pointerWidth = value;
+				invalidateBackground();
+			}
+			
+			/**
+			 * The desired height of the pointer.
+			 * @default 10
+			 */
+			[Bindable]
+			public function get pointerHeight(): Number {
+				return _pointerHeight;
+			}
+			public function set pointerHeight(value: Number): void {
+				_pointerHeight = value;
+				invalidateBackground();
+			}
+			
+			/**
+			 * The position of the pointer along pointerSide. This is calculated by 
+			 * getPopupPosition() based on the specified anchorPoint and pointerSide;
+			 * it should not be set directly from the outside.
+			 */
+			[Bindable]
+			public function get pointerPos(): Number {
+				return _pointerPos;
+			}
+			public function set pointerPos(value: Number): void {
+				if (_pointerPos != value) {
+					_pointerPos = value;
+					invalidateBackground();
+				}
+			}
+			
+			/**
+			 * The side of the popup that the pointer should be on; one of the UIUtils.SIDE_*constants.
+			 */
+			[Bindable]
+			public function get pointerSide(): Number {
+				return _pointerSide;
+			}
+			public function set pointerSide(value: Number): void {
+				_pointerSide = value;
+				invalidateProperties();
+				invalidateBackground();
+			}
+			
+			override protected function commitProperties(): void {
+				super.commitProperties();
+											
+			 	// Set the padding on the child container based on the location of the pointer (so the
+			 	// controls are within the main body of the popup, not overlapping the pointer area).
+			 	// This is the main reason we have subclasses put their children in popupChildren (so we
+			 	// can move them into this container).
+				var leftPadding: int = 0;
+				var rightPadding: int = 0;
+				var topPadding: int = 0;
+				var bottomPadding: int = 0;
+				if (_pointerSide == UIUtils.SIDE_TOP) {
+					topPadding = pointerHeight;
+				}
+				else if (_pointerSide == UIUtils.SIDE_BOTTOM) {
+					bottomPadding = pointerHeight;
+				}
+				else if (_pointerSide == UIUtils.SIDE_LEFT) {
+					leftPadding = pointerHeight;
+				}
+				else if (_pointerSide == UIUtils.SIDE_RIGHT) {
+					rightPadding = pointerHeight;
+				}
+				childContainer.setStyle("left", leftPadding);
+				childContainer.setStyle("right", rightPadding);
+				childContainer.setStyle("top", topPadding);
+				childContainer.setStyle("bottom", bottomPadding);
+			}
+			
+			private function handleInitialize(event: Event): void {
+				width = initialWidth;
+				height = initialHeight;
+				// Move the desired children into the childContainer.
+				for each (var child: UIComponent in popupChildren) {
+					childContainer.addChild(child);
+				}
+				// Make all children invisible initially, so we can fade them up
+				// after the popup animation completes.
+				for each (child in getManagedChildren()) {
+					child.visible = false;
+				}
+			}
+			
+			/** 
+			 * Subclasses may override this to return a list of children that should not be
+			 * faded in and out during the pop-open/closed transitions.
+			 */
+			protected function get ignoreChildren(): Array {
+				return [];
+			}
+			
+			private function handleResize(event: ResizeEvent): void {
+				// Redraw the background immediately. This is so that during animations, the background
+				// stays exactly in sync with the size of the window. (At least on XP and Mac. Vista
+				// and Linux have some timing issues.)
+				invalidateBackground();
+				validateNow();
+			}
+			
+			protected function invalidateBackground(): void {
+				_bgInvalid = true;
+				invalidateDisplayList();
+			}
+			
+			protected function handleCreationComplete(event: Event): void {
+				// Position the popup based on the desired anchorPoint and pointerSide.
+				var position: Point = getPopupPosition(width, height);
+				nativeWindow.x = position.x;
+				nativeWindow.y = position.y;
+				updatePointerPos();	
+				
+				// Play the expand animation (if desired). This will first do the
+				// expansion, then fade the children in.
+				if (animateOnOpen) {
+					animateToSize(desiredWidth, desiredHeight);	
+				}
+			}
+			
+			protected function getPopupPosition(desiredWidth: Number, desiredHeight: Number): Point {
+				// Calculate the desired position of the popup window based on the given anchorPoint,
+				// pointerSide, and currentScreen. We attempt to position the popup so that the
+				// pointer is attached to the anchorPoint and centered with respect to the popup, but
+				// we correct it to always stay fully on the given screen.
+				var newPos: Point = new Point();
+				if (pointerSide == UIUtils.SIDE_TOP || pointerSide == UIUtils.SIDE_BOTTOM) {
+					newPos.x = anchorPoint.x - desiredWidth / 2;
+					if (newPos.x < currentScreen.visibleBounds.x) {
+						newPos.x = currentScreen.visibleBounds.x;
+					}
+					else if (newPos.x + desiredWidth > currentScreen.visibleBounds.x + currentScreen.visibleBounds.width) {
+						newPos.x = currentScreen.visibleBounds.x + currentScreen.visibleBounds.width - desiredWidth;
+					}
+					newPos.y = (pointerSide == UIUtils.SIDE_TOP ? anchorPoint.y : anchorPoint.y - desiredHeight);
+				}
+				else {
+					newPos.x = (pointerSide == UIUtils.SIDE_LEFT ? anchorPoint.x : anchorPoint.x - desiredWidth);
+					newPos.y = anchorPoint.y - desiredHeight / 2;
+					if (newPos.y < currentScreen.visibleBounds.y) {
+						newPos.y = currentScreen.visibleBounds.y;
+					}
+					else if (newPos.y + desiredHeight > currentScreen.visibleBounds.y + currentScreen.visibleBounds.height) {
+						newPos.y = currentScreen.visibleBounds.y + currentScreen.visibleBounds.height - desiredHeight;
+					}
+				}
+				return newPos;
+			}
+			
+			protected function updatePointerPos(): void {
+				// Calculate the position of the pointer along the side it's on.
+				var newPointerPos: Number;
+				if (pointerSide == UIUtils.SIDE_TOP || pointerSide == UIUtils.SIDE_BOTTOM) {
+					newPointerPos = anchorPoint.x - nativeWindow.x;
+					if (newPointerPos < pointerWidth / 2) {
+						newPointerPos = pointerWidth / 2;
+					}
+					else if (newPointerPos > nativeWindow.width - pointerWidth / 2) {
+						newPointerPos = nativeWindow.width - pointerWidth / 2;
+					}
+				}
+				else {
+					newPointerPos = anchorPoint.y - nativeWindow.y;
+					if (newPointerPos < pointerWidth / 2) {
+						newPointerPos = pointerWidth / 2;
+					}
+					else if (newPointerPos > nativeWindow.height - pointerWidth / 2) {
+						newPointerPos = nativeWindow.height - pointerWidth / 2;
+					}
+				}
+				pointerPos = newPointerPos;
+			}
+			
+			/**
+			 * Animate the window to a new size. Generally this is called automatically by the popup
+			 * on open/close, but subclasses may call it to change size arbitrarily.
+			 */
+			protected function animateToSize(desiredWidth: Number, desiredHeight: Number): void {
+				var newPos: Point = getPopupPosition(desiredWidth, desiredHeight);
+				// Make the duration proportional to the change in height (so it's roughly the same velocity no matter what the height is).
+				UIUtils.animateToBounds(nativeWindow, new Rectangle(newPos.x, newPos.y, desiredWidth, desiredHeight), 
+					Math.max(150, Math.abs(desiredHeight - nativeWindow.height) / 2), 
+					(desiredHeight > nativeWindow.height ? mx.effects.easing.Cubic.easeOut : mx.effects.easing.Cubic.easeIn),
+					handleBoundsAnimateEnd);
+			}
+			
+			/**
+			 * Animate the window closed. This first fades out the children, then collapses the popup.
+			 */
+			public function doClose(): void {
+				if (!_isClosing) {
+					_isClosing = true;
+					quickFadeOut.addEventListener(EffectEvent.EFFECT_END, handleFadeOutEnd);
+					quickFadeOut.play(getManagedChildren());
+				}
+			}
+			
+			private function handleFadeOutEnd(event: EffectEvent): void {
+				// When the children are done fading out during the close animation,
+				// play the collapse animation.
+				if (_isClosing) {
+					for each (var child: UIComponent in getManagedChildren()) {
+						child.visible = false;
+					}
+					animateToSize(initialWidth, 0);
+				}				
+			}
+			
+			protected function handleBoundsAnimateEnd(event: EffectEvent): void {
+				if (_isLoading) {
+					// We just finished animating open, so fade all the children in.
+					_isLoading = false;
+					var managedChildren: Array = getManagedChildren();
+					for each (var child: UIComponent in managedChildren) {
+						child.visible = true;
+					}
+					quickFadeIn.play(managedChildren);
+					handleOpenAnimationComplete();
+				}
+				else if (_isClosing) {
+					// We just finished animating closed, so close the window.
+					close();
+				}
+			}
+			
+			private function getManagedChildren(): Array {
+				var result: Array = [];
+				var childrenToIgnore: Array = ignoreChildren;
+				for each (var child: UIComponent in childContainer.getChildren()) {
+					if (ignoreChildren.indexOf(child) == -1) {
+						result.push(child);
+					}
+				}
+				return result;
+			}
+			
+			/**
+			 * Subclasses may override this function to perform operations after the window has fully popped open.
+			 */
+			protected function handleOpenAnimationComplete(): void {
+				// does nothing here, subclasses may override
+			}
+			
+			override protected function updateDisplayList(unscaledWidth: Number, unscaledHeight: Number): void {
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+
+				updatePointerPos();				
+				if (_bgInvalid) {
+					// Draw the background. This consists of a rounded rect, plus a "pointer" at the bottom center.
+					// Note: we have to cheat here and use the native window width/height, not unscaledWidth/unscaledHeight.
+					// During an animation, the Flex notion of unscaled width/height doesn't seem to be exactly in sync
+					// with the native window size (probably doesn't get updated until some later time).
+					graphics.clear();
+					UIUtils.drawSpeechBalloon(graphics, _pointerSide, new Rectangle(0, 0, nativeWindow.width, nativeWindow.height), 
+						_pointerPos, _pointerWidth, _pointerHeight);
+					_bgInvalid = false;
+				}
+			}
+			
+		]]>
+	</mx:Script>
+</mx:Window>

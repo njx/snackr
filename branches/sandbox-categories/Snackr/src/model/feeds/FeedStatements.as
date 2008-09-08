@@ -59,6 +59,16 @@ package model.feeds
 		static public const GET_READ_ITEMS: String = "getReadItems";
 		static public const GET_UNREAD_ITEM_DESC: String = "getUnreadItemDesc";
 		static public const HAS_UNSHOWN_ITEMS: String = "hasUnshownItems";
+		static public const ADD_TAG: String = "addTag";
+		static public const DELETE_TAG: String = "deleteTag";
+		static public const RENAME_TAG: String = "renameTag";
+		static public const SET_TAG_COLOR: String = "setTagColor";
+		static public const ADD_FEED_TAG: String = "addFeedTag";
+		static public const ADD_FEED_TAG_BY_NAME: String = "addFeedTagByName";
+		static public const GET_FEED_TAGS: String = "getFeedTags";
+		static public const GET_FEEDS_WITH_TAG: String = "getFeedsWithTag";
+		static public const REMOVE_FEED_TAG: String = "removeFeedTag";
+		static public const REMOVE_FEEDS_WITH_TAG: String = "removeFeedsWithTag";
 		
 		/**
 		 * Array of SQL queries to cache. Add an entry to this array to add a new cached statement.
@@ -95,7 +105,18 @@ package model.feeds
 			[HAS_UNSHOWN_ITEMS, "SELECT * FROM main.feedItems " +
 				"WHERE wasShown != true AND wasRead != true " +
 				"AND timestamp > :limitDate " +
-				"LIMIT 1"]
+				"LIMIT 1"],
+			[ADD_TAG, "INSERT INTO main.tags (tag, hasColor, color) VALUES (:tag, :hasColor, :color)"],
+			[DELETE_TAG, "DELETE FROM main.tags WHERE tagId = :tagId"],
+			[RENAME_TAG, "UPDATE main.tags SET tag = :tag WHERE tagId = :tagId"],
+			[SET_TAG_COLOR, "UPDATE main.tags SET hasColor = :hasColor, color = :color WHERE tagId = :tagId"],
+			[ADD_FEED_TAG, "REPLACE INTO main.feedsWithTags (feedId, tagId) VALUES (:feedId, :tagId)"],
+			// TODO: not sure this will work
+			[ADD_FEED_TAG_BY_NAME, "INSERT INTO main.feedsWithTags (feedId, tagId) VALUES (:feedId, (SELECT tagId FROM main.tags WHERE tag = :tag))"],
+			[GET_FEED_TAGS, "SELECT * FROM main.feedsWithTags WHERE feedId = :feedId"],
+			[GET_FEEDS_WITH_TAG, "SELECT * FROM main.feedsWithTags WHERE tagId = :tagId"],
+			[REMOVE_FEED_TAG, "DELETE FROM main.feedsWithTags WHERE feedId = :feedId AND tagId = :tagId"],
+			[REMOVE_FEEDS_WITH_TAG, "DELETE FROM main.feedsWithTags WHERE tagId = :tagId"]
 		];
 		
 		/**

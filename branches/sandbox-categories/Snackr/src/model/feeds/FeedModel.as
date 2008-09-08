@@ -203,6 +203,25 @@ package model.feeds
 			    "    wasShown BOOLEAN " +
 			    ")";
 			createTable2.execute();
+			var createTable3: LoggingStatement = new LoggingStatement();
+			createTable3.sqlConnection = _sqlConnection;
+			createTable3.text =
+			    "CREATE TABLE IF NOT EXISTS main.tags (" + 
+			    "    tagId INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+			    "    tag TEXT UNIQUE, " +
+			    "	 hasColor BOOLEAN, " +
+			    "	 color NUMERIC " +
+			    ")";
+			createTable3.execute();
+			var createTable4: LoggingStatement = new LoggingStatement();
+			createTable4.sqlConnection = _sqlConnection;
+			createTable4.text =
+			    "CREATE TABLE IF NOT EXISTS main.feedsWithTags (" + 
+			    "    feedId INTEGER, " + 
+			    "    tagId INTEGER " + 
+			    ")";
+			createTable4.execute();			
+			
 			
 			// Check for columns required by newer versions of Snackr and add them if they don't exist.
 			_sqlConnection.loadSchema(SQLTableSchema, "feedItems");
@@ -258,6 +277,11 @@ package model.feeds
 			createIndex3.text =
 				"CREATE INDEX IF NOT EXISTS main.idxFeedItemsByLink ON feedItems (link)";
 			createIndex3.execute();
+			var createIndex4: LoggingStatement = new LoggingStatement();
+			createIndex4.sqlConnection = _sqlConnection;
+			createIndex4.text = 
+				"CREATE INDEX IF NOT EXISTS main.idxTagsById ON feedsWithTags (feedId, tagId)";
+			createIndex4.execute();
 			
 			// Turn off the "wasShown" bit for all items, so we always see the newest stuff. 
 			// (Read items will still be skipped.)
@@ -275,6 +299,8 @@ package model.feeds
 			var feedResult: SQLResult = getFeeds.getResult();
 			if (feedResult.data != null) {
 				for (var j: int = 0; j < feedResult.data.length; j++) {
+					feedResult.data[j].tags = getFeedTags(feedResult.data[j].feedId);
+					// TODO: double-check that tags exist?
 					addFeedFromInfo(feedResult.data[j], false);
 				}
 			}
@@ -291,6 +317,7 @@ package model.feeds
 			
 			for each (var outline: XML in opml..outline) {
 				if (outline.hasOwnProperty("@xmlUrl")) {
+					// TODO: get tags
 					addFeedURL(outline.@xmlUrl, true);
 				}
 			}
@@ -320,6 +347,7 @@ package model.feeds
 				outline.@text = feed.name;
 				outline.@xmlUrl = feed.url;
 				outline.@htmlUrl = feed.homeURL;
+				// TODO: add tags
 				opml.body.appendChild(outline);
 			}		
 		
@@ -525,6 +553,10 @@ package model.feeds
 				deleteFeed.execute();
 				
 				deleteFeed.text = "DELETE FROM main.feeds WHERE feedId = :feedId";
+				deleteFeed.parameters[":feedId"] = feed.feedId;
+				deleteFeed.execute();
+				
+				deleteFeed.text = "DELETE FROM main.feedsWithTags WHERE feedId = :feedId",
 				deleteFeed.parameters[":feedId"] = feed.feedId;
 				deleteFeed.execute();
 				

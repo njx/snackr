@@ -713,8 +713,6 @@
 					spinner.start();
 					spinner.visible = true;
 					
-					kickQueueFillTimer();
-					
 					_screenChangePollTimer = new Timer(2000);
 					_screenChangePollTimer.addEventListener(TimerEvent.TIMER, handleScreenChangePollTimer);
 					_screenChangePollTimer.start();	

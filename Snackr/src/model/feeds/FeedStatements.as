@@ -59,6 +59,7 @@ package model.feeds
 		static public const GET_READ_ITEMS: String = "getReadItems";
 		static public const GET_UNREAD_ITEM_DESC: String = "getUnreadItemDesc";
 		static public const HAS_UNSHOWN_ITEMS: String = "hasUnshownItems";
+		static public const GET_NEWEST_UNSHOWN_ITEMS: String = "getNewestUnshownItems";
 		
 		/**
 		 * Array of SQL queries to cache. Add an entry to this array to add a new cached statement.
@@ -79,6 +80,11 @@ package model.feeds
 				"AND timestamp > :limitDate " +
 				"ORDER BY timestamp DESC " +
 				"LIMIT 1"],
+			[GET_NEWEST_UNSHOWN_ITEMS, "SELECT * FROM main.feedItems " +
+				"WHERE wasShown != true AND wasRead != true " +
+				"AND timestamp > :limitDate " +
+				"ORDER BY timestamp DESC " +
+				"LIMIT :numItems"],
 			[CLEAR_SHOWN_ITEMS, "UPDATE main.feedItems SET wasShown = false WHERE feedId = :feedId"],
 			[GET_STARRED_ITEMS, "SELECT * FROM main.feedItems WHERE starred = true ORDER BY timestamp DESC"],
 			[GET_STATE, "SELECT guid, wasShown, wasRead FROM main.feedItems " +

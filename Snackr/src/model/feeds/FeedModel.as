@@ -57,6 +57,12 @@ package model.feeds
 	 */
 	public class FeedModel extends EventDispatcher
 	{
+		/** @see pickItems() */
+		static public const PICK_TYPE_RANDOM_BY_FEED: Number = 0;
+		
+		/** @see pickItems() */
+		static public const PICK_TYPE_GLOBAL_NEWEST: Number = 1;
+		
 		/**
 		 * How often to check a set of feeds, in milliseconds. We check up to FEED_CHECK_LIMIT feeds at a time,
 		 * but only if there are feeds that are ready to check (because we last checked them
@@ -607,8 +613,10 @@ package model.feeds
 		 * unshown items left.
 		 * @param ageLimit Sets the maximum age (in milliseconds) for an item to pick (i.e., we won't pick an item further back
 		 * than this number of milliseconds ago).
+		 * @param pickType Determines how items are chosen. PICK_TYPE_RANDOM_BY_FEED means to choose a random feed, then pick the
+		 * newest item form that feed. PICK_TYPE_GLOBAL_NEWEST means to always return the newest unshown items across all feeds.
 		 */
-		public function pickItems(numItems: Number, ageLimit: Number): Array {
+		public function pickItems(numItems: Number, ageLimit: Number, pickType: Number = PICK_TYPE_RANDOM_BY_FEED): Array {
 			Logger.instance.log("Picking items...", Logger.SEVERITY_DEBUG);
 			
 			var result: Array = new Array();
@@ -642,26 +650,44 @@ package model.feeds
 			}
 			
 			var feeds: Array = getFeedsResult.data;			
-			var i: Number = 0;
 			var item: FeedItem;
 			var feed: Feed;
-			while (i < numItems) {
-				// Pick a random feed from the list of feeds that match our criteria.
-				feed = getFeedByID(feeds[Math.floor(Math.random() * feeds.length)].feedId);
-				
-				// Get the next unshown item in the feed.
-				item = feed.getNextUnshownItem(limitDate);
-				if (item == null) {
-					// We've cycled through all the items. Start over from the
-					// beginning (but still skip items that have already been read).
-					feed.clearShownItems();
+			var i: Number = 0;
+			if (pickType == PICK_TYPE_RANDOM_BY_FEED) {
+				while (i < numItems) {
+					// Pick a random feed from the list of feeds that match our criteria.
+					feed = getFeedByID(feeds[Math.floor(Math.random() * feeds.length)].feedId);
+					
+					// Get the next unshown item in the feed.
 					item = feed.getNextUnshownItem(limitDate);
+					if (item == null) {
+						// We've cycled through all the items. Start over from the
+						// beginning (but still skip items that have already been read).
+						feed.clearShownItems();
+						item = feed.getNextUnshownItem(limitDate);
+					}
+					if (item != null) {
+						feed.setItemShown(item);
+						result.push(item);
+						i++;
+					}
 				}
-				if (item != null) {
-					feed.setItemShown(item);
-					result.push(item);
-					i++;
-				}
+			}
+			else {
+				var statement: LoggingStatement = _statements.getStatement(FeedStatements.GET_NEWEST_UNSHOWN_ITEMS);
+				statement.parameters[":limitDate"] = limitDate;
+				statement.parameters[":numItems"] = numItems;
+				statement.execute();
+				
+				var sqlResult: SQLResult = statement.getResult();
+				if (sqlResult.data != null) {
+					for (i = 0; i < sqlResult.data.length; i++) {
+						item = new FeedItem(sqlResult.data[i]);
+						item.feed = getFeedByID(sqlResult.data[i].feedId);
+						result.push(item);
+						item.feed.setItemShown(item);
+					}
+				}			
 			}
 			
 			Logger.instance.log("Done picking items", Logger.SEVERITY_DEBUG);

@@ -174,7 +174,8 @@
 				[OptionsModel.OPTION_READER_ENABLED, "0"],
 				[OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY, "1"],
 				[OptionsModel.OPTION_SHOWED_MINIMIZE_HINT, "0"],
-				[OptionsModel.OPTION_SHOW_IN_TASKBAR, "1"]
+				[OptionsModel.OPTION_SHOW_IN_TASKBAR, "1"],
+				[OptionsModel.OPTION_SORT_ORDER, OptionsModel.OPTION_VALUE_SORT_ORDER_RANDOM]
 			];
 			
 			/**
@@ -229,6 +230,11 @@
 			 * Whether the age limit is in days or hours.
 			 */
 			private var _ageLimitUnits: String = OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS;
+			
+			/**
+			 * How we should choose which items to pick.
+			 */
+			private var _pickType: Number;
 
 			/**
 			 * Flag indicating whether we need to redraw the background.
@@ -658,6 +664,16 @@
 					case OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY: {
 						collapseButton.toolTip = (value == "1" ? "Minimize" : (_isCollapsed ? "Expand" : "Collapse"));
 					}
+					case OptionsModel.OPTION_SORT_ORDER: {
+						var pickTypeOption: String = _optionsModel.getValue(OptionsModel.OPTION_SORT_ORDER);
+						if (pickTypeOption == OptionsModel.OPTION_VALUE_SORT_ORDER_RANDOM) {
+							_pickType = FeedModel.PICK_TYPE_RANDOM_BY_FEED;
+						}
+						else {
+							_pickType = FeedModel.PICK_TYPE_GLOBAL_NEWEST;
+						}
+	
+					}
 					default:
 						break;
 				}
@@ -837,7 +853,7 @@
 				// If there are no more unshown items, don't try to pick any until the
 				// ticker is empty.
 				if (_feedModel.hasUnshownItems(ageLimitMS) || !ticker.hasVisibleItems()) {
-					var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, ageLimitMS);
+					var feedItems: Array = _feedModel.pickItems(ITEM_BATCH_SIZE, ageLimitMS, _pickType);
 					if (!ticker.queueItems(UIUtils.convertFeedItemsToTickerItems(feedItems))) {
 						// Unable to find any items to show. If there are no visible items, add an
 						// item indicating there are no more items.

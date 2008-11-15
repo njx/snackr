@@ -29,7 +29,7 @@
 -->
 
 <Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
-	desiredWidth="700" desiredHeight="400"
+	desiredWidth="700" desiredHeight="500"
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
@@ -103,6 +103,8 @@
 			}
 			
 			private function setOption(option: String, value: String): void {
+				var comboItem: Object = null;
+				var comboData: ArrayCollection;
 				if (option == OptionsModel.OPTION_SCREENS_PREFIX + String(Screen.screens.length)) {
 					screenPicker.selectedScreenIndex = Number(value);
 					showScreenPicker(Screen.screens.length > 1);
@@ -158,8 +160,7 @@
 						break;
 					}
 					case OptionsModel.OPTION_AGE_LIMIT_UNITS: {
-						var comboItem: Object = null;
-						var comboData: ArrayCollection = ArrayCollection(ageLimitUnitsCombo.dataProvider);
+						comboData = ArrayCollection(ageLimitUnitsCombo.dataProvider);
 						for (i = 0; i < comboData.length; i++) {
 							if (comboData.getItemAt(i).value == value) {
 								ageLimitUnitsCombo.selectedItem = comboData.getItemAt(i);
@@ -207,6 +208,16 @@
 					}
 					case OptionsModel.OPTION_SHOW_IN_TASKBAR: {
 						showInTaskbarCheck.selected = (value == "1");
+						break;
+					}
+					case OptionsModel.OPTION_SORT_ORDER: {
+						comboData = ArrayCollection(pickTypeCombo.dataProvider);
+						for (i = 0; i < comboData.length; i++) {
+							if (comboData.getItemAt(i).value == value) {
+								pickTypeCombo.selectedItem = comboData.getItemAt(i);
+								break;
+							}
+						}
 						break;
 					}
 					default:
@@ -438,14 +449,7 @@
 			}
 			
 			private function handleAgeLimitUnitsChange(event: Event): void {
-				var value: String = null;
-				if (ageLimitUnitsCombo.selectedItem.value == "hours") {
-					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_HOURS;
-				}
-				else {
-					value = OptionsModel.OPTION_VALUE_AGE_LIMIT_DAYS;
-				}
-				_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT_UNITS, value);
+				_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT_UNITS, ageLimitUnitsCombo.selectedItem.value);
 			}
 			
 			private function handleAgeLimitInput(event: Event): void {
@@ -458,6 +462,10 @@
 						_optionsModel.setValue(OptionsModel.OPTION_AGE_LIMIT, String(value));
 					}
 				}
+			}
+			
+			private function handlePickTypeComboChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_SORT_ORDER, pickTypeCombo.selectedItem.value);
 			}
 			
 			private function handleFeedCheckMinTimeInput(event: Event): void {
@@ -665,11 +673,18 @@ and that Google Reader is up and running.
 					</mx:dataProvider>
 				</mx:ComboBox>
 				<mx:CheckBox left="col2:10" y="203" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
-				<mx:Label left="col1:0" right="col1:0" y="236" textAlign="right" text="Dock to side:"/>
+				<mx:Label left="col1:0" right="col1:0" y="236" textAlign="right" text="Pick items:"/>
+				<mx:ComboBox id="pickTypeCombo" labelField="text" left="col2:10" y="233" change="handlePickTypeComboChange(event)">
+					<mx:dataProvider>
+						<mx:Object text="Newest items from random feeds" value="sortOrderRandom"/>
+						<mx:Object text="Newest items across all feeds" value="sortOrderNewest"/>
+					</mx:dataProvider>
+				</mx:ComboBox>
+				<mx:Label left="col1:0" right="col1:0" y="269" textAlign="right" text="Dock to side:"/>
 				<!-- HACK: Order of strings in this combobox must be the same as the UIUtils enum for SIDE_* -->
-				<mx:ComboBox left="col2:10" y="233" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
-				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="269" textAlign="right" text="Screen:"/>
-				<ScreenPicker id="screenPicker" left="col2:10" top="269" right="10" bottom="10"/>
+				<mx:ComboBox left="col2:10" y="266" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
+				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="402" textAlign="right" text="Screen:"/>
+				<ScreenPicker id="screenPicker" left="col2:10" top="402" right="10" bottom="10"/>
 			</mx:Canvas>
 			<mx:Canvas label="About" width="100%" height="100%" backgroundAlpha="0">
 				<utils:SmoothImage source="@Embed(source='styles/snackr-icon-flat-128.png')" left="10" top="10" width="64" height="64"/>

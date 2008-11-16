@@ -220,6 +220,10 @@
 						}
 						break;
 					}
+					case OptionsModel.OPTION_AUTOSTART_AT_LOGIN: {
+						autoStartCheck.selected = (value == "1");
+						break;
+					}
 					default:
 						break;
 				}
@@ -428,6 +432,10 @@
 			
 			private function handleShowInTaskbarCheckChange(event: Event): void {
 				_optionsModel.setValue(OptionsModel.OPTION_SHOW_IN_TASKBAR, (showInTaskbarCheck.selected ? "1" : "0"));
+			}
+			
+			private function handleAutoStartCheckChange(event: Event): void {
+				_optionsModel.setValue(OptionsModel.OPTION_AUTOSTART_AT_LOGIN, (autoStartCheck.selected ? "1" : "0"));
 			}
 			
 			private function handleAgeLimitCheckChange(event: Event): void {
@@ -664,27 +672,28 @@ and that Google Reader is up and running.
 				<mx:CheckBox id="alwaysInFrontCheck" left="col2:10" y="71" label="Keep Snackr in front of other windows (right-click or control-click to hide temporarily)" selected="true" change="handleAlwaysInFrontChange(event)"/>
 				<mx:CheckBox id="showInTaskbarCheck" left="col2:10" y="104" label="Show in taskbar and Alt-Tab menu (Windows only, requires restart)" selected="true" change="handleShowInTaskbarCheckChange(event)"/>
 				<mx:CheckBox id="minimizeToSysTrayCheck" left="col2:10" y="137" label="Minimize to dock (OS X) / system tray (Windows)" selected="true" change="handleMinimizeToSysTrayCheckChange(event)"/>
-				<mx:CheckBox left="col2:10" y="170" label="Don't show items older than" selected="true" id="ageLimitCheck" change="handleAgeLimitCheckChange(event)"/>
-				<mx:TextInput left="col2:187" y="170" width="46" id="ageLimitInput" valueCommit="handleAgeLimitInput(event)"/>
-				<mx:ComboBox id="ageLimitUnitsCombo" labelField="text" left="col2:237" y="170" change="handleAgeLimitUnitsChange(event)">
+				<mx:CheckBox id="autoStartCheck" left="col2:10" y="170" label="Automatically start Snackr at login" change="handleAutoStartCheckChange(event)"/>
+				<mx:CheckBox left="col2:10" y="203" label="Don't show items older than" selected="true" id="ageLimitCheck" change="handleAgeLimitCheckChange(event)"/>
+				<mx:TextInput left="col2:187" y="203" width="46" id="ageLimitInput" valueCommit="handleAgeLimitInput(event)"/>
+				<mx:ComboBox id="ageLimitUnitsCombo" labelField="text" left="col2:237" y="203" change="handleAgeLimitUnitsChange(event)">
 					<mx:dataProvider>
 						<mx:Object text="hours" value="hours"/>
 						<mx:Object text="days" value="days"/>
 					</mx:dataProvider>
 				</mx:ComboBox>
-				<mx:CheckBox left="col2:10" y="203" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
-				<mx:Label left="col1:0" right="col1:0" y="236" textAlign="right" text="Pick items:"/>
-				<mx:ComboBox id="pickTypeCombo" labelField="text" left="col2:10" y="233" change="handlePickTypeComboChange(event)">
+				<mx:CheckBox left="col2:10" y="236" label="Automatically check for updates to Snackr" selected="true" id="checkForUpdatesCheck" change="handleUpdateCheckChange(event)"/>
+				<mx:Label left="col1:0" right="col1:0" y="269" textAlign="right" text="Pick items:"/>
+				<mx:ComboBox id="pickTypeCombo" labelField="text" left="col2:10" y="266" change="handlePickTypeComboChange(event)">
 					<mx:dataProvider>
 						<mx:Object text="Newest items from random feeds" value="sortOrderRandom"/>
 						<mx:Object text="Newest items across all feeds" value="sortOrderNewest"/>
 					</mx:dataProvider>
 				</mx:ComboBox>
-				<mx:Label left="col1:0" right="col1:0" y="269" textAlign="right" text="Dock to side:"/>
+				<mx:Label left="col1:0" right="col1:0" y="302" textAlign="right" text="Dock to side:"/>
 				<!-- HACK: Order of strings in this combobox must be the same as the UIUtils enum for SIDE_* -->
-				<mx:ComboBox left="col2:10" y="266" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
-				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="402" textAlign="right" text="Screen:"/>
-				<ScreenPicker id="screenPicker" left="col2:10" top="402" right="10" bottom="10"/>
+				<mx:ComboBox left="col2:10" y="299" id="screenSideCombo" dataProvider="['Top','Bottom','Left','Right']" selectedIndex="1" change="handleScreenSideComboChange(event)"/>
+				<mx:Label id="screenPickerLabel" left="col1:0" right="col1:0" y="335" textAlign="right" text="Screen:"/>
+				<ScreenPicker id="screenPicker" left="col2:10" top="335" right="10" bottom="10"/>
 			</mx:Canvas>
 			<mx:Canvas label="About" width="100%" height="100%" backgroundAlpha="0">
 				<utils:SmoothImage source="@Embed(source='styles/snackr-icon-flat-128.png')" left="10" top="10" width="64" height="64"/>

@@ -175,7 +175,8 @@
 				[OptionsModel.OPTION_MINIMIZE_TO_SYSTRAY, "1"],
 				[OptionsModel.OPTION_SHOWED_MINIMIZE_HINT, "0"],
 				[OptionsModel.OPTION_SHOW_IN_TASKBAR, "1"],
-				[OptionsModel.OPTION_SORT_ORDER, OptionsModel.OPTION_VALUE_SORT_ORDER_RANDOM]
+				[OptionsModel.OPTION_SORT_ORDER, OptionsModel.OPTION_VALUE_SORT_ORDER_RANDOM],
+				[OptionsModel.OPTION_AUTOSTART_AT_LOGIN, "0"]
 			];
 			
 			/**
@@ -673,6 +674,14 @@
 							_pickType = FeedModel.PICK_TYPE_GLOBAL_NEWEST;
 						}
 	
+					}
+					case OptionsModel.OPTION_AUTOSTART_AT_LOGIN: {
+						try {
+							NativeApplication.nativeApplication.startAtLogin = (value == "1");
+						}
+						catch (e: IllegalOperationError) {
+							// This can happen if we launch under ADL.
+						}
 					}
 					default:
 						break;

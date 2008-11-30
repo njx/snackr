@@ -38,9 +38,11 @@ package ui.utils
 	import flash.text.Font;
 	
 	import model.feeds.FeedItem;
+	
 	import model.utils.FeedUtils;
 	
 	import mx.core.UIComponent;
+	import mx.effects.EffectInstance;
 	import mx.effects.easing.Cubic;
 	import mx.events.EffectEvent;
 	
@@ -117,7 +119,7 @@ package ui.utils
 		}
 		
 		static public function animateToBounds(nativeWindow: NativeWindow, newBounds: Rectangle, duration: Number = 150, 
-			easingFunction: Function = null, effectEndHandler: Function = null): void {
+			easingFunction: Function = null, effectEndHandler: Function = null): Array {
 			var anim: AnimateRectProperty = new AnimateRectProperty(nativeWindow);
 			anim.duration = duration;
 			anim.property = "bounds";
@@ -126,7 +128,7 @@ package ui.utils
 			if (effectEndHandler != null) {
 				anim.addEventListener(EffectEvent.EFFECT_END, effectEndHandler);
 			}
-			anim.play();
+			return anim.play();
 		}
 		
 		// TODO: this should probably turn into a generic ITickerItemData interface and an adapter that

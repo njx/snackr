@@ -53,10 +53,6 @@
 	<mx:Canvas left="0" top="0" right="0" bottom="10" id="childContainer" horizontalScrollPolicy="off" verticalScrollPolicy="off"/>
 	<mx:Script>
 		<![CDATA[
-			import mx.effects.EffectInstance;
-			import mx.effects.Effect;
-			import mx.effects.EffectManager;
-			import model.logger.Logger;
 			import ui.utils.UIUtils;
 			import mx.effects.easing.Cubic;
 			import mx.core.UIComponent;
@@ -115,7 +111,6 @@
 
 			protected var _isLoading: Boolean = true;
 			protected var _isClosing: Boolean = false;
-			private var _runningEffects: Array = null;
 			
 			/**
 			 * The point that the popup pointer should be anchored to.
@@ -340,7 +335,7 @@
 			protected function animateToSize(desiredWidth: Number, desiredHeight: Number): void {
 				var newPos: Point = getPopupPosition(desiredWidth, desiredHeight);
 				// Make the duration proportional to the change in height (so it's roughly the same velocity no matter what the height is).
-				_runningEffects = UIUtils.animateToBounds(nativeWindow, new Rectangle(newPos.x, newPos.y, desiredWidth, desiredHeight), 
+				UIUtils.animateToBounds(nativeWindow, new Rectangle(newPos.x, newPos.y, desiredWidth, desiredHeight), 
 					Math.max(150, Math.abs(desiredHeight - nativeWindow.height) / 2), 
 					(desiredHeight > nativeWindow.height ? mx.effects.easing.Cubic.easeOut : mx.effects.easing.Cubic.easeIn),
 					handleBoundsAnimateEnd);
@@ -352,12 +347,6 @@
 			public function doClose(): void {
 				if (!_isClosing) {
 					_isClosing = true;
-					if (_runningEffects != null) {
-						for each (var effect: EffectInstance in _runningEffects) {
-							effect.stop();
-						}
-						_runningEffects = null;
-					}
 					quickFadeOut.addEventListener(EffectEvent.EFFECT_END, handleFadeOutEnd);
 					quickFadeOut.play(getManagedChildren());
 				}
@@ -375,7 +364,6 @@
 			}
 			
 			protected function handleBoundsAnimateEnd(event: EffectEvent): void {
-				_runningEffects = null;
 				if (_isLoading) {
 					// We just finished animating open, so fade all the children in.
 					_isLoading = false;

@@ -1,0 +1,19 @@
+#summary Release notes for v0.39 TEST build
+
+==Release notes for v0.38 TEST build ([http://snackr.googlecode.com/files/Snackr-v0.39-TEST.air click to download)]==
+
+If you're upgrading from the 0.33 official release, see also the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_34_TEST v0.34 release notes], the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_35_TEST v0.35 release notes], and the [http://code.google.com/p/snackr/wiki/ReleaseNotes_0_38_TEST v0.38 release notes].
+
+*IMPORTANT*: Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database AND your Google Reader feed list]!
+
+  * Added option to make Snackr not show up in the taskbar on Windows. You can uncheck this from the Preferences tab in the Options popup.
+  * Added option to auto-start Snackr at login (also in the Preferences tab).
+  * Added option to always show newest items across all feeds, rather than picking random feeds to show the newest items from. This is intended for use by people who always want to see the absolute latest stuff that comes in. 
+    * If you choose this, you should probably reduce the feed check interval in the Feeds tab of the Options popup as well. 
+    * Note that for feeds that don't do a good job of timestamping, or feeds that update very often, you'll end up seeing large clumps of items from the same feed.
+  * Fixed bugs:
+    * #6: Behavior when only a few items are available is weird
+    * #38: Feed list isn't sorted alphabetically when Options popup opens
+    * #51: Some feeds are broken in Snackr
+    * #121: Popping up items from particular feeds is very slow
+    * #134: Importing OPML file into Snackr on initial startup doesn't wait for feeds to load

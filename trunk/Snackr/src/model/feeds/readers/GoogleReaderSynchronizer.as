@@ -60,7 +60,7 @@ package model.feeds.readers
 		
 		private static const AUTH_BAD_CREDENTIALS_STATUS_CODE: Number = 403;
 		
-		private var _SID: String;
+		private var _authToken: String;
 		private var optionsModel:OptionsModel;
 		
 		private var _connected: Boolean = false;
@@ -83,6 +83,7 @@ package model.feeds.readers
 			var variables: URLVariables = new URLVariables();
 			variables.service = "reader";
 			variables.source = SNACKR_CLIENT_ID;
+			variables.accountType = "GOOGLE";
 			variables.Email = login;
 			variables.Passwd = password;
 			authRequest.data = variables;
@@ -92,8 +93,8 @@ package model.feeds.readers
 				//manually parsing out the SID name/value pair
 				var tokens:Array = result.split(/[\n=]/);
 				for(var i:int = 0; i < tokens.length; i++) {
-					if((tokens[i] == "SID") && (i+1 != tokens.length)) {
-						_SID = tokens[i+1];
+					if((tokens[i] == "Auth") && (i+1 != tokens.length)) {
+						_authToken = tokens[i+1];
 						connected = true;
 						break;
 					}
@@ -154,12 +155,12 @@ package model.feeds.readers
 		}
 		
 		private function getAuthenticationHeaders(): Array {
-			var headers:Array = new Array(new URLRequestHeader("Cookie", "SID=" + _SID));
+			var headers:Array = new Array(new URLRequestHeader("Authorization", "GoogleLogin auth=" + _authToken));
 			return headers;
 		}
 		
-		public function get SID(): String {
-			return _SID;
+		public function get authToken(): String {
+			return _authToken;
 		}
 		
 		override public function getFeeds(callback: Function): void {

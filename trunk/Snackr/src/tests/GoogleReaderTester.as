@@ -69,7 +69,7 @@ package tests
 		
 		public function testAdd(): void {
 			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
-				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
+				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.authToken);
 				_reader.addFeed("http://rss.slashdot.org/Slashdot/slashdot");
 			});
 			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
@@ -77,7 +77,7 @@ package tests
 		
 		public function testDelete(): void {
 			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
-				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
+				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.authToken);
 				_reader.deleteFeed("http://rss.slashdot.org/Slashdot/slashdot");
 			});
 			_reader.authenticate("snackr.ticker@gmail.com","l0lca+pr0n");
@@ -92,7 +92,7 @@ package tests
 		
 		private function handleAuthSuccessTest(event: SynchronizerEvent): void {
 			Logger.instance.log("GoogleReaderTester.testAuthenticationSuccess: " + (event.type == SynchronizerEvent.AUTH_SUCCESS), Logger.SEVERITY_NORMAL);
-			Logger.instance.log("GoogleReaderTester: SID: " + _reader.SID);
+			Logger.instance.log("GoogleReaderTester: SID: " + _reader.authToken);
 			if(event.type != SynchronizerEvent.AUTH_SUCCESS) {
 				Logger.instance.log("GoogleReaderTester: testAuthenticationSuccess failed: " + event, Logger.SEVERITY_DEBUG);
 			}
@@ -113,7 +113,7 @@ package tests
 
 		public function testGetFeeds(): void {
 			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
-				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
+				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.authToken);
 				_reader.getFeeds(function (feedlist: ArrayCollection): void {
 					Logger.instance.log("GoogleReaderTester: " + feedlist);
 				});
@@ -123,7 +123,7 @@ package tests
 		
 		public function testGetReadItems(): void {
 			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS,function callback(event: Event): void {
-				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
+				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.authToken);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
 					for each (var item:Object in itemList) {
 						Logger.instance.log("GoogleReaderTester: testGetReadItems: " + item.guid + ", " + item.feedURL);
@@ -135,7 +135,7 @@ package tests
 		
 		public function testSetItemRead(urlToRead:String, feedURLtoRead: String): void {	
 			_reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, function callback(event: Event): void {
-				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.SID);
+				Logger.instance.log("GoogleReaderTester: Authentication successful, SID: " + _reader.authToken);
 				_reader.getReadItems(function (itemList: ArrayCollection): void {
 					for each (var item:Object in itemList) {
 						Logger.instance.log("GoogleReaderTester: testSetItemRead: guid: " + item.guid + ", itemURL: " + item.itemURL + ", feedURL: " + item.feedURL);

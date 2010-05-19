@@ -35,6 +35,7 @@ package model.feeds.readers
 		public static const AUTH_SUCCESS: String = "authSuccess";
 		public static const AUTH_BAD_CREDENTIALS: String = "authBadCredentials";
 		public static const AUTH_FAILURE: String = "authFailure";
+		public static const AUTH_CAPTCHA_CHALLENGE: String = "authCaptchaChallenge";
 		
 		public function SynchronizerEvent(type:String)
 		{

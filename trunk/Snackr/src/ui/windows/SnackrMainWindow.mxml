@@ -46,57 +46,50 @@
 	alwaysInFront="true" rightClick="handleRightClick(event)" click="handleClick(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
-			// In addition to being the main window, this acts as the main controller for the
-			// application. In general, individual components such as the ticker and the
-			// detail popup are relatively generic; this main application pulls data from the
-			// models, pushes it into the UI, and handles events from the subcomponents.
-			//
-			// Currently, not everything is really that cleanly factored--a number of the popups
-			// talk directly to the FeedModel, for convenience. However, most subcomponents don't 
-			// depend directly on the OptionsModel--instead, this main app listens to option
-			// changes, then sets appropriate properties on the subcomponents.
-		
-			import ui.popups.GettingStartedPopup;
-			import model.feeds.FeedModelEvent;
-			import mx.events.CloseEvent;
-			import ui.popups.AddFeedPopup;
-			import ui.utils.UIUtils;
-			import ui.utils.AnimateRectProperty;
-			import model.logger.Logger;
-			import model.logger.LogEvent;
-			import mx.rpc.events.FaultEvent;
-			import ui.popups.UpdatePopup;
-			import mx.rpc.events.ResultEvent;
-			import mx.rpc.http.HTTPService;
-			import flash.net.navigateToURL;
-			import mx.events.EffectEvent;
-			import mx.effects.easing.Cubic;
-			import ui.utils.AnimateRectProperty;
-			import mx.effects.Move;
-			import ui.popups.Popup;
-			import model.options.OptionChangeEvent;
-			import model.options.OptionsModel;
-			import ui.overlays.MessageOverlay;
-			import mx.controls.Alert;
-			import ui.popups.OptionsPopup;
-			import ui.utils.UIUtils;
-			import ui.popups.DetailPopup;
-			import ui.ticker.TickerItemClickEvent;
-			import ui.ticker.TickerItem;
-			import model.feeds.FeedItem;
-			import model.feeds.Feed;
-			import model.feeds.FeedModel;
-			import mx.collections.ArrayCollection;
 			import flash.display.Screen;
-			import ui.popups.StarredItemsPopup;
-			import ui.ticker.TickerItemData;
-			import model.feeds.readers.SynchronizerEvent;
-			import model.feeds.readers.ReaderSynchronizerManager;
+			import flash.net.navigateToURL;
+			
+			import model.feeds.Feed;
+			import model.feeds.FeedItem;
+			import model.feeds.FeedModel;
+			import model.feeds.FeedModelEvent;
 			import model.feeds.readers.GoogleReaderSynchronizer;
 			import model.feeds.readers.IFeedReaderSynchronizer;
 			import model.feeds.readers.NullFeedReaderSynchronizer;
-			import ui.popups.DetailPopupManager;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
+			import model.logger.LogEvent;
+			import model.logger.Logger;
+			import model.options.OptionChangeEvent;
+			import model.options.OptionsModel;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.effects.Move;
+			import mx.effects.easing.Cubic;
+			import mx.events.CloseEvent;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
 			import mx.managers.CursorManagerPriority;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			import ui.overlays.MessageOverlay;
+			import ui.popups.AddFeedPopup;
+			import ui.popups.DetailPopup;
+			import ui.popups.DetailPopupManager;
+			import ui.popups.GettingStartedPopup;
+			import ui.popups.OptionsPopup;
+			import ui.popups.Popup;
+			import ui.popups.StarredItemsPopup;
+			import ui.popups.UpdatePopup;
+			import ui.ticker.TickerItem;
+			import ui.ticker.TickerItemClickEvent;
+			import ui.ticker.TickerItemData;
+			import ui.utils.AnimateRectProperty;
+			import ui.utils.UIUtils;
+
 		
 			/**
 			 * Default height of the ticker (including the tab).
@@ -393,6 +386,7 @@
 					});
 					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, function authenticationFailure(event: SynchronizerEvent) : void {
 						ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+						doShowOptions(OptionsPopup.GOOGLE_READER_TAB);
 					});
 					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
 						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
@@ -971,13 +965,13 @@
 			 * Handler for the Options button on the ticker tab.
 			 */
 			private function handleOptionsClick(): void {
-				doShowOptions();
+				doShowOptions(OptionsPopup.FEEDS_TAB);
 			}
 			
 			/**
 			 * Opens the Options popup.
 			 */
-			private function doShowOptions(): void {
+			private function doShowOptions(initialTab:String): void {
 				if (_optionsPopup != null) {
 					_optionsPopup.doClose();
 					_optionsPopup = null;
@@ -986,6 +980,10 @@
 					DetailPopupManager.instance.closePopups();
 
 					var options: OptionsPopup = new OptionsPopup();
+					options.addEventListener(FlexEvent.CREATION_COMPLETE, function handleTabSwitch(event:Event) : void {
+						options.switchTab(initialTab);
+					});
+
 					options.currentScreen = currentScreen;
 					options.feedModel = _feedModel;
 					options.optionsModel = _optionsModel;

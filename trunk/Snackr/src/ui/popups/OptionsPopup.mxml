@@ -33,25 +33,34 @@
 	creationComplete="handleCreationComplete(event)" deactivate="handleDeactivate(event)" xmlns:utils="ui.utils.*">
 	<mx:Script>
 		<![CDATA[
-			import mx.collections.Sort;
 			import flash.utils.getQualifiedClassName;
-			import model.logger.Logger;
-			import model.feeds.readers.ReaderSynchronizerManager;
-			import model.feeds.readers.SynchronizerEvent;
-			import mx.collections.ArrayCollection;
-			import ui.utils.UIUtils;
-			import mx.events.PropertyChangeEvent;
-			import mx.events.EffectEvent;
-			import model.options.OptionChangeEvent;
-			import model.options.OptionsModel;
-			import ui.ticker.Ticker;
-			import mx.managers.PopUpManager;
-			import mx.controls.Alert;
-			import mx.events.CloseEvent;
-			import ui.utils.UIUtils;
+			
 			import model.feeds.Feed;
 			import model.feeds.FeedModel;
+			import model.feeds.readers.NullFeedReaderSynchronizer;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
+			import model.logger.Logger;
+			import model.options.OptionChangeEvent;
+			import model.options.OptionsModel;
 			import model.utils.FeedUtils;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.EffectEvent;
+			import mx.events.PropertyChangeEvent;
+			import mx.managers.PopUpManager;
+			
+			import ui.ticker.Ticker;
+			import ui.utils.UIUtils;
+
+			
+			public static const FEEDS_TAB:String = "feedsTab";
+			public static const GOOGLE_READER_TAB:String = "googleReaderTab";
+			public static const PREFERENCES_TAB:String = "preferencesTab";
+			public static const ABOUT_TAB:String = "aboutTab";
 			
 			private var _feedModel: FeedModel = null;
 			private var _optionsModel: OptionsModel = null;
@@ -74,6 +83,23 @@
 				_optionsModel = value;
 			}
 			
+			public function switchTab(tab:String): void {
+				switch(tab) {
+					case FEEDS_TAB:
+						tabs.selectedIndex = 0;
+						break;
+					case GOOGLE_READER_TAB:
+						tabs.selectedIndex = 1;
+						break;
+					case PREFERENCES_TAB:
+						tabs.selectedIndex = 2;
+						break;
+					case ABOUT_TAB:
+						tabs.selectedIndex = 3;
+						break;
+				}
+			}
+			
 			override protected function handleCreationComplete(event: Event): void {
 				super.handleCreationComplete(event);
 				for each (var option: String in OptionsModel.ALL_OPTIONS) {
@@ -88,14 +114,21 @@
 		
 				// Hack. If I don't do this, the Feeds tab shows up as "Fee..." when the popup opens.
 				// Setting the selected index seems to cause it to relayout properly.
+				var currentlySelected:int = tabs.selectedIndex;
 				tabs.selectedIndex = 1;
 				tabs.validateNow();	
-				tabs.selectedIndex = 0;
+				tabs.selectedIndex = currentlySelected;
 				
 				var initialSort: Sort = new Sort();
 				initialSort.compareFunction = caseInsensitiveCompare;
 				feedModel.feeds.sort = initialSort;
 				feedModel.feeds.refresh();
+				
+				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1" && ReaderSynchronizerManager.reader is NullFeedReaderSynchronizer)
+					badPasswordText.visible = true;
+				
+				//currentState = "CaptchaDisplayed";
+
 			}
 			
 			private function handleOptionChange(event: OptionChangeEvent): void {
@@ -570,8 +603,26 @@
 				}
 			}
 			
+			private function handleCaptchaInputCommit(event:Event): void {
+				readerCredentialsUnchecked = true;
+			}
+			
 		]]>
 	</mx:Script>
+	<states>
+		<mx:State name="CaptchaDisplayed">
+			<mx:AddChild relativeTo="{googleReaderTab}">
+				<mx:Image left="col4:10" y="158" width="200" height="70" id="captchaImage" />
+				<mx:TextInput left="col4:10" y="228" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+			</mx:AddChild>
+			<mx:SetProperty target="{connectButton}" name="y" value="262" />
+			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="288" />
+			<mx:SetProperty target="{authenticatingLabel}" name="y" value="296" />
+			<mx:SetProperty target="{connectedLabel}" name="y" value="296" />
+			<mx:SetProperty target="{badPasswordText}" name="y" value="296" />
+			<mx:SetProperty target="{badConnectionText}" name="y" value="296" />
+		</mx:State>
+	</states>
 	<popupChildren>
 		<mx:Button id="closeButton" styleName="closeButton" width="16" height="16" y="9" right="8" click="handleCloseClick()"/>
 		<mx:TabNavigator id="tabs" top="10" bottom="10" left="10" right="10" creationPolicy="all">
@@ -641,7 +692,7 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 					<mx:htmlText>
 						<![CDATA[<b>The user name and password did not match.</b>
 If you forgot your user name or password, visit <a href="https://www.google.com/accounts/ManageAccount"><font color="#ADD8E6">Google Accounts</font></a>
-and select "I cannot access my account" from underneath the sign in box.
+and select the link underneath the sign in box.
 						]]>
 					</mx:htmlText>
 				</mx:Text>

@@ -104,14 +104,26 @@ package model.feeds.readers
 			});
 			authConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleAuthFaultEvent(event: IOErrorEvent): void {
 				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event:" + event, Logger.SEVERITY_NORMAL);
+				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event.target.data:" + event.target.data, Logger.SEVERITY_DEBUG);
 				connected = false;
-				dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_FAILURE));
+				var responseVars: URLVariables = new URLVariables(event.target.data);
+				if(responseVars.Error == "CaptchaRequired") {
+					var syncEvent:SynchronizerEvent = new SynchronizerEvent(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE);
+					syncEvent.captchaToken = responseVars.CaptchaToken;
+					syncEvent.captchaURL = responseVars.CaptchaUrl;
+					dispatchEvent(syncEvent);
+				}
+				else {
+					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_FAILURE));
+				}
 			});
 			authConnection.addEventListener(HTTPStatusEvent.HTTP_STATUS, function handleAuthStatusEvent(event: HTTPStatusEvent) : void {
 				Logger.instance.log("GoogleReaderSynchronizer: response status: " + event, Logger.SEVERITY_DEBUG);
+				Logger.instance.log("GoogleReaderSynchronizer: response status: event.target.data:" + event.target.data, Logger.SEVERITY_DEBUG);
 				connected = false;
-				if(event.status == AUTH_BAD_CREDENTIALS_STATUS_CODE)
+				if(event.status == AUTH_BAD_CREDENTIALS_STATUS_CODE) {
 					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_BAD_CREDENTIALS));
+				}
 			});
 			authConnection.load(authRequest);
 		}

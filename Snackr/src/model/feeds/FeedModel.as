@@ -45,6 +45,7 @@ package model.feeds
 	import model.utils.FeedUtils;
 	
 	import mx.collections.ArrayCollection;
+	import mx.rpc.AsyncToken;
 	import mx.rpc.events.FaultEvent;
 	import mx.rpc.events.ResultEvent;
 	import mx.rpc.http.HTTPService;
@@ -128,6 +129,11 @@ package model.feeds
 		 * List of cached SQL statements we use for accessing the database.
 		 */
 		private var _statements: FeedStatements;
+		
+		/**
+		 * Map of service tokens to URLs, so we can retrieve them when a service call returns.
+		 */
+		private var _tokenURLs: Object = new Object();
 		
 		/**
 		 * Constructor.
@@ -420,7 +426,8 @@ package model.feeds
 			service.headers = { Referer: "-" };
 			service.addEventListener(ResultEvent.RESULT, handleFeedURLCheckResult);
 			service.addEventListener(FaultEvent.FAULT, handleFeedURLCheckFault);
-			service.send();
+			var token: AsyncToken = service.send();
+			_tokenURLs[token] = url;
 		}
 		
 		/**
@@ -428,7 +435,8 @@ package model.feeds
 		 * This just redispatches an event to whoever might be interested.
 		 */
 		private function handleFeedURLCheckFault(event: FaultEvent): void {
-			dispatchEvent(new FeedModelEvent(FeedModelEvent.INVALID_FEED, HTTPService(event.target).url));			
+			dispatchEvent(new FeedModelEvent(FeedModelEvent.INVALID_FEED, _tokenURLs[event.token]));
+			delete _tokenURLs[event.token];
 		}
 		
 		/**
@@ -436,7 +444,8 @@ package model.feeds
 		 */
 		private function handleFeedURLCheckResult(event: ResultEvent): void {
 			var result: String = String(event.result);
-			var url: String = HTTPService(event.target).url;
+			var url: String = _tokenURLs[event.token];
+			delete _tokenURLs[event.token];
 			var isValid: Boolean = false;
 			
 			// Looks like we can't get the content-type (headers seems to be null often).

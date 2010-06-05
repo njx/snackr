@@ -53,11 +53,6 @@ package ui.utils
 		static public const SIDE_LEFT: Number = 2;
 		static public const SIDE_RIGHT: Number = 3;
 		
-		/**
-		 * The namespace of the AIR application XML file schema.
-		 */
-		namespace airAppNS = "http://ns.adobe.com/air/application/1.0";
-			
 		static public function drawSpeechBalloon(graphics: Graphics, pointerSide: Number, bounds: Rectangle, pointerPos: Number,
 			pointerWidth: Number, pointerHeight: Number): void {	
 			graphics.lineStyle();
@@ -242,12 +237,17 @@ package ui.utils
 			str = str.replace("&amp;", "&");
 			return str;
 		}
+
+		static private function getDescriptorNamespace(): Namespace {
+			return NativeApplication.nativeApplication.applicationDescriptor.namespace();
+		}
 		
 		/**
 		 * Returns the name of the application ("Snackr", of course!)
 		 */
 		static public function get appName(): String {
-			return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::name;	
+			var ns: Namespace = getDescriptorNamespace();
+			return NativeApplication.nativeApplication.applicationDescriptor.ns::name;	
 		}
 		
 		/**
@@ -256,15 +256,16 @@ package ui.utils
 		 * front before using it for numeric version comparisons.
 		 */
 		static public function get appVersion(): String {
-			return NativeApplication.nativeApplication.applicationDescriptor.airAppNS::version;
+			var ns: Namespace = getDescriptorNamespace();
+			return NativeApplication.nativeApplication.applicationDescriptor.ns::version;
 		}
 
 		/**
 		 * URL to the Snackr application icon.
 		 */
 		static public function get appIconURL(): String {
-			use namespace airAppNS;
-			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image48x48);
+			var ns: Namespace = getDescriptorNamespace();
+			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.ns::icon.ns::image48x48);
 			return iconFile.url;
 		}
 		
@@ -272,8 +273,8 @@ package ui.utils
 		 * URL to the small version of the Snackr icon.
 		 */
 		static public function get appSmallIconURL(): String {
-			use namespace airAppNS;
-			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.icon.image16x16);
+			var ns: Namespace = getDescriptorNamespace();
+			var iconFile: File = File.applicationDirectory.resolvePath(NativeApplication.nativeApplication.applicationDescriptor.ns::icon.ns::image16x16);
 			return iconFile.url;
 		}
 	}

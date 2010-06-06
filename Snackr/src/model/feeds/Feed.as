@@ -42,6 +42,7 @@ package model.feeds
 	import flash.net.URLLoaderDataFormat;
 	import flash.net.URLRequest;
 	import flash.net.URLRequestHeader;
+	import flash.system.System;
 	import flash.utils.ByteArray;
 	
 	import model.logger.Logger;
@@ -530,6 +531,8 @@ package model.feeds
 				// Commit all the batched changes into the database.
 				_sqlConnection.commit();
 				dispatchEvent(new FeedEvent(FeedEvent.FETCHED, this));
+				
+				System.disposeXML(result);
 			}
 		}
 		

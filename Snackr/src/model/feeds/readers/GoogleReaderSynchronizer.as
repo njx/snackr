@@ -36,6 +36,7 @@ package model.feeds.readers
 	import flash.net.URLRequest;
 	import flash.net.URLRequestHeader;
 	import flash.net.URLVariables;
+	import flash.system.System;
 	
 	import model.feeds.FeedItemDescriptor;
 	import model.feeds.FeedModel;
@@ -183,7 +184,9 @@ package model.feeds.readers
 			getFeedsRequest.requestHeaders = getAuthenticationHeaders();
 			var getFeedsConnection:URLLoader = new URLLoader();
 			getFeedsConnection.addEventListener(Event.COMPLETE, function handleGetFeedsResult(event:Event):void {
-				callback(processGetFeedsResult(XML(event.target.data)));
+				var resultXML: XML = XML(event.target.data);
+				callback(processGetFeedsResult(resultXML));
+				System.disposeXML(resultXML);
 			});
 			getFeedsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 				Logger.instance.log("GoogleReaderSynchronizer: getFeeds() failed: " + event.text, Logger.SEVERITY_NORMAL);
@@ -319,6 +322,7 @@ package model.feeds.readers
 				itemList[i].feedURL = feedURL.replace(/^feed\//, "");
 				i++;
 			}
+			System.disposeXML(resultXML);
 			return new ArrayCollection(itemList);
 		}
 		

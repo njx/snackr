@@ -419,6 +419,7 @@ package model.feeds
 		 * @param url The feed or website URL to add.
 		 */
 		public function addOrDiscoverNewFeed(url: String): void {
+			url = url.replace("feed://", "http://");
 			var service: HTTPService = new HTTPService();
 			service.url = url;
 			service.resultFormat = HTTPService.RESULT_FORMAT_TEXT;

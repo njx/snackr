@@ -107,6 +107,7 @@
 					if(newContinuationToken != null && newContinuationToken != "") {
 						getItemsHelper(feedURL, newContinuationToken, iteration + 1);
 					}
+					System.disposeXML(resultXML);
 				});
 				getFeedItemsConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleGetFeedsFault(event:IOErrorEvent):void {
 					Logger.instance.log("Fetch failed: " + event);

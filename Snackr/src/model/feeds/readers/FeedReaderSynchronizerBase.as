@@ -212,6 +212,10 @@ package model.feeds.readers
 		}
 		
 		public function authenticate(login: String, password: String) : void {
+			authenticateCaptcha(login, password, null, null);
+		}
+		
+		public function authenticateCaptcha(login: String, password: String, captchaToken: String, captchaValue: String): void {
 			//implemented by subclasses
 		}
 		

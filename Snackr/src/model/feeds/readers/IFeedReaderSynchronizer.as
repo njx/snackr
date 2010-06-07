@@ -47,6 +47,7 @@ package model.feeds.readers
 		 * @param password The user's password
 		 */
 		function authenticate(login: String, password: String): void;
+		function authenticateCaptcha(login: String, password: String, captchaToken: String, captchaValue: String): void;
 		
 		/**
 		 * Tells us whether the synchronizer is currently connected to its remote reader client or not.

@@ -68,6 +68,8 @@
 			//used to determine whether to prompt the user to authenticate with google reader when a close event occurs
 			private var readerCredentialsUnchecked: Boolean = false;
 			
+			private var captchaToken: String;
+			
 			[Bindable]
 			public var popupTitle: String = "";
 			
@@ -127,7 +129,7 @@
 				if(_optionsModel.getValue(OptionsModel.OPTION_READER_ENABLED) == "1" && ReaderSynchronizerManager.reader is NullFeedReaderSynchronizer)
 					badPasswordText.visible = true;
 				
-				//currentState = "CaptchaDisplayed";
+				
 
 			}
 			
@@ -286,6 +288,18 @@
 						authenticatingSpinner.stop();
 						badConnectionText.visible = false;
 						badPasswordText.visible = true;
+						currentState = "";
+					});
+					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE, function authCaptchaChallenge(event: SynchronizerEvent) : void {
+						authenticatingLabel.visible = false;
+						authenticatingSpinner.visible = false;
+						authenticatingSpinner.stop();
+						badConnectionText.visible = false;
+						badPasswordText.visible = false;
+						currentState = "CaptchaDisplayed";
+						captchaImage.source = event.captchaURL;
+						captchaToken = event.captchaToken;
+						captchaInput.text = "";
 					});
 					ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, function authBadConnection(event: SynchronizerEvent) : void {
 						if(!badPasswordText.visible) {
@@ -293,10 +307,15 @@
 							authenticatingSpinner.visible = false;
 							authenticatingSpinner.stop();
 							badConnectionText.visible = true;
+							currentState = "";
 						}
 					});
-					ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
-						_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
+					if(currentState == "CaptchaDisplayed")
+						ReaderSynchronizerManager.reader.authenticateCaptcha(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+							_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD), captchaToken, captchaInput.text);
+					else
+						ReaderSynchronizerManager.reader.authenticate(_optionsModel.getValue(OptionsModel.OPTION_READER_USER_NAME),
+							_optionsModel.getValue(OptionsModel.OPTION_READER_PASSWORD));
 				}
 				else {
 					ReaderSynchronizerManager.initializeNullReaderSynchronizer();
@@ -309,6 +328,7 @@
 				authenticatingSpinner.visible = false;
 				authenticatingSpinner.stop();
 				connectedLabel.visible = true;
+				currentState = "";
 				var panel: MergeSetFeedsPanel = new MergeSetFeedsPanel();
 				panel.addEventListener(CloseEvent.CLOSE, handleMergeSetCancelClose);
 				PopUpManager.addPopUp(panel, this, true);
@@ -612,15 +632,17 @@
 	<states>
 		<mx:State name="CaptchaDisplayed">
 			<mx:AddChild relativeTo="{googleReaderTab}">
-				<mx:Image left="col4:10" y="158" width="200" height="70" id="captchaImage" />
-				<mx:TextInput left="col4:10" y="228" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+				<mx:Image left="col4:11" y="158" width="200" height="70" id="captchaImage" />
 			</mx:AddChild>
-			<mx:SetProperty target="{connectButton}" name="y" value="262" />
-			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="288" />
-			<mx:SetProperty target="{authenticatingLabel}" name="y" value="296" />
-			<mx:SetProperty target="{connectedLabel}" name="y" value="296" />
-			<mx:SetProperty target="{badPasswordText}" name="y" value="296" />
-			<mx:SetProperty target="{badConnectionText}" name="y" value="296" />
+			<mx:AddChild relativeTo="{googleReaderTab}">
+				<mx:TextInput left="col4:10" y="236" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+			</mx:AddChild>
+			<mx:SetProperty target="{connectButton}" name="y" value="270" />
+			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="296" />
+			<mx:SetProperty target="{authenticatingLabel}" name="y" value="304" />
+			<mx:SetProperty target="{connectedLabel}" name="y" value="304" />
+			<mx:SetProperty target="{badPasswordText}" name="y" value="304" />
+			<mx:SetProperty target="{badConnectionText}" name="y" value="304" />
 		</mx:State>
 	</states>
 	<popupChildren>

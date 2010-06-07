@@ -306,6 +306,7 @@ package model.feeds.readers
 				
 				var resultXML : XML = XML(event.target.data);
 				var resultArray : ArrayCollection = processGetReadItemsResult(resultXML);
+				System.disposeXML(resultXML);
 				for each (var obj: Object in resultArray) {
 					readItems.addItem(obj);
 				}
@@ -348,7 +349,6 @@ package model.feeds.readers
 				itemList[i].feedURL = feedURL.replace(/^feed\//, "");
 				i++;
 			}
-			System.disposeXML(resultXML);
 			return new ArrayCollection(itemList);
 		}
 		
@@ -391,6 +391,7 @@ package model.feeds.readers
 						break;
 					}
 				}
+				System.disposeXML(resultXML);
 				//if we found the guid, try setting the read status of the item
 				if(grGuid != "") {
 					getToken(function retrieveToken(token:String): void {

@@ -38,6 +38,7 @@ package model.feeds.readers
 		public static const AUTH_CAPTCHA_CHALLENGE: String = "authCaptchaChallenge";
 		public var captchaToken: String;
 		public var captchaURL: String;
+		public var externalCaptchaDialogURL: String;
 		
 		public function SynchronizerEvent(type:String)
 		{

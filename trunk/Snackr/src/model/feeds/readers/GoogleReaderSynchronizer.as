@@ -58,6 +58,7 @@ package model.feeds.readers
 		private static const GET_READ_ITEMS_URL:String = "http://www.google.com/reader/atom/user/-/state/com.google/read";
 		private static const TAG_EDIT_URL:String = "http://www.google.com/reader/api/0/edit-tag";
 		private static const GET_FEED_ITEMS_URL:String = "http://www.google.com/reader/atom/feed/";
+		private static const CAPTCHA_AUTH_URL_PREFIX:String = "http://www.google.com/accounts/";
 		
 		private static const AUTH_BAD_CREDENTIALS_STATUS_CODE: Number = 403;
 		
@@ -75,7 +76,7 @@ package model.feeds.readers
 			
 		}
 		
-		override public function authenticate(login: String, password: String): void {
+		override public function authenticateCaptcha(login: String, password: String, captchaToken: String, captchaValue: String): void {
 			//TODO: Figure out if/when the cookie will expire with the server and call authenticate()
 			//again automatically if that occurs
 			var authRequest:URLRequest = new URLRequest();
@@ -87,6 +88,10 @@ package model.feeds.readers
 			variables.accountType = "GOOGLE";
 			variables.Email = login;
 			variables.Passwd = password;
+			if(captchaToken != null)
+				variables.logintoken = captchaToken;
+			if(captchaValue != null)
+				variables.logincaptcha = captchaValue;
 			authRequest.data = variables;
 			var authConnection: URLLoader = new URLLoader();
 			authConnection.addEventListener(Event.COMPLETE, function handleAuthResultEvent(event: Event): void {
@@ -107,11 +112,32 @@ package model.feeds.readers
 				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event:" + event, Logger.SEVERITY_NORMAL);
 				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event.target.data:" + event.target.data, Logger.SEVERITY_DEBUG);
 				connected = false;
-				var responseVars: URLVariables = new URLVariables(event.target.data);
+				var result: String = String(event.target.data);
+				var responseVars: Object = new Object;
+				var tokens:Array = result.split(/[\n]/);
+				for(var i:int = 0; i < tokens.length; i++) {
+					var firstEqualsPosition:int = tokens[i].indexOf("=");
+					if(firstEqualsPosition != -1) {
+						if(tokens[i].slice(0,firstEqualsPosition) == "Error") {
+							responseVars.Error = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
+						}
+						else if(tokens[i].slice(0,firstEqualsPosition) == "CaptchaToken") {
+							responseVars.CaptchaToken = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
+						}
+						else if(tokens[i].slice(0,firstEqualsPosition) == "CaptchaUrl") {
+							responseVars.CaptchaUrl = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
+						}
+						else if(tokens[i].slice(0,firstEqualsPosition) == "Url") {
+							responseVars.Url = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
+						}
+					}
+					
+				}
 				if(responseVars.Error == "CaptchaRequired") {
 					var syncEvent:SynchronizerEvent = new SynchronizerEvent(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE);
 					syncEvent.captchaToken = responseVars.CaptchaToken;
-					syncEvent.captchaURL = responseVars.CaptchaUrl;
+					syncEvent.captchaURL = CAPTCHA_AUTH_URL_PREFIX + responseVars.CaptchaUrl;
+					syncEvent.externalCaptchaDialogURL = responseVars.Url;
 					dispatchEvent(syncEvent);
 				}
 				else {

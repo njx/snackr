@@ -52,6 +52,10 @@ package model.feeds.readers
 			Logger.instance.log("NullFeedReaderSynchronizer: authenticate: " + login + ", " + password, Logger.SEVERITY_DEBUG);
 		}
 		
+		public function authenticateCaptcha(login: String, password: String, captchaToken: String, captchaValue: String) : void {
+			Logger.instance.log("NullFeedReaderSynchronizer: authenticate: " + login + ", " + password + ", " + captchaToken + ", " + captchaValue, Logger.SEVERITY_DEBUG);
+		}		
+		
 		public function get connected() : Boolean {
 			Logger.instance.log("NullFeedReaderSynchronizer: connected", Logger.SEVERITY_DEBUG);
 			//the null feed reader synchronizer is never connected

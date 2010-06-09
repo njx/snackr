@@ -94,7 +94,7 @@ package model.logger
 		 * @param severity How serious the message is, which determines what the message is written to. See the constants above.
 		 */
 		public function log(message: String, severity: Number = SEVERITY_NORMAL): void {
-			trace(message);
+			trace(new Date().toString() + ": " + message);
 			
 			// If we're running in the debug launcher, we log all messages to the log file.
 			// Otherwise, we only log messages with severity normal or above.

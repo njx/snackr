@@ -200,7 +200,7 @@ package model.feeds.readers
 					}
 				}
 				for each (var feedItem: FeedItem in _feedModel.getReadItems()) {
-					if((itemsInSnackrByLink[feedItem.link] == null) && (itemsInSnackrByGuid[feedItem.guid] == null)) {
+					if((itemsInSnackrByLink[feedItem.link] == null) && (itemsInSnackrByGuid[feedItem.guid] == null) && (feedItem.feed != null)) {
 						setItemRead(new FeedItemDescriptor(feedItem.guid, feedItem.link), feedItem.feed.url);
 					}
 				}

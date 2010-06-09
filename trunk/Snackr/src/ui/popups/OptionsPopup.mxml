@@ -638,7 +638,7 @@
 				<mx:Label left="col4:10" y="236" text="Google Reader needs to confirm that you're human. Enter the text you see above:"/>
 			</mx:AddChild>
 			<mx:AddChild relativeTo="{googleReaderTab}">
-				<mx:TextInput left="col4:10" y="256" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+				<mx:TextInput tabIndex="3" left="col4:10" y="256" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
 			</mx:AddChild>
 			<mx:SetProperty target="{connectButton}" name="y" value="290" />
 			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="316" />
@@ -690,7 +690,7 @@
 					<mx:ConstraintColumn id="col3"/>
 					<mx:ConstraintColumn id="col4" width="100%"/>
 				</mx:constraintColumns>
-				<mx:CheckBox left="10" y="5" label="Enable Google Reader synchronization" id="enableReaderSyncCheckbox" selected="false" change="handleEnableReaderSyncChange(event)"/>
+				<mx:CheckBox left="10" y="5" tabIndex="0" label="Enable Google Reader synchronization" id="enableReaderSyncCheckbox" selected="false" change="handleEnableReaderSyncChange(event)"/>
 				<mx:Text left="10" y="25" id="accountHelpText">
 					<mx:htmlText>
 						<![CDATA[
@@ -700,10 +700,10 @@ If you do not have a Google Account, you may <a href="https://www.google.com/acc
 					</mx:htmlText>
 				</mx:Text> 
 				<mx:Label left="col3:0" right="col3:0" y="94" textAlign="right" text="User name:" id="userNameLabel"/>
-				<mx:TextInput id="userNameInput" left="col4:10" y="92" width="170" valueCommit="handleUserNameCommit(event)"/>
+				<mx:TextInput id="userNameInput" tabIndex="1" left="col4:10" y="92" width="170" valueCommit="handleUserNameCommit(event)"/>
 				<mx:Label left="col3:0" right="col3:0" y="127" textAlign="right" text="Password:" id="passwordLabel" />
-				<mx:TextInput displayAsPassword="true" left="col4:10" y="125" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
-				<mx:Button left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
+				<mx:TextInput displayAsPassword="true" tabIndex="2" left="col4:10" y="125" width="170" id="passwordInput" valueCommit="handlePasswordCommit(event)" />
+				<mx:Button tabIndex="4" left="col4:10" y="159" width="80" label="Connect" id="connectButton"/>
 				<utils:Spinner right="col3:0" y="185" id="authenticatingSpinner" visible="false" />
 				<mx:Label left="col4:10" y="193" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
 				<mx:Text left="col4:10" y="193" text="" id="connectedLabel" visible="{ReaderSynchronizerManager.reader.connected}">

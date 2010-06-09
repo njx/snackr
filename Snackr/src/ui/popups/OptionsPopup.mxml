@@ -635,14 +635,17 @@
 				<mx:Image left="col4:11" y="158" width="200" height="70" id="captchaImage" />
 			</mx:AddChild>
 			<mx:AddChild relativeTo="{googleReaderTab}">
-				<mx:TextInput left="col4:10" y="236" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+				<mx:Label left="col4:10" y="236" text="Google Reader needs to confirm that you're human. Enter the text you see above:"/>
 			</mx:AddChild>
-			<mx:SetProperty target="{connectButton}" name="y" value="270" />
-			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="296" />
-			<mx:SetProperty target="{authenticatingLabel}" name="y" value="304" />
-			<mx:SetProperty target="{connectedLabel}" name="y" value="304" />
-			<mx:SetProperty target="{badPasswordText}" name="y" value="304" />
-			<mx:SetProperty target="{badConnectionText}" name="y" value="304" />
+			<mx:AddChild relativeTo="{googleReaderTab}">
+				<mx:TextInput left="col4:10" y="256" width="170" id="captchaInput" valueCommit="handleCaptchaInputCommit(event)" />
+			</mx:AddChild>
+			<mx:SetProperty target="{connectButton}" name="y" value="290" />
+			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="316" />
+			<mx:SetProperty target="{authenticatingLabel}" name="y" value="324" />
+			<mx:SetProperty target="{connectedLabel}" name="y" value="324" />
+			<mx:SetProperty target="{badPasswordText}" name="y" value="324" />
+			<mx:SetProperty target="{badConnectionText}" name="y" value="324" />
 		</mx:State>
 	</states>
 	<popupChildren>

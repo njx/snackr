@@ -5,7 +5,7 @@
 
 *IMPORTANT*: Before installing a test build, please [http://code.google.com/p/snackr/wiki/TestBuildInfo back up your feed database AND your Google Reader feed list]!
 
-* Updated Google Reader integration to use new authentication scheme (Google will be turning off the old authentication scheme on June 15).
-* Changed Options icon to a gear.
-* feed:// URLs now work.
-* Possible fix for reported intermittent memory leaks when Google Reader integration is enabled.
+  * Updated Google Reader integration to use new authentication scheme (Google will be turning off the old authentication scheme on June 15).
+  * Changed Options icon to a gear.
+  * feed:// URLs now work.
+  * Possible fix for reported intermittent memory leaks when Google Reader integration is enabled.

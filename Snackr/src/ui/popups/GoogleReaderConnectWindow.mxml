@@ -28,12 +28,35 @@
 	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="240" width="360" layout="absolute" horizontalCenter="0" verticalCenter="0" 
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="240" width="380" layout="absolute" horizontalCenter="0" verticalCenter="0" 
 	showTitleBar="true" systemChrome="none" type="utility" showGripper="false" showFlexChrome="true"
 	transparent="true" minimizable="false" maximizable="false" resizable="false" alwaysInFront="true"
-	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off">	
+	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off"
+	close="handleClose(event);">	
 	<mx:states>
 		<mx:State name="Expanded">
+		</mx:State>
+		<mx:State name="CaptchaExpanded">
+			<mx:AddChild>
+				<mx:Image left="col2:11" y="137" width="200" height="70" id="captchaImage" />
+			</mx:AddChild>
+			<mx:AddChild>
+				<mx:Text left="col2:10" y="215">
+					<mx:htmlText>
+						<![CDATA[Google Reader needs to confirm that you're human.
+Enter the text you see above:]]>
+					</mx:htmlText>
+				</mx:Text>				
+			</mx:AddChild>
+			<mx:AddChild>
+				<mx:TextInput tabIndex="3" left="col2:10" y="255" width="170" id="captchaInput" />
+			</mx:AddChild>
+			<mx:SetProperty target="{connectButton}" name="y" value="269" />
+			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="295" />
+			<mx:SetProperty target="{authenticatingLabel}" name="y" value="288" />
+			<mx:SetProperty target="{successMessage}" name="y" value="288" />
+			<mx:SetProperty target="{badPasswordText}" name="y" value="288" />
+			<mx:SetProperty target="{badConnectionText}" name="y" value="288" />			
 		</mx:State>
 <!--		<mx:State name="Success">
 			<mx:RemoveChild target="{text1}"/>
@@ -56,6 +79,9 @@
 		<mx:Transition fromState="*" toState="Expanded">
 			<mx:Resize target="{this}" duration="400" heightTo="320" effectEnd="handleExpanded(event)"/>
 		</mx:Transition>
+		<mx:Transition fromState="*" toState="CaptchaExpanded">
+			<mx:Resize target="{this}" duration="370" heightTo="400" />
+		</mx:Transition>
 <!--		<mx:Transition fromState="*" toState="Success">
 			<mx:Sequence>
 				<mx:Parallel>
@@ -77,16 +103,19 @@
 	</mx:constraintColumns>
 	<mx:Script>
 		<![CDATA[
-			import model.feeds.readers.SynchronizerEvent;
 			import model.feeds.FeedModel;
 			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
 			import model.options.OptionsModel;
+			
 			import mx.events.CloseEvent;
 			
 			private var _optionsModel:OptionsModel;
 			private var _feedModel: FeedModel;
 			
 			private var lastAuthEvent: SynchronizerEvent;
+			private var captchaToken: String;
+			private var authenticated: Boolean = false;
 			
 			private static const FADE_OUT_DELAY: Number = 10000;
 			
@@ -107,6 +136,7 @@
 				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthSuccess);
 				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthBadCredentials);
 				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthFailure);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE, handleCaptchaChallenge);
 				badConnectionText.visible = false;
 				badPasswordText.visible = false;
 				connectButton.enabled = false;
@@ -114,10 +144,14 @@
 				authenticatingLabel.visible = true;
 				authenticatingSpinner.visible = true;
 				authenticatingSpinner.start();
-				ReaderSynchronizerManager.reader.authenticate(userNameInput.text, passwordInput.text);
+				if(currentState == "CaptchaExpanded")
+					ReaderSynchronizerManager.reader.authenticateCaptcha(userNameInput.text, passwordInput.text, captchaToken, captchaInput.text);
+				else
+					ReaderSynchronizerManager.reader.authenticate(userNameInput.text, passwordInput.text);
 			}
 			
 			private function handleAuthSuccess(event: SynchronizerEvent) : void {
+				authenticated = true;
 				authenticatingLabel.visible = false;
 				authenticatingSpinner.visible = false;
 				lastAuthEvent = event;
@@ -171,6 +205,22 @@
 				}
 				
 			}
+			
+			private function handleCaptchaChallenge(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "1");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				connectButton.enabled = true;
+				cancelButton.enabled = true;
+				badPasswordText.visible = false;
+				badConnectionText.visible = false;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				if(currentState != "CaptchaExpanded")
+					currentState = "CaptchaExpanded";
+				captchaToken = event.captchaToken;
+				captchaImage.source = event.captchaURL;
+				captchaInput.text = "";			
+			}
 
 			private function handleExpanded(event: Event) : void {
 				if(lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS) {
@@ -187,6 +237,11 @@
 			
 			private function handleCancelPressed(event: Event) : void {
 				close();
+			}
+			
+			private function handleClose(event: Event) : void {
+				if(!authenticated)
+					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
 			}
 			
 		]]>

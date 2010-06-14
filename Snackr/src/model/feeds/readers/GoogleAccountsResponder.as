@@ -69,13 +69,7 @@ package model.feeds.readers
 				else {
 					previousEvent = authFailure;
 				}
-				
-				/*if(noBadCredentials)
-					dispatchEvent(authFailure);
-				else if(previousEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS)
-					dispatchEvent(previousEvent);
-				else
-					previousEvent = authFailure;*/
+
 			}
 		}
 		
@@ -95,10 +89,6 @@ package model.feeds.readers
 				else {
 					previousEvent = badCredentialsEvent;
 				}
-				/*if(previousEvent.type != SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE)
-					dispatchEvent(badCredentialsEvent);
-				else
-					previousEvent = badCredentialsEvent;*/
 			}
 			else {
 				//did IO_ERROR already happen?
@@ -107,9 +97,7 @@ package model.feeds.readers
 					if(previousEvent.type == SynchronizerEvent.AUTH_FAILURE)
 						dispatchEvent(previousEvent);
 				}
-				/*noBadCredentials = true;
-				if(previousEvent.type == SynchronizerEvent.AUTH_FAILURE)
-					dispatchEvent(previousEvent);*/
+
 			}
 		}
 		

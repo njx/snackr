@@ -58,9 +58,6 @@ package model.feeds.readers
 		private static const GET_READ_ITEMS_URL:String = "http://www.google.com/reader/atom/user/-/state/com.google/read";
 		private static const TAG_EDIT_URL:String = "http://www.google.com/reader/api/0/edit-tag";
 		private static const GET_FEED_ITEMS_URL:String = "http://www.google.com/reader/atom/feed/";
-		private static const CAPTCHA_AUTH_URL_PREFIX:String = "http://www.google.com/accounts/";
-		
-		private static const AUTH_BAD_CREDENTIALS_STATUS_CODE: Number = 403;
 		
 		private var _authToken: String;
 		private var optionsModel:OptionsModel;
@@ -108,51 +105,19 @@ package model.feeds.readers
 				Logger.instance.log("Authentication successful, result: " + result, Logger.SEVERITY_DEBUG);
 				dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_SUCCESS));
 			});
-			authConnection.addEventListener(IOErrorEvent.IO_ERROR, function handleAuthFaultEvent(event: IOErrorEvent): void {
-				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event:" + event, Logger.SEVERITY_NORMAL);
-				Logger.instance.log("GoogleReaderSynchronizer: Authentication failed: event.target.data:" + event.target.data, Logger.SEVERITY_DEBUG);
-				connected = false;
-				var result: String = String(event.target.data);
-				var responseVars: Object = new Object;
-				var tokens:Array = result.split(/[\n]/);
-				for(var i:int = 0; i < tokens.length; i++) {
-					var firstEqualsPosition:int = tokens[i].indexOf("=");
-					if(firstEqualsPosition != -1) {
-						if(tokens[i].slice(0,firstEqualsPosition) == "Error") {
-							responseVars.Error = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
-						}
-						else if(tokens[i].slice(0,firstEqualsPosition) == "CaptchaToken") {
-							responseVars.CaptchaToken = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
-						}
-						else if(tokens[i].slice(0,firstEqualsPosition) == "CaptchaUrl") {
-							responseVars.CaptchaUrl = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
-						}
-						else if(tokens[i].slice(0,firstEqualsPosition) == "Url") {
-							responseVars.Url = tokens[i].slice(firstEqualsPosition+1,tokens[i].length);
-						}
-					}
-					
-				}
-				if(responseVars.Error == "CaptchaRequired") {
-					var syncEvent:SynchronizerEvent = new SynchronizerEvent(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE);
-					syncEvent.captchaToken = responseVars.CaptchaToken;
-					syncEvent.captchaURL = CAPTCHA_AUTH_URL_PREFIX + responseVars.CaptchaUrl;
-					syncEvent.externalCaptchaDialogURL = responseVars.Url;
-					dispatchEvent(syncEvent);
-				}
-				else {
-					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_FAILURE));
-				}
-			});
-			authConnection.addEventListener(HTTPStatusEvent.HTTP_STATUS, function handleAuthStatusEvent(event: HTTPStatusEvent) : void {
-				Logger.instance.log("GoogleReaderSynchronizer: response status: " + event, Logger.SEVERITY_DEBUG);
-				Logger.instance.log("GoogleReaderSynchronizer: response status: event.target.data:" + event.target.data, Logger.SEVERITY_DEBUG);
-				connected = false;
-				if(event.status == AUTH_BAD_CREDENTIALS_STATUS_CODE) {
-					dispatchEvent(new SynchronizerEvent(SynchronizerEvent.AUTH_BAD_CREDENTIALS));
-				}
-			});
+			var accountsResponder : GoogleAccountsResponder = new GoogleAccountsResponder();
+			authConnection.addEventListener(IOErrorEvent.IO_ERROR, accountsResponder.handleAuthFaultEvent);
+			authConnection.addEventListener(HTTPStatusEvent.HTTP_STATUS, accountsResponder.handleAuthStatusEvent);
+			accountsResponder.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthFail);
+			accountsResponder.addEventListener(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE, handleAuthFail);
+			accountsResponder.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthFail);
+			
 			authConnection.load(authRequest);
+		}
+		
+		private function handleAuthFail(syncEvent: SynchronizerEvent) : void {
+			connected = false;
+			dispatchEvent(syncEvent);
 		}
 		
 		[Bindable(event="connectedChanged")]

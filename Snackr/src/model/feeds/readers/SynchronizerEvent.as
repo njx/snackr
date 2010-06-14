@@ -49,5 +49,13 @@ package model.feeds.readers
 			return "SynchronizerEvent [type: " + type + "]";
 		}
 		
+		public override function clone() : Event {
+			var clone : SynchronizerEvent = new SynchronizerEvent(this.type);
+			clone.captchaToken = this.captchaToken;
+			clone.captchaURL = this.captchaURL;
+			clone.externalCaptchaDialogURL = this.externalCaptchaDialogURL;
+			return clone;
+		}
+		
 	}
 }

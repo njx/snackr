@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<!--
+	The main Snackr application. This actually remains invisible and doesn't really do anything
+	other than instantiate the actual main Snackr window. We do this because this main application
+	is required to be a normal window, which means it shows up in the taskbar on Windows, and we
+	don't want that.
+-->
+
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml"
+	applicationComplete="handleApplicationComplete(event)"
+	frameRate="60"
+	visible="false"
+	autoExit="true">
+	<mx:Style source="styles/styles.css"/>
+	<mx:Script>
+		<![CDATA[
+			import ui.utils.UIUtils;
+			import model.logger.Logger;
+			import model.feeds.FeedModel;
+			import model.options.OptionsModel;
+			import ui.windows.SnackrMainWindow;
+			
+			/**
+			 * Name of the database where we store all feeds and options. This file
+			 * is within the user's documents folder in the Snackr subfolder.
+			 */		
+			static private const DB_FILE: String = "FeedDatabase.sql";
+
+			private var _mainWindow: SnackrMainWindow = null;
+			
+			private function handleApplicationComplete(event: Event): void {
+				// Create the Snackr data folder if it doesn't exist (inside the user's
+				// document's folder).
+				var docRoot: File = File.documentsDirectory.resolvePath(UIUtils.appName);
+				docRoot.createDirectory();
+				
+				// Initialize the logger. The logger writes to the file Log.txt in the
+				// Snackr data folder. We keep the previous 3 log files around.
+				var oldLogFile: File;
+				for (var i: int = 2; i >= 0; i--) {
+					oldLogFile = docRoot.resolvePath("Log" + (i == 0 ? "" : String(i)) + ".txt");
+					if (oldLogFile.exists) {
+						try {
+							oldLogFile.moveTo(docRoot.resolvePath("Log" + String(i+1) + ".txt"), true);
+						}
+						catch (e: Error) {
+							// Too early to log this. Oh well. It just means that we won't be preserving
+							// log files earlier than the current one.
+							trace("Can't back up log file " + oldLogFile.name);
+						}
+					}			
+				}
+				
+				Logger.instance.initialize(docRoot.resolvePath("Log.txt"));
+
+				Logger.instance.log("Snackr starting");
+				
+				// Open the Snackr database file and initialize the models from it.
+				var feedModel: FeedModel = null;
+				var optionsModel: OptionsModel = null;
+				var sqlConnection: SQLConnection = null;
+				var dbFile: File = docRoot.resolvePath(DB_FILE);
+				try {
+					sqlConnection = new SQLConnection();
+					sqlConnection.open(dbFile);
+					sqlConnection.compact();
+					optionsModel = new OptionsModel(sqlConnection);
+					feedModel = new FeedModel(sqlConnection);
+				}
+				catch (error: SQLError) {
+					Logger.instance.log("Couldn't read or create the database file: " + error.details, Logger.SEVERITY_SERIOUS);
+					throw error;
+				}
+
+				_mainWindow = new SnackrMainWindow();
+				_mainWindow.initializeModels(sqlConnection, feedModel, optionsModel);
+				var showInTaskbar: String = optionsModel.getValue(OptionsModel.OPTION_SHOW_IN_TASKBAR);
+				if (showInTaskbar == "0") {
+					_mainWindow.type = "lightweight";
+				}
+				else {
+					_mainWindow.type = "normal";
+				}
+				_mainWindow.open();
+			}
+		]]>
+	</mx:Script>
+</mx:WindowedApplication>

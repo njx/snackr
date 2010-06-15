@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<Popup xmlns="ui.popups.*" xmlns:mx="http://www.adobe.com/2006/mxml" 
+	initialWidth="160" initialHeight="50" desiredWidth="220" desiredHeight="400">
+	<mx:Script>
+		<![CDATA[
+			import ui.ticker.TickerItem;
+			import mx.collections.ArrayCollection;
+			import ui.ticker.TickerItemClickEvent;
+			import ui.utils.UIUtils;
+			import model.feeds.FeedModel;
+			import model.feeds.FeedItem;
+			import model.logger.Logger;
+
+			[Bindable] public var feedModel: FeedModel;
+			
+			public var currentSide: Number;
+			
+			override protected function handleCreationComplete(event: Event): void {
+				super.handleCreationComplete(event);
+				
+				refreshItemList();
+				addEventListener(TickerItemClickEvent.TICKER_ITEM_CLICK, handleTickerItemClick);
+				DetailPopupManager.instance.addEventListener(DetailPopupManagerEvent.DETAIL_POPUP_CLOSE, handleDetailPopupClose);
+			}		
+			
+			private function refreshItemList(): void {
+				var starredItems: Array = feedModel.getStarredItems();
+				if (starredItems == null || starredItems.length == 0) {
+					currentState = "noStarred";
+				}
+				else {
+					currentState = "";
+					itemList.dataProvider = UIUtils.convertFeedItemsToTickerItems(starredItems);
+				}
+			}
+
+			/**
+			 * Handler for clicking on a ticker item. This pops up the detail popup window for that item.
+			 */
+			private function handleTickerItemClick(event: TickerItemClickEvent): void {
+				var item: TickerItem = event.tickerItem;
+				DetailPopupManager.instance.popUpItem(item, true, currentScreen, currentSide);
+			}
+			
+			/**
+			 * Handler for detail popup close. If the item is unstarred, we remove it from the list.
+			 */
+			private function handleDetailPopupClose(event: DetailPopupManagerEvent): void {
+				var feedItem: FeedItem = FeedItem(event.popup.data.feedItem);
+				if (feedItem != null && !feedItem.starred) {
+					// TODO: just remove the one item
+					refreshItemList();
+				}
+			}
+			
+			override public function doClose(): void {
+				super.doClose();
+				DetailPopupManager.instance.closePopups();
+			}
+		
+		]]>
+	</mx:Script>
+	<popupChildren>
+		<mx:Label text="Starred Items" left="3" y="3" right="42" minWidth="25"/>
+		<mx:Button id="closeButton" styleName="closeButton" width="16" height="16" y="3" right="3" click="doClose()"/>
+		<mx:HRule left="0" right="0" y="24" strokeWidth="1" strokeColor="#666666"/>
+		<mx:List id="itemList" top="30" left="5" bottom="5" right="5"
+			itemRenderer="ui.ticker.TickerItemVertical" />
+	</popupChildren>
+	<states>
+		<mx:State name="noStarred">
+			<mx:RemoveChild target="{itemList}"/>
+			<mx:AddChild relativeTo="{childContainer}" position="lastChild">
+				<mx:VBox horizontalCenter="0" verticalCenter="0" horizontalAlign="center" visible="false" width="100%">
+					<mx:Label fontSize="16" text="You have no starred items."/>
+					<mx:Text width="90%" textAlign="center" text="When you want to save items for later, star them, then come back here to read them."/>
+				</mx:VBox>
+			</mx:AddChild>
+		</mx:State>
+	</states>
+</Popup>

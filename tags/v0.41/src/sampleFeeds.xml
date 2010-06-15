@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<opml version="1.0">
+  <head>
+    <title>Sample feeds for Snackr</title>
+  </head>
+  <body>
+    <outline text="nj - much ado about something" xmlUrl="http://www.rictus.com/muchado/feed/" htmlUrl="http://www.rictus.com/muchado"/>
+    <outline text="Flex Team Blog" xmlUrl="http://blogs.adobe.com/flex/atom.xml" htmlUrl="http://blogs.adobe.com/flex"/>
+    <outline text="Latest Adobe News" xmlUrl="http://feeds.adobe.com/xml/rss.cfm?query=byMostRecent&languages=1" htmlUrl="http://feeds.adobe.com"/>
+    <outline text="A List Apart" xmlUrl="http://www.alistapart.com/rss.xml" htmlUrl="http://www.alistapart.com/"/>
+    <outline text="Adobe Blogs" xmlUrl="http://blogs.adobe.com/index.xml" htmlUrl="http://blogs.adobe.com/"/>
+    <outline text="Ars Technica" xmlUrl="http://feeds.arstechnica.com/arstechnica/BAaf" htmlUrl="&lt;link xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;>http://arstechnica.com/index.ars&lt;/link>&#xA;&lt;atom10:link rel=&quot;self&quot; href=&quot;http://arstechnica.com/index.ars/rss&quot; type=&quot;application/rss+xml&quot; xmlns:atom10=&quot;http://www.w3.org/2005/Atom&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;/>"/>
+    <outline text="BBC News | News Front Page | UK Edition" xmlUrl="http://news.bbc.co.uk/rss/newsonline_uk_edition/front_page/rss091.xml" htmlUrl="http://news.bbc.co.uk/go/rss/-/1/hi/default.stm"/>
+    <outline text="Boing Boing" xmlUrl="http://boingboing.net/rss.xml" htmlUrl="&lt;link xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;>http://www.boingboing.net/&lt;/link>&#xA;&lt;atom10:link rel=&quot;self&quot; href=&quot;http://feeds.feedburner.com/boingboing/iBag&quot; type=&quot;application/rss+xml&quot; xmlns:atom10=&quot;http://www.w3.org/2005/Atom&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;/>"/>
+    <outline text="CNET News.com" xmlUrl="http://news.com.com/2547-1_3-0-5.xml" htmlUrl="http://www.news.com/"/>
+    <outline text="Christian Science Monitor | Top Stories" xmlUrl="http://www.csmonitor.com/rss/top.rss" htmlUrl="&lt;link xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;>http://csmonitor.com&lt;/link>&#xA;&lt;atom10:link rel=&quot;self&quot; href=&quot;http://www.csmonitor.com/rss/top.rss&quot; type=&quot;application/rss+xml&quot; xmlns:atom10=&quot;http://www.w3.org/2005/Atom&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;/>"/>
+    <outline text="Dictionary.com Word of the Day" xmlUrl="http://dictionary.reference.com/wordoftheday/wotd.rss" htmlUrl="http://www.dictionary.com/wordoftheday/"/>
+    <outline text="Encyclopædia Britannica Online Daily Content" xmlUrl="http://www.britannica.com/eb/dailycontent/rss" htmlUrl="http://www.britannica.com/?source=RSSOTD"/>
+    <outline text="MetaFilter" xmlUrl="http://xml.metafilter.com/rss.xml" htmlUrl="&lt;link xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:admin=&quot;http://webns.net/mvcb/&quot; xmlns:content=&quot;http://purl.org/rss/1.0/modules/content/&quot; xmlns:rdf=&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;>http://www.metafilter.com/&lt;/link>&#xA;&lt;atom10:link rel=&quot;self&quot; href=&quot;http://feeds.feedburner.com/Metafilter&quot; type=&quot;application/rss+xml&quot; xmlns:atom10=&quot;http://www.w3.org/2005/Atom&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:admin=&quot;http://webns.net/mvcb/&quot; xmlns:content=&quot;http://purl.org/rss/1.0/modules/content/&quot; xmlns:rdf=&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;/>"/>
+    <outline text="NYT > NYTimes.com Home" xmlUrl="http://www.nytimes.com/services/xml/rss/userland/HomePage.xml" htmlUrl="http://www.nytimes.com/pages/index.html?partner=rssuserland"/>
+    <outline text="Official Google Blog" xmlUrl="http://googleblog.blogspot.com/atom.xml" htmlUrl="http://googleblog.blogspot.com/http://www.blogger.com/feeds/10861780/posts/default?alt=atom&amp;start-index=26&amp;max-results=25&amp;redirect=falsehttp://googleblog.blogspot.com/feeds/posts/defaulthttp://feeds.feedburner.com/blogspot/MKuf"/>
+    <outline text="Slashdot" xmlUrl="http://slashdot.org/index.rss" htmlUrl="http://slashdot.org/"/>
+    <outline text="The Register" xmlUrl="http://www.theregister.co.uk/tonys/slashdot.rdf" htmlUrl="http://www.theregister.co.uk/"/>
+    <outline text="Wired: Top Stories" xmlUrl="http://www.wired.com/news_drop/netcenter/netcenter.rdf" htmlUrl="&lt;link xmlns:pheedo=&quot;http://www.pheedo.com/namespace/pheedo&quot; xmlns:taxo=&quot;http://purl.org/rss/1.0/modules/taxonomy/&quot; xmlns:rdf=&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot; xmlns:itunes=&quot;http://www.itunes.com/dtds/podcast-1.0.dtd&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;>http://www.wired.com/rss/index.xml&lt;/link>&#xA;&lt;atom10:link rel=&quot;self&quot; href=&quot;http://feeds.wired.com/wired/index&quot; type=&quot;application/rss+xml&quot; xmlns:atom10=&quot;http://www.w3.org/2005/Atom&quot; xmlns:pheedo=&quot;http://www.pheedo.com/namespace/pheedo&quot; xmlns:taxo=&quot;http://purl.org/rss/1.0/modules/taxonomy/&quot; xmlns:rdf=&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot; xmlns:itunes=&quot;http://www.itunes.com/dtds/podcast-1.0.dtd&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:feedburner=&quot;http://rssnamespace.org/feedburner/ext/1.0&quot;/>"/>
+  </body>
+</opml>

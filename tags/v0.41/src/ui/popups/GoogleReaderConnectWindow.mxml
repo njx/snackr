@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Copyright (c) 2008 Narciso Jaramillo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without 
+	modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, 
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright 
+      notice, this list of conditions and the following disclaimer in the 
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Narciso Jaramillo nor the names of other 
+      contributors may be used to endorse or promote products derived from 
+      this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+	DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE 
+	FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+	DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+	SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE 
+	USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" height="240" width="380" layout="absolute" horizontalCenter="0" verticalCenter="0" 
+	showTitleBar="true" systemChrome="none" type="utility" showGripper="false" showFlexChrome="true"
+	transparent="true" minimizable="false" maximizable="false" resizable="false" alwaysInFront="true"
+	title="Connect to Google Reader" xmlns:utils="ui.utils.*" horizontalScrollPolicy="off" verticalScrollPolicy="off"
+	close="handleClose(event);">	
+	<mx:states>
+		<mx:State name="Expanded">
+		</mx:State>
+		<mx:State name="CaptchaExpanded">
+			<mx:AddChild>
+				<mx:Image left="col2:11" y="137" width="200" height="70" id="captchaImage" />
+			</mx:AddChild>
+			<mx:AddChild>
+				<mx:Text left="col2:10" y="215">
+					<mx:htmlText>
+						<![CDATA[Google Reader needs to confirm that you're human.
+Enter the text you see above:]]>
+					</mx:htmlText>
+				</mx:Text>				
+			</mx:AddChild>
+			<mx:AddChild>
+				<mx:TextInput tabIndex="3" left="col2:10" y="255" width="170" id="captchaInput" />
+			</mx:AddChild>
+			<mx:SetProperty target="{connectButton}" name="y" value="269" />
+			<mx:SetProperty target="{authenticatingSpinner}" name="y" value="295" />
+			<mx:SetProperty target="{authenticatingLabel}" name="y" value="288" />
+			<mx:SetProperty target="{successMessage}" name="y" value="288" />
+			<mx:SetProperty target="{badPasswordText}" name="y" value="288" />
+			<mx:SetProperty target="{badConnectionText}" name="y" value="288" />			
+		</mx:State>
+<!--		<mx:State name="Success">
+			<mx:RemoveChild target="{text1}"/>
+			<mx:RemoveChild target="{userNameLabel}"/>
+			<mx:RemoveChild target="{userNameInput}"/>
+			<mx:RemoveChild target="{passwordInput}"/>
+			<mx:RemoveChild target="{passwordLabel}"/>
+			<mx:RemoveChild target="{button1}"/>
+			<mx:RemoveChild target="{button2}"/>
+			<mx:RemoveChild target="{authenticatingLabel}"/>
+			<mx:RemoveChild target="{authenticatingSpinner}"/>
+			<mx:RemoveChild target="{badConnectionText}"/>
+			<mx:RemoveChild target="{badPasswordText}"/>
+			<mx:AddChild position="lastChild" id="addSuccessMessage">
+				<mx:Label id="successMessage" horizontalCenter="0" y="25" text="Snackr is now connected to Google Reader!"/>
+			</mx:AddChild>
+		</mx:State>-->
+	</mx:states>
+	<mx:transitions>
+		<mx:Transition fromState="*" toState="Expanded">
+			<mx:Resize target="{this}" duration="400" heightTo="320" effectEnd="handleExpanded(event)"/>
+		</mx:Transition>
+		<mx:Transition fromState="*" toState="CaptchaExpanded">
+			<mx:Resize target="{this}" duration="370" heightTo="400" />
+		</mx:Transition>
+<!--		<mx:Transition fromState="*" toState="Success">
+			<mx:Sequence>
+				<mx:Parallel>
+					<mx:Fade duration="1000" alphaTo="0" targets="{[text1, userNameInput, userNameLabel, passwordInput, passwordLabel, button1, button2, authenticatingLabel, authenticatingSpinner]}"/>
+					<ds:AnimateColor xmlns:ds="com.darronschall.effects.*" duration="1000" property="borderColor" toValue="#000000" target="{this}" isStyle="true"/>
+					<utils:AnimateGradient duration="1000" property="titleBarColors" toValue="[#000000, #000000]" target="{this}" isStyle="true"/>
+					
+					<mx:Resize target="{this}" heightTo="66" duration="400" startDelay="900" />
+				</mx:Parallel>
+				<mx:RemoveChildAction targets="{[text1, userNameInput, userNameLabel, passwordInput, passwordLabel, button1, button2, authenticatingLabel, authenticatingSpinner]}"/>
+				<mx:AddChildAction target="{successMessage}" />
+			</mx:Sequence>
+		</mx:Transition>-->
+	</mx:transitions>
+	<mx:Fade id="fadeOutWindow" target="{this}" alphaTo="0.0" duration="500" effectEnd="close()"/>
+	<mx:constraintColumns>
+		<mx:ConstraintColumn id="col1" />
+		<mx:ConstraintColumn id="col2" width="100%"/>
+	</mx:constraintColumns>
+	<mx:Script>
+		<![CDATA[
+			import model.feeds.FeedModel;
+			import model.feeds.readers.ReaderSynchronizerManager;
+			import model.feeds.readers.SynchronizerEvent;
+			import model.options.OptionsModel;
+			
+			import mx.events.CloseEvent;
+			
+			private var _optionsModel:OptionsModel;
+			private var _feedModel: FeedModel;
+			
+			private var lastAuthEvent: SynchronizerEvent;
+			private var captchaToken: String;
+			private var authenticated: Boolean = false;
+			
+			private static const FADE_OUT_DELAY: Number = 10000;
+			
+			public function set feedModel(feedModel: FeedModel) : void {
+				_feedModel = feedModel;
+			}
+			
+			public function set optionsModel(optionsModel: OptionsModel) : void {
+				_optionsModel = optionsModel;
+			}
+		
+			private function handleOkPressed(event: Event) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "1");
+				_optionsModel.setValue(OptionsModel.OPTION_READER_USER_NAME, userNameInput.text);
+				_optionsModel.setValue(OptionsModel.OPTION_READER_PASSWORD, passwordInput.text);
+				ReaderSynchronizerManager.initializeGoogleReaderSynchronizer(_feedModel);
+				lastAuthEvent = null;
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_SUCCESS, handleAuthSuccess);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_BAD_CREDENTIALS, handleAuthBadCredentials);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_FAILURE, handleAuthFailure);
+				ReaderSynchronizerManager.reader.addEventListener(SynchronizerEvent.AUTH_CAPTCHA_CHALLENGE, handleCaptchaChallenge);
+				badConnectionText.visible = false;
+				badPasswordText.visible = false;
+				connectButton.enabled = false;
+				cancelButton.enabled = false;
+				authenticatingLabel.visible = true;
+				authenticatingSpinner.visible = true;
+				authenticatingSpinner.start();
+				if(currentState == "CaptchaExpanded")
+					ReaderSynchronizerManager.reader.authenticateCaptcha(userNameInput.text, passwordInput.text, captchaToken, captchaInput.text);
+				else
+					ReaderSynchronizerManager.reader.authenticate(userNameInput.text, passwordInput.text);
+			}
+			
+			private function handleAuthSuccess(event: SynchronizerEvent) : void {
+				authenticated = true;
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				lastAuthEvent = event;
+				ReaderSynchronizerManager.reader.synchronizeAll();
+				ReaderSynchronizerManager.startSyncTimer();
+				var timer:Timer = new Timer(FADE_OUT_DELAY);
+				timer.addEventListener(TimerEvent.TIMER, function playFadeClose(event: Event) : void {
+					fadeOutWindow.play();
+				});
+				timer.start();
+				if(currentState != "Expanded") {
+					currentState = "Expanded";
+				}
+				else {
+					successMessage.visible = true;
+				}
+			}
+
+			private function handleAuthBadCredentials(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				cancelButton.enabled = true;
+				connectButton.enabled = true;
+				lastAuthEvent = event;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				if(currentState != "Expanded") {
+					currentState = "Expanded";
+				}
+				else {
+					badConnectionText.visible = false;
+					badPasswordText.visible = true;
+				}
+			}
+			
+			private function handleAuthFailure(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				connectButton.enabled = true;
+				cancelButton.enabled = true;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				if(!(lastAuthEvent != null && lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS)) {
+					lastAuthEvent = event;
+					if(currentState != "Expanded") {
+						currentState = "Expanded";
+					}
+					else {
+						badConnectionText.visible = true;
+					}
+				}
+				
+			}
+			
+			private function handleCaptchaChallenge(event: SynchronizerEvent) : void {
+				_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "1");
+				authenticatingLabel.visible = false;
+				authenticatingSpinner.visible = false;
+				connectButton.enabled = true;
+				cancelButton.enabled = true;
+				badPasswordText.visible = false;
+				badConnectionText.visible = false;
+				ReaderSynchronizerManager.initializeNullReaderSynchronizer();
+				if(currentState != "CaptchaExpanded")
+					currentState = "CaptchaExpanded";
+				captchaToken = event.captchaToken;
+				captchaImage.source = event.captchaURL;
+				captchaInput.text = "";			
+			}
+
+			private function handleExpanded(event: Event) : void {
+				if(lastAuthEvent.type == SynchronizerEvent.AUTH_BAD_CREDENTIALS) {
+					badConnectionText.visible = false;
+					badPasswordText.visible = true;
+				}
+				else if(lastAuthEvent.type == SynchronizerEvent.AUTH_FAILURE && !badPasswordText.visible) {
+					badConnectionText.visible = true;
+				}
+				else {
+					successMessage.visible = true;
+				}
+			}
+			
+			private function handleCancelPressed(event: Event) : void {
+				close();
+			}
+			
+			private function handleClose(event: Event) : void {
+				if(!authenticated)
+					_optionsModel.setValue(OptionsModel.OPTION_READER_ENABLED, "0");
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Text left="10" right="10" top="10" bottom="145" id="text1">
+		<mx:htmlText><![CDATA[Enter the user name and password for your Google Account.
+If you do not have a Google Account, you may <a href="https://www.google.com/accounts/NewAccount"><font color="#ADD8E6">create one with Google</font></a>.]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Label left="col1:10" right="col1:0" y="73" textAlign="right" text="User name:" id="userNameLabel"/>
+	<mx:TextInput id="userNameInput" left="col2:10" y="71" width="170" />
+	<mx:Label left="col1:10" right="col1:0" y="106" textAlign="right" text="Password:" id="passwordLabel" />
+	<mx:TextInput displayAsPassword="true" left="col2:10" y="104" width="170" id="passwordInput" />
+	<utils:Spinner right="col1:0" y="134" id="authenticatingSpinner" visible="false" />
+	<mx:Text id="successMessage" left="col2:10" y="140" visible="false">
+		<mx:htmlText>
+			<![CDATA[Snackr is now connected to Google Reader.
+<b>Adding feeds to Snackr will add them
+to Google Reader and vice-versa.</b>
+<b>Removing feeds from Snackr will remove 
+them from Google Reader and vice-versa.]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Label left="col2:10" y="140" text="Contacting Google Reader, please wait..." id="authenticatingLabel" visible="false" />
+	<mx:Text left="col2:10" y="140" id="badPasswordText" visible="false">
+		<mx:htmlText>
+			<![CDATA[<b>The user name and password did not match.</b>
+If you forgot your user name or password, 
+visit <a href="https://www.google.com/accounts/ManageAccount"><font color="#ADD8E6">Google Accounts</font></a> and select "I cannot 
+access my account" from underneath 
+the sign in box.]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Text left="col2:10" y="140" id="badConnectionText" visible="false">
+		<mx:htmlText>
+			<![CDATA[<b>Unable to contact Google Reader.</b>
+Make sure your network connection is 
+functioning and that Google Reader is online.
+			]]>
+		</mx:htmlText>
+	</mx:Text>
+	<mx:Button label="Connect" width="75" click="handleOkPressed(event)" right="93" bottom="10" id="connectButton"/>
+	<mx:Button width="75" label="Cancel" click="handleCancelPressed(event)" right="10" bottom="10" id="cancelButton"/>
+
+</mx:Window>

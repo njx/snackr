@@ -1,0 +1,1 @@
+**IMPORTANT**: v0.37 is now deprecated. Please read the [v0.38 release notes](http://code.google.com/p/snackr/wiki/ReleaseNotes_0_38_TEST) and [download v0.38](http://code.google.com/p/snackr/downloads/detail?name=Snackr-v0.38-TEST.air) instead.
